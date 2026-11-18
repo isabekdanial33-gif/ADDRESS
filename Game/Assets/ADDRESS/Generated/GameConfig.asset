@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e07a9a8b5c2afc41b83d916576db720, type: 3}
+  m_Name: GameConfig
+  m_EditorClassIdentifier: Address.Runtime::Address.Game.GameConfig
+  kit:
+    db: {fileID: 11400000, guid: 75edb5fa0d359914cb3695ae93b25e8e, type: 2}
+    floorMat: {fileID: 2100000, guid: 3047b0f6a1ea36249ade563de23f4ca8, type: 2}
+    wallMat: {fileID: 2100000, guid: f950631945fa7794d8709db07aa0478e, type: 2}
+    ceilingMat: {fileID: 2100000, guid: f97dc18fcdbb59d4c95c6e94db3c2d53, type: 2}
+    lightMat: {fileID: 2100000, guid: a4f1952d7fb427544a98169b698f6a03, type: 2}
+    trofferPrefab: {fileID: 87815574860296664, guid: 3b0ddb8e5ccfed848a913f47cda11782, type: 3}
+    baseboardPrefab: {fileID: 6155309223189538641, guid: 98a2373af26fc7d4cb5d004b71820f0e, type: 3}
+    doorFramePrefab: {fileID: 733537623902673087, guid: bf3112ee982a3264eb8f3e7ded85652f, type: 3}
+    exitDoorPrefab: {fileID: 8771091787928289351, guid: 00c4d82772979964f8c39687a737953f, type: 3}
+    exitElevatorPrefab: {fileID: 8771091787928289351, guid: dd79de44e79d0784f98d6882502df66d, type: 3}
+    exitVentPrefab: {fileID: 8771091787928289351, guid: 529c4a4fcdf621245932301536f5dae0, type: 3}
+    voidMat: {fileID: 2100000, guid: 09aaa1ee74cb3e748af3bb6174247454, type: 2}
+    poolTileMat: {fileID: 2100000, guid: b71812d190e4af74db8658fa6c43c68f, type: 2}
+    basinMat: {fileID: 2100000, guid: 3b099214915e66745a56b853ae725982, type: 2}
+    waterMat: {fileID: 2100000, guid: 65032006036a4b243ad64ce8e6f1e839, type: 2}
+    aeroFloorMat: {fileID: 2100000, guid: 16e53bc1fc605c244b07dfec723c2422, type: 2}
+    aeroWallMat: {fileID: 2100000, guid: c55f8836e048f374e857498eb3795c31, type: 2}
+    glassMat: {fileID: 2100000, guid: 32ebe4e227f70e84c9af9361a5a08f89, type: 2}
+    caustics:
+    - {fileID: 2800000, guid: b6c5578ceaeaa834e98060445e71f2eb, type: 3}
+    - {fileID: 2800000, guid: 9a8be477262742844a94fe46803ad66c, type: 3}
+    - {fileID: 2800000, guid: 93edc93628b10a943986dc717a20cb2a, type: 3}
+    - {fileID: 2800000, guid: 0705aa3a5854af94aa22e10eedea083f, type: 3}
+    - {fileID: 2800000, guid: ded1c091a6fb3a340935ed85fb1f5d03, type: 3}
+    - {fileID: 2800000, guid: 941f773eb9eb68549b3635dd65c53e29, type: 3}
+    - {fileID: 2800000, guid: 5730f5c6b4989a14b9b10ecaa5d662ac, type: 3}
+    - {fileID: 2800000, guid: a20d9d4390d52ef4f91ca7b1d738eb6f, type: 3}
+    - {fileID: 2800000, guid: 4086138f080f1054f872016006c27481, type: 3}
+    - {fileID: 2800000, guid: 4087e8d65806f7249aac64535f9ec8a8, type: 3}
+    - {fileID: 2800000, guid: d36cb143eaf192648b3a6d78d1d382b8, type: 3}
+    - {fileID: 2800000, guid: 34265aa0ef529a2488b3c34ad6239074, type: 3}
+    - {fileID: 2800000, guid: 6fffdcc400ec9f34995a8c091c1219f6, type: 3}
+    - {fileID: 2800000, guid: 2538613080bbc614fbd1b8d92cecf6a8, type: 3}
+    - {fileID: 2800000, guid: 06d8f55a8bbfccc4bb4b5e67007ec4bf, type: 3}
+    - {fileID: 2800000, guid: 0253140fcc5d405429feabc7c6e5ae62, type: 3}
+  ghostOk: {fileID: 2100000, guid: 27b0bcc2dddfc4c4f98b96e368935edf, type: 2}
+  ghostBad: {fileID: 2100000, guid: 336b96a863cd7ff40afe45d988599aa5, type: 2}
+  post: {fileID: 11400000, guid: 98370de69dbe6fd4c94083e3c30a0e42, type: 2}
+  bodyPrefab: {fileID: 3922955677500536164, guid: 3ca86b4462c342045847d25470243cbd, type: 3}
+  fpArmLeft: {fileID: 6519566086452448254, guid: 8577107272dd3f649ae347f5646d6f53, type: 3}
+  fpArmRight: {fileID: -7148320282855928985, guid: ccc539f339a155348bac3b8e3c6b68ec, type: 3}
+  audio:
+    hum: {fileID: 8300000, guid: 20bcffc0b07d59544b4a68ead5547b4a, type: 3}
+    roomTone: {fileID: 8300000, guid: 5f6de2bb746cf5a4d9a791f6b1aec5f1, type: 3}
+    breath: {fileID: 8300000, guid: 67acf642bd52d894ca5aa649c35800c7, type: 3}
+    door: {fileID: 8300000, guid: ee651027a828c2544898a1f4f7864c6f, type: 3}
+    elevator: {fileID: 8300000, guid: 50c0e85a98c43ec4190c92ff3541f37c, type: 3}
+    vent: {fileID: 8300000, guid: 012740c500a9bc2448bfce6b0efa77af, type: 3}
+    shutter: {fileID: 8300000, guid: 7aafadd7b5c79494eb8d51661ecbfe54, type: 3}
+    travel: {fileID: 8300000, guid: 353546f18d73b494aa2d2c0fa9320e09, type: 3}
+    steps:
+    - {fileID: 8300000, guid: c376a49b60ec047459a31f81ff4d1c03, type: 3}
+    - {fileID: 8300000, guid: 4517f230e273ae643bc8474c868f3cdb, type: 3}
+    - {fileID: 8300000, guid: 5e7f023bd4253fe489b719d76c1d5c83, type: 3}
+    - {fileID: 8300000, guid: 5b3615c3c55a8634bb66359c41678abf, type: 3}
+    - {fileID: 8300000, guid: 7594498515926304cb653167dbf92b7c, type: 3}
+    - {fileID: 8300000, guid: caec148ce97f6fe4d9ba6fadc424887e, type: 3}
+  dustMat: {fileID: 2100000, guid: 0aeb6a4b8fefdc64685332b1f18acc69, type: 2}
+  netAvatarPrefab: {fileID: 2764750054443914304, guid: b89844b4c27b6fd468dc04be83700d68, type: 3}
+  netSessionPrefab: {fileID: 8730916101995771076, guid: 9466f63515f38a54ca5c87a39da36f14, type: 3}

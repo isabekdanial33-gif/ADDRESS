@@ -1,0 +1,128 @@
+# ADDRESS — progress log (read this first when resuming)
+
+## How to run things
+- Unity 6000.4.6f1, project `C:\Users\aurel\ADDRESS\Game` (URP 17.4, glTFast 6.21).
+- Batch helper: `powershell -File Tools/unity.ps1 -Method <Class.Method> -Extra "<args>"` → log in `Docs/reports/logs/<Method>.log`, prints compile errors + `[ADDRESS]` lines.
+- Assets: `python -I Tools/fetch_assets.py` (CC0 Poly Haven/ambientCG from manifest). Semantics: edit `Tools/gen_profiles.py` → `python -I Tools/gen_profiles.py` → `Game/Assets/ADDRESS/Data/profiles.json`.
+- Pipeline order after new models: `AssetTools.PrepareAll` → `ProfileBuilder.BatchBuild` → `Thumbnails.BatchRender` (Docs/reports/thumbs) → `TestFarm.Run -seeds N -overview K -failshots M` (Docs/reports/farm/report.md, failures/, overview/).
+- Do not open the game as a desktop window for testing; use batch renders.
+
+## Done (M0 + most of M1)
+- Project, URP tiers Low/Medium/High/Ultra (`RenderingSetup`), layers (`ProjectSetup`), 49 CC0 models + 20 materials.
+- ProfileBuilder: pivot/orientation, surface extraction (multi-hit rays), voxel compound colliders with Y-breaks exactly at surfaces, interior fill, enclosed "inside" surfaces, set splitting by spatial clusters, thin-object fallback.
+- PlacementEngine: 9 checks (Style, Bounds, Navigation, Collision, Clearance zones, Surface, Support with real underside contacts + COM margin, Rotation, Semantic, Density) + physical settle on commit (undo if moves >2.5 cm).
+- Scenarios: workstation (desk/chair tucked/computer/papers/stationery/drink/clock), shelf units, stacks, lounge (sofa/table/armchairs/side table/TV), wall decor, ceiling, fallen states, FloatingRing intentional anomaly.
+- PlacementAudit (independent): exact penetration, underside contacts, tilt, wall/ceiling contact, 1.5 s physics settle of everything, nav reachability.
+- TestFarm with report + failure screenshots + overview shots.
+
+## Latest farm result (2026-11-18, 30 seeds)
+4224 objects, 5 issues (3 Unstable, 2 Navigation pockets), 26/30 levels clean, 0 intersections, 0 floating.
+
+## Update 2026-11-18 (later)
+- 200-seed farm (seeds 1000-1199): 57 522 objects, 0 intersections, 0 floating, 23 "Unstable" (0.04%) -> OverlapTol tightened 3mm->1mm; 20-seed rerun: 6235 objects, 0 issues.
+- Nav pockets: engine refuses placements that create unreachable cells (navStart).
+- Density: DeskIsland (back-to-back desks), fuller shelves (items picked by what fits), keyboards in front of desktop monitors.
+- Blender kit (Tools/blender/kit_backrooms.py): crt_monitor, keyboard, mug_coffee/empty, wall_outlet, light_switch, vent_grille, troffer, baseboard_1m, door_frame. Previews: Tools/blender/preview_glb.py.
+- Backrooms look: generated textures (Tools/make_textures.py) BR_Wallpaper/BR_Carpet; recessed troffers with ceiling holes, spot lights down, Trilight ambient tuned (ground colour lights the ceiling).
+- M3 player: FirstPersonController, GrabSystem (aim assist, spring hold, ghost green/red using engine.PlayerPlaceCheck, throw, kinematic sweep push of heavy furniture with riders), ScriptedInput.
+- Automated play-test `PlayTest.Run` -> Docs/reports/playtest (frames + events.txt). Verified: pick clock from desk & place upright on floor; pick+throw chair; push desk 12 cm until blocked, pull back, 4 riders stayed on it.
+
+## Next
+1. M4: real Backrooms layout generator (room graph, openings, open-plan, mostly-empty rooms) + runtime bootstrap scene + LevelAddress use + level cache.
+2. M5: exits (handleless door, elevator, vent behind cabinet) + ReachabilitySolver + transitions + AddressBook (unique addresses).
+3. Character (yellow hazmat suit) in Blender; hands in first person.
+4. Main menu, settings (quality tiers), archive, camera/photo scoring.
+
+## Update 2026-11-18 (M4 + M5 core loop)
+- World/LayoutGenerator: BSP rooms on 0.5 m grid, spanning tree + 35% loops, Door (1.0 m, frame) / Wide / Merge openings, wall runs without corner z-fighting, RoomSpecs with inner wall faces.
+- World/LevelBuilder: thick floor slab (3 m) + ceiling with troffer holes, walls, lintels, door frames, baseboards (cut at exits), troffers + spot lights (1/4 cast shadows), NavGrid carved by physics (CarveObstacles) so paths can't cross walls, furnishing per room kind (45% empty = liminal).
+- Determinism: physical settle is a VALIDATOR only (pose restored) -> rebuild of an address is bit-identical (LevelFarm checks it).
+- Exits (World/Exits.cs): ExitPlanner (far/dead-end rooms, exit 0 always Forward), forms HandlelessDoor (wallpaper leaf + dark seam), Elevator (doors sink+slide), VentHatch; roles Forward/Loop/False; approach walkway reserved; reachability verified after furnishing + Repair removes blocking furniture. Blender: Tools/blender/kit_exits.py.
+- Echo (World/Echo.cs): g = g-1 + one step of 3 mutations (light off, flicker, remove/shift/rotate prop via engine, darker walls). AddressBook (visited, NextFree, echo links) in persistentDataPath.
+- Game/GameRoot + GameConfig + Scenes/Game.unity (GameSetup.Setup): runtime loop with fade, HUD dot + "E" hint + faint address label, noclip fallback.
+- LevelFarm 40 levels: 1918 rooms, 31 746 objects, 0 audit issues, 124/124 exits reachable, deterministic.
+- Journey (bot end-to-end): 6 hops loop->g1->g2->forward x3 through door/vent/elevator, all entered. Fixed: player falling through thin floor when wedged on furniture (thick floor + floor safety + stepOffset 0.2).
+
+## Next
+- Windows build check; main menu (address/phrase entry); settings (quality tiers); character (hazmat) + FP hands; photo camera + archive; door leaf wallpaper UV density; sounds (hum, steps).
+
+## Update 2026-11-18 (build, character, menu, perf)
+- Windows build: `GameSetup.BuildWindows` -> Build/ADDRESS.exe (688 MB). Headless runtime check: `Build/ADDRESS.exe -batchmode -nographics -smoketest -logFile ...` -> menu level, new path, exit, travel, pause/resume: "smoke OK", 0 exceptions. (GameConfig must live in GameConfig.cs - ScriptableObject file name rule.)
+- Character: Tools/blender/character_hazmat.py (base: CC0 Blender Studio human base meshes in Art_src/downloads/hbm). Suit/hood/mask/gloves/boots/tape/zipper, Humanoid rig valid. CharacterSetup.Run -> Generated/Prefabs/HazmatBody.prefab (wrapped, rotated 180, gamma colours), ProceduralBody (procedural walk, FP offset, hood/mask shadows-only). Previews: Docs/reports/character, character_unity.
+- MenuUI (Russian): Продолжить / Новый путь / Ввести адрес или фразу / Архив / Настройки (quality, sensitivity, FOV, invert) / Выход; Esc = pause. Live level background with slow look-around.
+- LevelOptimizer: lights within range per tier, shadows only N nearest, props distance-culled time-sliced, architecture static-batched (exits under separate "Exits" root). Perf probe (VisualCheck, Intel Arc 1080p, synced): Low 122 / Med 82 / High 58 / Ultra 50 fps (was 14 on High).
+
+## Next
+- Photo camera + score + archive with photos; sounds (fluorescent hum, carpet steps, breathing in mask); door leaf wallpaper UV; hands animation when holding; Poolrooms + Frutiger Aero aesthetics (wave 1 remainder); co-op later.
+
+## Update 2026-11-18 (audio + photo)
+- Tools/make_sounds.py synthesises: fluorescent hum (120 Hz series + ballast buzz), room tone, 6 carpet steps, mask breathing (inhale/valve/exhale flutter), door creak, elevator chime+motor, vent clank, shutter, travel whoosh. Spectrograms checked (Docs/reports/sound_spectrograms.png).
+- AudioDirector: 6 hum sources follow nearest lit fixtures (3D, detuned), room tone, steps by distance, breathing faster after running; exit sounds; travel sound.
+- PhotoCamera (F): score = rarity x frame fill x framing (+exits/anomalies/echo changes), saved to persistentDataPath/photos + album.json; Archive page lists top photos + places + echo links.
+- NOTE: smoke tests write to the real save (LocalLow/ADDRESS/ADDRESS) - delete address_book.json and photos/ after running them.
+
+## Update 2026-11-18 (Poolrooms)
+- Poolrooms (address aesthetic "PR"): white glazed tiles (Tiles107), basins 1.2 m deep with aqua tiles (pool_tile_aqua), 6 steps of 0.2 m, water at -0.12 (Shaders/Water.shader: refraction via opaque texture, depth absorption, Fresnel probe reflection, Forward+ light-loop speculars, edge fade), caustics = spot light cookie flipbook (Tools/make_water_textures.py, Worley F2-F1 network, CausticAnimator). Floor = holed plane + grid BoxColliders (FloorWithBasins). keepOut zones stop furniture standing in pools; nav excludes basins; no basins in exit/start rooms.
+- URP assets: m_RequireDepthTexture / m_RequireOpaqueTexture = 1 (were silently off - wrong field names).
+- Hard exit guarantee in LevelBuilder.Build: promote a reachable exit to Forward, else deterministic regeneration (attempt seeds). PR farm 30 levels: 84/84 exits reachable, 30/30 forward, 3 regenerations; BR farm 30 levels unchanged (0 issues, deterministic).
+- GameRoot: ApplyAtmosphere per aesthetic; NextAesthetic by exit form (vent 55% PR, lift 40%, door 20%, +15% when already in PR).
+
+## Update 2026-11-18 (Frutiger Aero + Director)
+- Frutiger Aero ("FA"): Tools/blender/kit_aero.py (aero_tube water column with bubbles, aero_planter, aero_bench, aero_orb); glass swap in ProfileBuilder (materials named *glass* -> Generated/Materials/Glass.mat); FA_Floor/FA_Wall; 35% interior walls become glass partitions; atrium furnishing; cool atmosphere. FA farm 20 levels: 0 issues, 59/59 exits reachable, deterministic.
+- Per-level realtime ReflectionProbe rendered once (all aesthetics).
+- Perf (Arc 1080p): PR High ~84 fps, FA High ~54 fps (glass/transparency), BR High ~58.
+- Director: quiet escalation at 8/13/18 min: dust draft into the forward exit, failing lamp next to it, moving-air sound.
+- NextAesthetic picks BR/PR/FA by exit form.
+
+## Update 2026-11-18 (rare places)
+- Rare places (~1 in 20, rolled from the address): "silent" (forward exit hidden until the player stands still 60 s), "photo" (hidden exit is revealed by photographing its wall, +500 score), "vast" (LayoutGenerator.Vast: one enormous hall + side room). ExitTrigger.SetHidden.
+- 120-level BR farm: 85 402 objects, 1 Unstable, 365/365 exits reachable, 120/120 forward; rare 2/2/2.
+- Director needs config.dustMat (Shader.Find is stripped in builds - always reference materials via assets).
+
+## Update 2026-11-18 (co-op, partially verified) - USAGE LIMIT REACHED HERE
+- Netcode for GameObjects 2.11.1 + Transport 2.7.2; Net/NetLauncher (host/join port 7777, max 2), NetSession (Address + LevelHash vars, RequestTravelRpc), NetAvatar (owner pos/yaw, remote hazmat body). Menu page "Кооператив". Test: Build/ADDRESS.exe -batchmode -nographics -nethost / -netclient.
+- VERIFIED (2 real processes): client connects, receives address, generates the SAME level (hash equal at entry, twice: BR then FA after host travelled through an exit).
+- OPEN: (1) client's later hash recheck differs (something changes after entry - check Director/Echo/LevelOptimizer or physics on props); (2) remote avatar reported moved 0 m - host walks before client finds avatar, or NetworkVariable writes from teleport not sent; (3) moved objects are not synced yet.
+- Clean LocalLow/ADDRESS saves after net tests.
+
+## Update 2026-11-18 (co-op verified)
+- Fixed: (1) StructuralHash ignores bobbing intentional anomalies; (2) player CharacterController disabled during generation - its capsule (peer-specific position) changed physical-stability results between machines -> cross-process determinism now holds; (3) test timing.
+- Object sync: GrabSystem.onObjectMoved (10 Hz while held/pushed, 2.5 s after release) -> NetSession.ObjectPoseRpc(uid,...) (SendTo.NotMe, RequireOwnership=false); uid is identical on all peers.
+- Two-process test (host+client, x2 runs): every level SAME PLACE, remote avatar moves, object moved by host arrives at the exact position, client follows host through exits (BR and FA).
+- Still open: real LAN between two PCs not tested; hands pose while holding; entities; wave 2 aesthetics; FA perf (High ~54 fps on Arc).
+
+## Update 2026-11-18 (60 fps on Arc)
+- Breakdown probe (VisualCheck, High): shadowed spot lights were the main cost (~6 ms for 4); MSAA/post/opaque copy ~0.
+- LevelOptimizer shadow casters: Low 0 / Med 1 / High 2 / Ultra 4 (was 0/2/4/6). Visually indistinguishable in BR.
+- FrameGovernor: adaptive render scale (tier native -> 0.72 floor, steps 0.05) holding 60 fps; FPS counter (F3 or settings), settings toggles "Авто-разрешение", "Показывать FPS".
+- Probe Arc 1080p High: BR 66, FA 66, PR 88 fps (was 58/54/84). Build rebuilt, smoke OK, save cleaned.
+
+## Update 2026-11-18 (user played the build: fixes)
+- CRITICAL: in the player build every level after the first rendered NOTHING (sky only). Cause: URP GPU Resident Drawer with runtime-built/destroyed levels. GRD off in all tiers (RenderingSetup + assets). Perf High after: BR 64 / FA 66 fps.
+- CRITICAL: physics never ran in the game (DynamicsManager SimulationMode = Script, left by editor test tools). Project setting back to FixedUpdate + GameRoot forces FixedUpdate at start.
+- New build-side visual test: `Build/ADDRESS.exe -batchmode -shots` (GPU, no window) -> Build/shots/*.png: menu pages, title card, 4 directions, body side views (walk/run/jump/crouch), FP look-down, grab + hands, photo toast. ALWAYS run it before handing a build over.
+- Body: ProceduralBody rewritten - swings in body space (axis-safe), walk/run/jump/crouch poses, two-bone arm reach + palm twist when holding; FP body slides back when looking down (boots visible, no chest blob); neck/head/hood/mask shadow-only. Jump (Space, coyote time). Held objects carried at chest height (hold 0.68/0.9 m).
+- UI: UiKit (Russo One + IBM Plex Mono, OFL, Resources/Fonts), new MenuUI (flicker+glitch title, scrambling address ticker, animated indexed buttons with sound, footer stats, Esc back), Hud (dot->ring crosshair, key-cap prompts, typed address title card, photo toast, vignette).
+
+## Backlog from the user (2026-11-18, after playing) - work through in order
+1. Body/anims: no distortion, no wrist wringing when holding, held object never enters the body when looking down (DONE: HoldPoint pitch clamp + min distance), camera never sees inside the body.
+2. Grab rework: smooth/responsive, LMB always does something (DONE: drop when no valid spot), thrown items re-pickable (verify), nothing hangs in the air (floating anomalies 0.04 -> 0.008 per empty room; grabbing an anomaly makes it normal).
+3. Interactions: working light switches, sit on chairs/sofas (only grounded upright ones), inspectable shelves/cabinets (search -> find items), peripherals + cables to connect to computers.
+4. Computer terminal: retro desktop OS + 2007-style web browser (original names, no real brands).
+5. Environment bugs: props sinking into walls (e.g. cages), wrong glass rendering.
+6. Variety: more objects, new worlds (Dreamcore, Weirdcore, Bluehour), redesigned door models, entities in all worlds (DONE v1: Stalker "Отголосок").
+7. Sound: replace annoying/repetitive SFX (door open, music/ambience loops).
+Testing: `Tools/run_build.ps1 -Mode -playvideo` -> Build/video_frames -> Docs/videos/*.mp4 (ffmpeg from imageio-ffmpeg); review contact sheets + local qwen2.5vl (Ollama).
+8. Character rework (user: "переработать персонажа").
+9. Frutiger Aero: NO ceiling (open sky) and NO rooms - one open space (atrium/park/glass, no partitions); smooth door-less transition FA -> Poolrooms (open archway/water passage + crossfade from the last frame, no black fade). Make Poolrooms easy to reach.
+10. Computer: REAL browser (UnityWebBrowser 2.2.8, CEF, MIT) styled 2007: default via Wayback Machine 2007 snapshots, toggle for modern web, offline fallback = WebGen Library web; normal apps (notepad, calculator, paint, mines, cmd, player, explorer); dirty CRT screen (curvature, scanlines, noise, smudges, flicker).
+
+## Update 2026-11-18 (late morning) - done from the backlog
+- FP view: FpArms (Tools/blender/fp_arms.py cuts sleeve+glove from the character -> Art/Character/FP/fp_arm_*.glb), under the camera, hands grip the held object's sides, E = reach. FP body shows only hips/legs/boots; torso/arms/mask shadow-only. Hold point pitch-clamped, never inside the body.
+- Interactions (Runtime/Interact): LightSwitch (room lights), Seat (sit/stand, only upright grounded seats), Container (search -> cable/mouse/keyboard, deterministic), CablePickup, Device/ComputerStation/CableLink (tower hub, monitor/keyboard/mouse need a cable; sagging LineRenderer cable, breaks when stretched), laptop = self-contained.
+- Computer: ComputerUI = BIOS boot + "КомпОС 2000" desktop (Win9x bevels, taskbar, start menu, windows, notepad, my computer, bin) rendered to RT by its own camera (must NOT be a child of the canvas) and shown through Shaders/CRT.shader (Resources/CRT.mat; curvature, 600-line pixel grid, scanlines, bleed, smudges, noise). REAL browser: UnityWebBrowser 2.2.8 (CEF) - events marshalled to main thread (else crash); "2007" mode = web.archive.org/web/2007if_/; search = html.duckduckgo.com; own 2007 start page. Offline -> WebGen Library web.
+- New models: kit_tech.py (pc_tower, ball_mouse, cable_coil) + profiles; kit_exits.py v2 (panel door with lever handle; half the doors hidden-wallpaper without handle; richer elevator).
+- Frutiger Aero = open park: LayoutGenerator.Park, no ceiling, sun + procedural sky (Resources/SkyAero.mat), low glass balustrade, endless plaza, ponds, only Archway exits = tiled pavilions -> Poolrooms with a crossfade from the last frame (no black fade).
+- Bugs fixed: physics Script mode, GPU Resident Drawer, floating anomalies 0.04 -> 0.008, LMB always does something (drop), entity final approach.
+- Tests: -shots, -playvideo (bot plays + records Build/video_frames), -computertest; Tools/run_build.ps1 kills the game after.
+- STILL TODO: sound overhaul (#7), more object variety + wave-2 worlds, props sinking into walls / glass rendering check (#5), full third-person body rework, palm orientation polish, bot pathing.

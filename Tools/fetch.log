@@ -1,0 +1,71 @@
+model metal_office_desk: 5 files (0 new)
+model SchoolDesk_01: 5 files (0 new)
+model SchoolChair_01: 5 files (0 new)
+model modern_arm_chair_01: 8 files (2 new)
+model plastic_monobloc_chair_01: 5 files (0 new)
+model drawer_cabinet: 5 files (0 new)
+model Shelf_01: 5 files (1 new)
+model wooden_bookshelf_worn: 5 files (2 new)
+model side_table_01: 5 files (0 new)
+model modern_coffee_table_01: 5 files (4 new)
+model Sofa_01: 5 files (4 new)
+model ArmChair_01: 5 files (4 new)
+model metal_stool_01: 5 files (5 new)
+model industrial_storage_cart: 5 files (5 new)
+model vintage_cabinet_01: 9 files (9 new)
+model cardboard_box_01: 5 files (5 new)
+model plastic_crate_01: 5 files (5 new)
+model binder_notebook: 5 files (5 new)
+model office_notepads: 5 files (5 new)
+model clipboard: 5 files (5 new)
+model stationery_supplies: 5 files (5 new)
+model vintage_stapler: 5 files (5 new)
+model classic_laptop: 5 files (5 new)
+model Television_01: 5 files (5 new)
+model desk_lamp_arm_01: 5 files (5 new)
+model potted_plant_01: 8 files (8 new)
+model potted_plant_02: 8 files (8 new)
+model wall_clock: 6 files (6 new)
+model fire_alarm: 5 files (5 new)
+model korean_fire_extinguisher_01: 11 files (11 new)
+model WetFloorSign_01: 5 files (5 new)
+model trashbag: 5 files (5 new)
+model plastic_thermos: 5 files (5 new)
+model rubber_duck_toy: 5 files (5 new)
+model lightbulb_led: 5 files (5 new)
+model security_camera_01: 5 files (5 new)
+model alarm_clock_01: 5 files (5 new)
+FAIL model decorative_book_set_01: 'gltf'
+model Camera_01: 11 files (11 new)
+model old_gas_mask: 5 files (5 new)
+model rubber_boots: 8 files (8 new)
+model life_jacket: 5 files (5 new)
+model plastic_container: 5 files (5 new)
+model vintage_suitcase: 8 files (8 new)
+model fancy_picture_frame_01: 8 files (8 new)
+model modern_ceiling_lamp_01: 5 files (5 new)
+model ceiling_fan: 7 files (7 new)
+model projector_screen: 8 files (8 new)
+model jug_01: 5 files (5 new)
+model vintage_electric_kettle: 5 files (5 new)
+material Carpet016: ok
+material Carpet012: ok
+material Carpet006: ok
+material Wallpaper001A: ok
+material Wallpaper001B: ok
+material Wallpaper002A: ok
+material OfficeCeiling001: ok
+material OfficeCeiling002: ok
+material OfficeCeiling005: ok
+material Tiles101: ok
+material Tiles107: ok
+material Tiles074: ok
+material Tiles036: ok
+material Concrete031: ok
+material Plaster001: ok
+material PaintedPlaster017: ok
+material Fabric026: ok
+material Rubber004: ok
+material Metal032: ok
+material Plastic010: ok
+FAILED: 1

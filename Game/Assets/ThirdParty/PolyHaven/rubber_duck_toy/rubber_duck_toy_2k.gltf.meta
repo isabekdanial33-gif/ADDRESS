@@ -1,0 +1,48 @@
+fileFormatVersion: 2
+guid: f457339d20df1814399e3a6152b71f85
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: 715df9372183c47e389bb6e19fbc3b52, type: 3}
+  editorImportSettings:
+    generateSecondaryUVSet: 0
+  importSettings:
+    nodeNameMethod: 1
+    animationMethod: 2
+    generateMipMaps: 1
+    texturesReadable: 0
+    defaultMinFilterMode: 9729
+    defaultMagFilterMode: 9729
+    anisotropicFilterLevel: 1
+  instantiationSettings:
+    mask: -1
+    layer: 0
+    skinUpdateWhenOffscreen: 1
+    lightIntensityFactor: 1
+    sceneObjectCreation: 2
+  assetDependencies:
+  - type: 0
+    originalUri: Assets\ThirdParty\PolyHaven\rubber_duck_toy\rubber_duck_toy.bin
+    assetPath: Assets\ThirdParty\PolyHaven\rubber_duck_toy\rubber_duck_toy.bin
+  - type: 1
+    originalUri: Assets\ThirdParty\PolyHaven\rubber_duck_toy\textures\rubber_duck_toy_nor_gl_2k.jpg
+    assetPath: Assets\ThirdParty\PolyHaven\rubber_duck_toy\textures\rubber_duck_toy_nor_gl_2k.jpg
+  - type: 1
+    originalUri: Assets\ThirdParty\PolyHaven\rubber_duck_toy\textures\rubber_duck_toy_diff_2k.jpg
+    assetPath: Assets\ThirdParty\PolyHaven\rubber_duck_toy\textures\rubber_duck_toy_diff_2k.jpg
+  - type: 1
+    originalUri: Assets\ThirdParty\PolyHaven\rubber_duck_toy\textures\rubber_duck_toy_arm_2k.jpg
+    assetPath: Assets\ThirdParty\PolyHaven\rubber_duck_toy\textures\rubber_duck_toy_arm_2k.jpg
+  reportItems:
+  - type: 2
+    code: 20
+    messages:
+    - KHR_materials_specular
+  - type: 2
+    code: 20
+    messages:
+    - KHR_materials_ior

@@ -1,0 +1,733 @@
+using System.Collections.Generic;
+using System.Linq;
+using Address.Core;
+using Address.Placement;
+using Address.TestLevel;
+using Address.Rendering;
+using UnityEngine;
+using Pose = Address.Placement.Pose;
+
+namespace Address.World
+{
+    /// <summary>Everything a level build needs that comes from assets (set by the editor or by GameConfig at runtime).</summary>
+    [System.Serializable]
+    public class LevelKit
+    {
+        public ProfileDatabase db;
+        public Material floorMat, wallMat, ceilingMat, lightMat;
+        public GameObject trofferPrefab, baseboardPrefab, doorFramePrefab;
+        public GameObject exitDoorPrefab, exitElevatorPrefab, exitVentPrefab;
+        public Material voidMat;
+        public Material poolTileMat, basinMat, waterMat;
+        public Material aeroFloorMat, aeroWallMat, glassMat;
+        public Texture[] caustics;
+    }
+
+    /// <summary>
+    /// Builds a playable Backrooms level for an address: layout -> architecture -> navigation -> furnishing.
+    /// Deterministic: the same address always produces the same level.
+    /// </summary>
+    public class LevelBuilder
+    {
+        public const int ArchLayer = 8, PropsLayer = 9;
+
+        public class Result
+        {
+            public LevelAddress address;
+            public GameObject root;
+            public LayoutGenerator.Layout layout;
+            public List<RoomSpec> rooms = new();
+            public PlacementEngine engine;
+            public NavGrid nav;
+            public Vector3 start;
+            public float startYaw;
+            public List<ExitPlan> exits = new();
+            public List<Rect> basins = new();
+            public string aesthetic = "BR";
+            public int attempt;
+            public ReflectionProbe probe;
+            public string rare = "";          // "", "silent", "photo", "vast"
+        }
+
+        /// <summary>Hash of what stands where (2 cm / 2 deg grid): equal on every machine that generated the same address.</summary>
+        public static string StructuralHash(Result r)
+        {
+            ulong h = 1469598103934665603UL;
+            foreach (var p in r.engine.placed)
+            {
+                if (!p) continue;
+                if (p.intentionalAnomaly) { h = Hashing.Combine(h, Hashing.Fnv64("anomaly:" + p.profile.id)); continue; }   // they bob in place
+                var v = p.transform.position / 0.02f;
+                h = Hashing.Combine(h, Hashing.Fnv64($"{p.profile.id}:{Mathf.RoundToInt(v.x)},{Mathf.RoundToInt(v.y)},{Mathf.RoundToInt(v.z)}:{Mathf.RoundToInt(p.transform.eulerAngles.y / 2f)}"));
+            }
+            foreach (var e in r.exits) h = Hashing.Combine(h, Hashing.Fnv64($"{e.form}{e.role}{e.position.x:F2}{e.position.z:F2}"));
+            return h.ToString("X16");
+        }
+
+        /// <summary>Global lighting/fog per aesthetic (procedural levels have no baked GI: ambient stands in for bounce light).</summary>
+        public static void ApplyAtmosphere(string aesthetic)
+        {
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.ExponentialSquared;
+            var sky = Resources.Load<Material>(aesthetic == "FA" ? "SkyAero" : "SkyDim");
+            if (sky) RenderSettings.skybox = sky;
+            if (aesthetic == "FA")
+            {
+                RenderSettings.ambientSkyColor = new Color(0.30f, 0.42f, 0.55f);
+                RenderSettings.ambientEquatorColor = new Color(0.52f, 0.60f, 0.66f);   // walls get the bounce of white floors
+                RenderSettings.ambientGroundColor = new Color(0.55f, 0.62f, 0.68f);
+                RenderSettings.fogDensity = 0.018f; RenderSettings.fogColor = new Color(0.70f, 0.85f, 0.95f);
+            }
+            else if (aesthetic == "PR")
+            {
+                RenderSettings.ambientSkyColor = new Color(0.18f, 0.22f, 0.24f);
+                RenderSettings.ambientEquatorColor = new Color(0.22f, 0.28f, 0.30f);
+                RenderSettings.ambientGroundColor = new Color(0.34f, 0.40f, 0.42f);
+                RenderSettings.fogDensity = 0.026f; RenderSettings.fogColor = new Color(0.72f, 0.86f, 0.88f);
+            }
+            else
+            {
+                RenderSettings.ambientSkyColor = new Color(0.13f, 0.12f, 0.08f);
+                RenderSettings.ambientEquatorColor = new Color(0.20f, 0.18f, 0.11f);
+                RenderSettings.ambientGroundColor = new Color(0.46f, 0.42f, 0.30f);
+                RenderSettings.fogDensity = 0.022f; RenderSettings.fogColor = new Color(0.42f, 0.38f, 0.24f);
+            }
+        }
+
+        readonly LevelKit kit;
+        Material floorM, wallM, ceilM;
+        List<Rect> basinsForArch = new();
+        bool glassWalls;
+        public bool lights = true;
+        public static bool SettleOnCommit = true;
+        public LevelBuilder(LevelKit kit) { this.kit = kit; }
+
+        /// <summary>
+        /// Build with the hard exit guarantee: at least one FORWARD exit reachable from the start. If not, a reachable
+        /// loop/false exit becomes forward; if no exit is reachable at all the level is regenerated with the next
+        /// deterministic attempt seed (same address -> same attempt sequence -> same final level).
+        /// </summary>
+        public Result Build(LevelAddress address, int sizeOverride = 0)
+        {
+            for (int attempt = 0; ; attempt++)
+            {
+                var res = BuildOnce(address, sizeOverride, attempt);
+                if (res.exits.Any(e => e.role == ExitRole.Forward && e.reachable)) { res.attempt = attempt; HideForRare(res); return res; }
+                var promote = res.exits.FirstOrDefault(e => e.reachable);
+                if (promote != null)
+                {
+                    promote.role = ExitRole.Forward;
+                    if (promote.instance) { promote.instance.name = $"Exit{promote.index}_{promote.form}_Forward"; foreach (var r in promote.instance.GetComponentsInChildren<Renderer>()) if (r.name == "void" && kit.voidMat) r.sharedMaterial = kit.voidMat; }
+                    res.attempt = attempt; HideForRare(res); return res;
+                }
+                if (attempt >= 6) { Debug.LogError($"[ADDRESS] no reachable exit after {attempt + 1} attempts for {address}"); res.attempt = attempt; return res; }
+                Object.DestroyImmediate(res.root);
+            }
+        }
+
+        /// <summary>Silent/photo places: the forward exit exists and is reachable but cannot be seen or used until revealed.</summary>
+        static void HideForRare(Result res)
+        {
+            if (res.rare != "silent" && res.rare != "photo") return;
+            var e = res.exits.Where(x => x.role == ExitRole.Forward && x.reachable && x.instance).OrderBy(x => x.index).FirstOrDefault();
+            if (e == null) return;
+            e.instance.SetHidden(true);
+        }
+
+        Result BuildOnce(LevelAddress address, int sizeOverride, int attempt)
+        {
+            var rng = new Rng(attempt == 0 ? address.BaseSeed : Hashing.Combine(address.BaseSeed, (ulong)attempt * 0xA77E3UL));
+            var res = new Result { address = address, aesthetic = address.Aesthetic == "PR" || address.Aesthetic == "FA" ? address.Aesthetic : "BR" };
+            bool pool = res.aesthetic == "PR" && kit.poolTileMat;
+            bool aero = res.aesthetic == "FA" && kit.aeroWallMat;
+            floorM = pool ? kit.poolTileMat : aero ? kit.aeroFloorMat : kit.floorMat;
+            wallM = pool ? kit.poolTileMat : aero ? kit.aeroWallMat : kit.wallMat;
+            ceilM = pool ? kit.poolTileMat : aero ? kit.aeroWallMat : kit.ceilingMat;
+            glassWalls = aero;
+            res.root = new GameObject("Level " + address);
+            var arch = new GameObject("Architecture"); arch.transform.SetParent(res.root.transform);
+            var props = new GameObject("Props"); props.transform.SetParent(res.root.transform);
+
+            // rare places (~1 in 18): the exit is found differently; the guarantee still holds
+            var rr = rng.Fork("rare"); float rv = rr.Value;
+            res.rare = rv < 0.022f ? "silent" : rv < 0.044f ? "photo" : rv < 0.056f ? "vast" : "";
+            int size = sizeOverride > 0 ? sizeOverride : (rng.Fork("size").Chance(0.4f) ? 24 : 36);
+            var L = aero ? LayoutGenerator.Park(rng.Fork("size").Range(34, 46))
+                  : res.rare == "vast" ? LayoutGenerator.Vast(40) : new LayoutGenerator().Generate(rng.Fork("layout"), size, size);
+            if (aero) res.rare = "";
+            res.layout = L;
+            var runs = LayoutGenerator.Walls(L);
+            LayoutGenerator.BuildSpecs(L, runs);
+            res.rooms = L.rooms.Select(r => r.spec).ToList();
+            if (aero)
+            {
+                var c = L.WorldBounds.center; c.y = 0;
+                var st = c + new Vector3(rng.Fork("st").Range(-6f, 6f), 0, rng.Fork("st2").Range(-6f, 6f));
+                res.exits = ExitPlanner.PlanPark(L, rng.Fork("exits"), st);
+                PlanPonds(L, res, rng.Fork("ponds"), st);
+            }
+            else res.exits = ExitPlanner.Plan(L, rng.Fork("exits"));
+            if (pool) PlanBasins(L, res, rng.Fork("basins"), new HashSet<int>(res.exits.Select(e => e.roomId)));
+
+            basinsForArch = res.basins;
+            BuildArchitecture(L, runs, arch.transform, rng.Fork("arch"), res.exits);
+            if (pool || (aero && res.basins.Count > 0)) BuildBasins(res, arch.transform);
+            if (aero) BuildSky(L, arch.transform, rng.Fork("sky"));
+            var exitsRoot = new GameObject("Exits"); exitsRoot.transform.SetParent(res.root.transform);   // animated: never static-batched
+            BuildExits(res.exits, exitsRoot.transform);
+            Physics.SyncTransforms();
+
+            // navigation: room interiors + openings walkable; walkways between all openings of a room reserved
+            var area = L.WorldBounds; area.Expand(new Vector3(1, 0, 1));
+            res.nav = new NavGrid(area, 0.25f);
+            foreach (var r in res.rooms) res.nav.SetWalkable(r.bounds, true);
+            foreach (var o in L.openings)
+            {
+                var c = o.Center; float len = o.to - o.from;
+                var b = o.vertical ? new Bounds(c, new Vector3(LayoutGenerator.WallT + 0.6f, 1, len - 0.1f)) : new Bounds(c, new Vector3(len - 0.1f, 1, LayoutGenerator.WallT + 0.6f));
+                res.nav.SetWalkable(b, true);
+            }
+            res.nav.CarveObstacles(1 << ArchLayer);
+            foreach (var b in res.basins) res.nav.SetWalkable(new Bounds(new Vector3(b.center.x, 0, b.center.y), new Vector3(b.width + 0.3f, 1, b.height + 0.3f)), false);
+            var startRoom = L.rooms[L.startRoom].spec;
+            res.start = startRoom.bounds.center; res.start.y = 0;
+            if (aero) { var c = L.WorldBounds.center; res.start = new Vector3(c.x + rng.Fork("st").Range(-6f, 6f), 0, c.z + rng.Fork("st2").Range(-6f, 6f)); }
+            res.startYaw = rng.Fork("yaw").Range(0, 4) * 90f;
+            foreach (var r in res.rooms)
+            {
+                var pts = new List<Vector3>(r.doors);
+                if (r == startRoom) pts.Insert(0, res.start);
+                for (int i = 0; i < pts.Count - 1; i++) res.nav.ReservePath(pts[i], pts[i + 1], 1.0f);
+            }
+            // every exit keeps a free walkway from its room's first opening to its approach zone
+            foreach (var e in res.exits)
+            {
+                var room = L.rooms[e.roomId].spec;
+                var from = room.doors.Count > 0 ? room.doors[0] : room.bounds.center;
+                from.y = 0;
+                e.approachCell = NearestWalkable(res.nav, e.Approach);
+                res.nav.ReservePath(from, res.nav.Center(e.approachCell.x, e.approachCell.y), 1.0f);
+                foreach (var c in res.nav.CellsIn(new Rect2(new Vector2(e.Approach.x, e.Approach.z), new Vector2(e.width * 0.5f + 0.1f, 0.6f), Mathf.Atan2(e.normal.x, e.normal.z))))
+                    res.nav.ReservePath(res.nav.Center(c.x, c.y), res.nav.Center(c.x, c.y), 0.25f);
+            }
+
+            // furnishing
+            var eng = new PlacementEngine(ArchLayer, PropsLayer, props.transform) { style = pool ? "poolrooms" : aero ? "frutiger" : "backrooms", mood = pool || aero ? "light" : "neutral", nav = res.nav, navStart = res.start, settleOnCommit = SettleOnCommit };
+            res.engine = eng;
+            var sc = new Scenarios(eng, kit.db);
+            foreach (var room in L.rooms)
+            {
+                var spec = room.spec;
+                eng.room = spec;
+                var r = rng.Fork("room", room.id);
+                float areaM2 = spec.bounds.size.x * spec.bounds.size.z;
+                for (int i = 0; i < r.Range(1, 4); i++) sc.WallDecor(spec, r.Fork("outlet", i), "outlet");
+                if (r.Chance(0.5f)) sc.WallDecor(spec, r, "switch");
+                if (r.Chance(0.5f)) sc.WallDecor(spec, r, "vent");
+                if (res.rare == "vast") { for (int i = 0; i < 3; i++) sc.FloorSingle(spec, r.Fork("stray", i), r.Pick(new[] { "chair", "sign", "box" }), false); continue; }
+                if (aero)
+                {
+                    float a2 = spec.bounds.size.x * spec.bounds.size.z;
+                    if (room.kind == "corridor") { if (r.Chance(0.4f)) sc.FloorSingle(spec, r, "plant"); continue; }
+                    // the park: water columns, planters, benches, orbs, lots of green, lounges under the sky
+                    int n = Mathf.Clamp(Mathf.RoundToInt(a2 / 11f), 1, 160);
+                    for (int i = 0; i < Mathf.Clamp(Mathf.RoundToInt(a2 / 160f), 1, 10); i++) { sc.AgainstWallSingle(spec, r.Fork("bench", i), "bench"); sc.Lounge(spec, r.Fork("lounge", i + 1)); }
+                    for (int i = 0; i < n; i++) sc.FloorSingle(spec, r.Fork("aero", i), r.Pick(new[] { "plant", "plant", "planter", "tube", "orb" }), r.Chance(0.5f));
+                    if (r.Chance(0.6f)) sc.AgainstWallSingle(spec, r, "bench");
+                    if (r.Chance(0.35f)) sc.Lounge(spec, r.Fork("lounge", 0));
+                    if (room.kind == "empty" && r.Chance(0.008f)) sc.FloatingRing(spec, r.Fork("anomaly", 0), r.Range(3, 6));
+                    continue;
+                }
+                if (pool)
+                {
+                    if (room.kind == "pool" || room.kind == "lounge")
+                    {
+                        for (int i = 0; i < r.Range(0, 5); i++) sc.FloorSingle(spec, r.Fork("chair", i), "chair");
+                        if (r.Chance(0.35f)) sc.FloorSingle(spec, r, "sign", false);
+                        if (r.Chance(0.4f)) sc.FloorSingle(spec, r, "plant");
+                        if (r.Chance(0.2f)) sc.FloorSingle(spec, r, "crate");
+                    }
+                    else if (room.kind == "empty" && r.Chance(0.008f)) sc.FloatingRing(spec, r.Fork("anomaly", 0), r.Range(3, 6));
+                    continue;
+                }
+                switch (room.kind)
+                {
+                    case "office":
+                        int ws = Mathf.Clamp(Mathf.RoundToInt(areaM2 / 11f), 1, 7);
+                        for (int i = 0; i < ws; i++) sc.Workstation(spec, r.Fork("ws", i), true);
+                        if (areaM2 > 35) sc.DeskIsland(spec, r.Fork("isl", 0));
+                        if (r.Chance(0.5f)) sc.AgainstWallSingle(spec, r, "cabinet");
+                        if (r.Chance(0.4f)) sc.FloorSingle(spec, r, "plant");
+                        if (r.Chance(0.5f)) sc.FloorSingle(spec, r, "trash");
+                        if (r.Chance(0.6f)) sc.WallDecor(spec, r, "wallclock");
+                        if (r.Chance(0.3f)) sc.AgainstWallSingle(spec, r, "extinguisher");
+                        if (r.Chance(0.4f)) sc.Stack(spec, r.Fork("stack", 0), r.Range(1, 4));
+                        break;
+                    case "storage":
+                        int sh = Mathf.Clamp(Mathf.RoundToInt(areaM2 / 9f), 1, 6);
+                        for (int i = 0; i < sh; i++) sc.ShelfUnit(spec, r.Fork("shelf", i), r.Range(0.5f, 1f));
+                        for (int i = 0; i < r.Range(1, 4); i++) sc.Stack(spec, r.Fork("stack", i), r.Range(1, 4));
+                        if (r.Chance(0.4f)) sc.FloorSingle(spec, r, "cart", false);
+                        if (r.Chance(0.3f)) sc.FloorSingle(spec, r, "sign");
+                        break;
+                    case "lounge":
+                        sc.Lounge(spec, r);
+                        if (r.Chance(0.6f)) sc.FloorSingle(spec, r, "plant");
+                        if (r.Chance(0.5f)) sc.WallDecor(spec, r, "picture");
+                        break;
+                    default: // empty / corridor: the liminal norm; sometimes a single stray object
+                        if (room.kind == "empty" && r.Chance(0.008f)) { sc.FloatingRing(spec, r.Fork("anomaly", 0), r.Range(3, 7)); break; }  // rare find
+                        if (r.Chance(0.22f)) sc.FloorSingle(spec, r, r.Pick(new[] { "chair", "box", "sign", "trash", "stool" }), r.Chance(0.6f));
+                        if (r.Chance(0.12f)) sc.WallDecor(spec, r, "wallclock");
+                        break;
+                }
+            }
+            // one realtime reflection probe rendered once: glossy tiles, water and glass reflect the actual place
+            var probeGo = new GameObject("ReflectionProbe"); probeGo.transform.SetParent(res.root.transform);
+            probeGo.transform.position = res.start + Vector3.up * 1.4f;
+            var probe = probeGo.AddComponent<ReflectionProbe>();
+            probe.mode = UnityEngine.Rendering.ReflectionProbeMode.Realtime; probe.refreshMode = UnityEngine.Rendering.ReflectionProbeRefreshMode.ViaScripting;
+            probe.timeSlicingMode = UnityEngine.Rendering.ReflectionProbeTimeSlicingMode.NoTimeSlicing;
+            probe.size = new Vector3(L.w * LayoutGenerator.Cell + 2, 6, L.h * LayoutGenerator.Cell + 2); probe.center = L.WorldBounds.center - probeGo.transform.position + Vector3.up * 1.4f;
+            probe.resolution = 128; probe.hdr = true; probe.intensity = 1f;
+            res.probe = probe;
+
+            // guarantee: verify every exit is reachable from the start through the furnished level
+            var sc0 = res.nav.CellOf(res.start);
+            foreach (var e in res.exits)
+            {
+                e.reachable = res.nav.FindPath(sc0, e.approachCell) != null;
+                if (!e.reachable) e.reachable = Repair(res, sc0, e);
+            }
+            return res;
+        }
+
+        static Vector2Int NearestWalkable(NavGrid nav, Vector3 p)
+        {
+            var c = nav.CellOf(p);
+            for (int r = 0; r <= 6; r++)
+                for (int dz = -r; dz <= r; dz++)
+                    for (int dx = -r; dx <= r; dx++)
+                        if (Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dz)) == r && nav.Walkable(c.x + dx, c.y + dz)) return new Vector2Int(c.x + dx, c.y + dz);
+            return c;
+        }
+
+        /// <summary>
+        /// Exit cut off by furniture: find the route ignoring furniture and remove whatever stands on it
+        /// (with everything resting on it). Architecture is never touched, so this cannot open holes in walls.
+        /// </summary>
+        static bool Repair(Result res, Vector2Int start, ExitPlan e)
+        {
+            var path = res.nav.FindPath(start, e.approachCell, ignoreBlocked: true);
+            if (path == null) return false;
+            var onPath = new HashSet<Vector2Int>(path);
+            foreach (var po in res.engine.placed.ToList())
+            {
+                if (!po || po.supportParent != null) continue;
+                var foot = PlacementEngine.FootRect(po.profile, new Pose(po.transform.position, po.transform.rotation, po.transform.localScale.x));
+                if (!res.nav.CellsIn(foot).Any(onPath.Contains)) continue;
+                res.nav.Unblock(foot);
+                RemoveTree(res, po);
+            }
+            Physics.SyncTransforms();
+            return res.nav.FindPath(start, e.approachCell) != null;
+        }
+
+        static void RemoveTree(Result res, PlacedObject po)
+        {
+            foreach (var c in res.engine.placed.Where(c => c && c.supportParent == po).ToList()) RemoveTree(res, c);
+            res.engine.placed.Remove(po);
+            Object.DestroyImmediate(po.gameObject);
+        }
+
+        void BuildExits(List<ExitPlan> exits, Transform parent)
+        {
+            foreach (var e in exits)
+            {
+                if (e.form == ExitForm.Archway) { BuildArchway(e, parent); continue; }
+                var prefab = e.form switch { ExitForm.Elevator => kit.exitElevatorPrefab, ExitForm.VentHatch => kit.exitVentPrefab, _ => kit.exitDoorPrefab };
+                if (!prefab) continue;
+                var go = Object.Instantiate(prefab, parent);
+                go.name = $"Exit{e.index}_{e.form}_{e.role}";
+                // back face on the wall plane (prefab back is its local -Z at z=0)
+                go.transform.SetPositionAndRotation(e.position, Quaternion.LookRotation(e.normal, Vector3.up));
+                foreach (var t in go.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = ArchLayer;
+                if (e.form == ExitForm.Elevator)
+                {
+                    // dark shaft behind the sliding doors (the model's own back plate sits inside the wall)
+                    var v = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                    Object.DestroyImmediate(v.GetComponent<Collider>());
+                    v.name = "void"; v.layer = ArchLayer;
+                    v.transform.SetParent(go.transform, false);
+                    v.transform.localPosition = new Vector3(0, 1.05f, 0.002f);
+                    v.transform.localRotation = Quaternion.Euler(0, 180, 0);
+                    v.transform.localScale = new Vector3(1.0f, 2.1f, 1);
+                    if (kit.voidMat) v.GetComponent<Renderer>().sharedMaterial = kit.voidMat;
+                }
+                if (e.form == ExitForm.HandlelessDoor)
+                {
+                    // half of the doors are ordinary painted doors with a handle; the other half wear the wallpaper and have
+                    // no handle - only the dark seam gives them away (decided per exit, deterministic)
+                    bool hiddenDoor = ((e.index * 7919 + Mathf.RoundToInt(e.position.x * 31 + e.position.z * 17)) & 1) == 0;
+                    var handle = go.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "door_handle");
+                    var leafT = go.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "leaf");
+                    if (handle) { if (hiddenDoor || !leafT) Object.DestroyImmediate(handle.gameObject); else handle.SetParent(leafT, true); }
+                    foreach (var r in go.GetComponentsInChildren<Renderer>())
+                        if (r.name == "leaf" && wallM && hiddenDoor)
+                        {
+                            var m = r.sharedMaterials; for (int i = 0; i < m.Length; i++) m[i] = wallM; r.sharedMaterials = m;
+                            // same texel density as the walls (1.1 m per tile), projected in the leaf's own plane
+                            var mf = r.GetComponent<MeshFilter>();
+                            if (mf && mf.sharedMesh)
+                            {
+                                var mesh = Object.Instantiate(mf.sharedMesh);
+                                var verts = mesh.vertices; var uv = new Vector2[verts.Length];
+                                var off = (e.index * 0.37f + e.position.x * 0.13f) % 1f;   // deterministic per exit
+                                for (int i = 0; i < verts.Length; i++) uv[i] = new Vector2(verts[i].x / 1.1f + off, verts[i].y / 1.1f);
+                                mesh.uv = uv; mesh.RecalculateTangents(); mf.sharedMesh = mesh;
+                            }
+                        }
+                    var v = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                    Object.DestroyImmediate(v.GetComponent<Collider>());
+                    v.name = "void"; v.layer = ArchLayer;
+                    v.transform.SetParent(go.transform, false);
+                    v.transform.localPosition = new Vector3(0, 1.01f, 0.0015f);
+                    v.transform.localRotation = Quaternion.Euler(0, 180, 0);
+                    v.transform.localScale = new Vector3(0.86f, 2.02f, 1);
+                    if (kit.voidMat) v.GetComponent<Renderer>().sharedMaterial = kit.voidMat;
+                }
+                var col = go.AddComponent<BoxCollider>();
+                float h = e.form == ExitForm.VentHatch ? 0.48f : e.form == ExitForm.Elevator ? 2.35f : 2.05f;
+                col.center = new Vector3(0, h * 0.5f, 0.03f); col.size = new Vector3(e.width, h, 0.06f);
+                var trig = go.AddComponent<ExitTrigger>();
+                trig.Bind(e);
+                e.instance = trig;
+            }
+        }
+
+        // ------------------------------------------------------------------ architecture
+
+        void BuildArchitecture(LayoutGenerator.Layout L, List<LayoutGenerator.WallRun> runs, Transform parent, Rng rng, List<ExitPlan> exits)
+        {
+            float T = LayoutGenerator.WallT, H = L.height;
+            var wb = L.WorldBounds;
+            // one floor slab, one ceiling collider; visual ceiling with holes for recessed troffers
+            // thick slab (top at y=0): anything pressed into the floor is pushed back UP, never through it
+            if (basinsForArch.Count == 0)
+                Slab(parent, "Floor", new Vector3(wb.center.x, -1.5f, wb.center.z), new Vector3(wb.size.x + 1, 3f, wb.size.z + 1), floorM, 1.6f);
+            else
+                FloorWithBasins(parent, new Rect(wb.min.x - 0.5f, wb.min.z - 0.5f, wb.size.x + 1, wb.size.z + 1), basinsForArch);
+            var spots = new List<(Vector3 pos, bool rotated)>();
+            bool openSky = glassWalls;   // Frutiger Aero: no ceiling at all, the sky is the light
+            var ceil = openSky ? null : Slab(parent, "Ceiling", new Vector3(wb.center.x, H + 0.1f, wb.center.z), new Vector3(wb.size.x + 1, 0.2f, wb.size.z + 1), ceilM, 1.2f);
+            if (openSky) goto Walls;
+            foreach (var room in L.rooms) spots.AddRange(TrofferSpots(room.World, H));
+            if (lights && kit.trofferPrefab)
+            {
+                Object.DestroyImmediate(ceil.GetComponent<MeshRenderer>()); Object.DestroyImmediate(ceil.GetComponent<MeshFilter>());
+                var plane = new GameObject("CeilingPlane") { layer = ArchLayer, isStatic = true };
+                plane.transform.SetParent(parent);
+                var holes = spots.Select(s => { var hs = s.rotated ? new Vector2(0.31f, 0.61f) : new Vector2(0.61f, 0.31f); return new Rect(s.pos.x - hs.x, s.pos.z - hs.y, hs.x * 2, hs.y * 2); }).ToList();
+                plane.AddComponent<MeshFilter>().sharedMesh = TestLevelBuilder.CeilingWithHoles(new Rect(wb.min.x - 0.5f, wb.min.z - 0.5f, wb.size.x + 1, wb.size.z + 1), holes, H, 1.2f);
+                plane.AddComponent<MeshRenderer>().sharedMaterial = ceilM;
+            }
+            Walls:
+            // walls: horizontal runs extended by T/2 at both ends close the corners; vertical runs stop at them
+            foreach (var r in runs)
+            {
+                if (r.vertical)
+                {
+                    float len = r.to - r.from - T; if (len <= 0.01f) continue;
+                    var c = new Vector3(r.line, H * 0.5f, (r.from + r.to) * 0.5f);
+                    bool glassV = glassWalls && kit.glassMat && r.line > 0.01f && r.line < L.w * LayoutGenerator.Cell - 0.01f && rng.Chance(0.35f);
+                    var wv = Slab(parent, glassV ? "Glass" : "Wall", c, new Vector3(T * (glassV ? 0.25f : 1f), H, len), glassV ? kit.glassMat : wallM, 1.1f);
+                    if (glassV) wv.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                }
+                else
+                {
+                    var c = new Vector3((r.from + r.to) * 0.5f, H * 0.5f, r.line);
+                    bool glassH = glassWalls && kit.glassMat && r.line > 0.01f && r.line < L.h * LayoutGenerator.Cell - 0.01f && rng.Chance(0.35f);
+                    var wh = Slab(parent, glassH ? "Glass" : "Wall", c, new Vector3(r.to - r.from + (glassH ? 0 : T), H, T * (glassH ? 0.25f : 1f)), glassH ? kit.glassMat : wallM, 1.1f);
+                    if (glassH) wh.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                }
+            }
+            // lintels over doors + frames
+            foreach (var o in L.openings)
+            {
+                if (o.kind != LayoutGenerator.OpeningKind.Door) continue;
+                var c = o.Center; float len = o.to - o.from;
+                var size = o.vertical ? new Vector3(T, H - 2.15f, len) : new Vector3(len, H - 2.15f, T);
+                Slab(parent, "Lintel", c + Vector3.up * (2.15f + (H - 2.15f) * 0.5f), size, wallM, 1.1f);
+                if (kit.doorFramePrefab)
+                {
+                    var fr = Object.Instantiate(kit.doorFramePrefab, parent);
+                    fr.name = "DoorFrame"; fr.layer = ArchLayer;
+                    fr.transform.SetPositionAndRotation(c, Quaternion.LookRotation(o.vertical ? Vector3.right : Vector3.forward));
+                    fr.transform.localScale = new Vector3(LayoutGenerator.DoorW / 1.1f, 1, 1); // model is made for 1.1 m
+                    foreach (var sx in new[] { -1f, 1f })
+                    {
+                        var bc = fr.AddComponent<BoxCollider>();
+                        bc.center = new Vector3(sx * (LayoutGenerator.DoorW * 0.5f + 0.045f), 1.11f, 0); bc.size = new Vector3(0.09f, 2.22f, 0.22f);
+                    }
+                }
+            }
+            // baseboards on every inner wall face
+            if (kit.baseboardPrefab && wallM == kit.wallMat)
+                foreach (var room in L.rooms)
+                    foreach (var w in room.spec.walls)
+                    {
+                        // run the baseboard into the corners (walls specs are trimmed by T/2 for placement)
+                        var a0 = w.a - w.Dir * (T * 0.5f); var b0 = w.b + w.Dir * (T * 0.5f);
+                        // cut gaps where an exit sits on this wall face
+                        var cuts = new List<(float, float)>();
+                        foreach (var e in exits)
+                            if (Vector3.Dot(e.normal, w.normal) > 0.99f && Mathf.Abs(Vector3.Dot(e.position - w.a, w.normal)) < 0.01f)
+                            {
+                                float t = Vector3.Dot(e.position - a0, w.Dir);
+                                cuts.Add((t - e.width * 0.5f, t + e.width * 0.5f));
+                            }
+                        cuts.Sort((x, y) => x.Item1.CompareTo(y.Item1));
+                        float total = (b0 - a0).magnitude, cur = 0;
+                        var pieces = new List<(float, float)>();
+                        foreach (var (c0, c1) in cuts) { if (c0 > cur) pieces.Add((cur, c0)); cur = Mathf.Max(cur, c1); }
+                        if (cur < total) pieces.Add((cur, total));
+                        foreach (var (t0, t1) in pieces)
+                        {
+                        if (t1 - t0 < 0.05f) continue;
+                        var a = a0 + w.Dir * t0; var b = a0 + w.Dir * t1;
+                        var bb = Object.Instantiate(kit.baseboardPrefab, parent);
+                        bb.name = "Baseboard"; bb.layer = ArchLayer;
+                        bb.transform.SetPositionAndRotation((a + b) * 0.5f, Quaternion.LookRotation(w.normal, Vector3.up));
+                        bb.transform.localScale = new Vector3((b - a).magnitude, 1, 1);
+                        var col = bb.AddComponent<BoxCollider>();
+                        col.center = new Vector3(0, TestLevelBuilder.BaseboardHeight * 0.5f, TestLevelBuilder.BaseboardDepth * 0.5f);
+                        col.size = new Vector3(1, TestLevelBuilder.BaseboardHeight, TestLevelBuilder.BaseboardDepth);
+                        }
+                    }
+            if (lights && !openSky) Lights(spots, parent);
+        }
+
+        // ------------------------------------------------------------------ Poolrooms
+
+        const float BasinDepth = 1.2f, Deck = 1.1f, StepH = 0.2f, StepD = 0.3f, WaterY = -0.12f;
+
+        void PlanBasins(LayoutGenerator.Layout L, Result res, Rng rng, HashSet<int> exitRooms)
+        {
+            foreach (var room in L.rooms)
+            {
+                if (room.kind == "corridor") continue;
+                if (exitRooms.Contains(room.id) || room.id == L.startRoom) { room.kind = "empty"; continue; }   // exits & spawn keep a dry floor
+                float k = rng.Value;
+                room.kind = k < 0.55f ? "pool" : k < 0.85f ? "empty" : "lounge";
+                if (room.kind != "pool") continue;
+                var b = room.spec.bounds;
+                float w = b.size.x - 2 * Deck, d = b.size.z - 2 * Deck;
+                if (w < 2.5f || d < 2.5f) { room.kind = "empty"; continue; }
+                var rect = new Rect(b.min.x + Deck, b.min.z + Deck, w, d);
+                res.basins.Add(rect);
+                room.spec.keepOut.Add(rect);
+                room.spec.kind = "pool";
+            }
+        }
+
+        /// <summary>Floor slab with rectangular holes for basins: colliders from the grid decomposition, visual from the holed plane.</summary>
+        void FloorWithBasins(Transform parent, Rect area, List<Rect> holes)
+        {
+            var go = new GameObject("Floor") { layer = ArchLayer, isStatic = true };
+            go.transform.SetParent(parent);
+            var mesh = TestLevelBuilder.CeilingWithHoles(area, holes, 0f, 1.6f);
+            // flip to face up
+            var tris = mesh.triangles; for (int i = 0; i < tris.Length; i += 3) (tris[i + 1], tris[i + 2]) = (tris[i + 2], tris[i + 1]);
+            mesh.triangles = tris; var n = mesh.normals; for (int i = 0; i < n.Length; i++) n[i] = Vector3.up; mesh.normals = n; mesh.RecalculateTangents();
+            go.AddComponent<MeshFilter>().sharedMesh = mesh; go.AddComponent<MeshRenderer>().sharedMaterial = floorM;
+            var xs = new List<float> { area.xMin, area.xMax }; var zs = new List<float> { area.yMin, area.yMax };
+            foreach (var h in holes) { xs.Add(h.xMin); xs.Add(h.xMax); zs.Add(h.yMin); zs.Add(h.yMax); }
+            xs.Sort(); zs.Sort();
+            for (int i = 0; i < xs.Count - 1; i++)
+                for (int j = 0; j < zs.Count - 1; j++)
+                {
+                    float x0 = xs[i], x1 = xs[i + 1], z0 = zs[j], z1 = zs[j + 1];
+                    if (x1 - x0 < 1e-4f || z1 - z0 < 1e-4f) continue;
+                    var c = new Vector2((x0 + x1) * 0.5f, (z0 + z1) * 0.5f);
+                    if (holes.Any(h => h.Contains(c))) continue;
+                    var bc = go.AddComponent<BoxCollider>(); bc.center = new Vector3(c.x, -1.5f, c.y); bc.size = new Vector3(x1 - x0, 3f, z1 - z0);
+                }
+        }
+
+        /// <summary>Frutiger Aero ponds: 2-4 shallow pools in the park, never at the start or in front of an exit.</summary>
+        void PlanPonds(LayoutGenerator.Layout L, Result res, Rng rng, Vector3 start)
+        {
+            var wb = L.WorldBounds; int n = rng.Range(2, 5);
+            for (int t = 0; t < 60 && res.basins.Count < n; t++)
+            {
+                float w = rng.Range(3f, 7f), d = rng.Range(3f, 7f);
+                var r = new Rect(rng.Range(wb.min.x + 2.5f, wb.max.x - 2.5f - w), rng.Range(wb.min.z + 2.5f, wb.max.z - 2.5f - d), w, d);
+                var grow = new Rect(r.x - 1.5f, r.y - 1.5f, r.width + 3f, r.height + 3f);
+                if (grow.Contains(new Vector2(start.x, start.z)) || Vector2.Distance(r.center, new Vector2(start.x, start.z)) < 7f) continue;
+                if (res.exits.Any(e => Vector2.Distance(r.center, new Vector2(e.position.x, e.position.z)) < Mathf.Max(w, d) * 0.5f + 5f)) continue;
+                if (res.basins.Any(b => new Rect(b.x - 2, b.y - 2, b.width + 4, b.height + 4).Overlaps(r))) continue;
+                res.basins.Add(r); L.rooms[0].spec.keepOut.Add(r);
+            }
+        }
+
+        /// <summary>Open sky for Frutiger Aero: warm sun with soft shadows, a bright procedural sky.</summary>
+        void BuildSky(LayoutGenerator.Layout L, Transform parent, Rng rng)
+        {
+            // the park's edge is a low glass balustrade; beyond it the white plaza goes on into the haze
+            var wb = L.WorldBounds;
+            foreach (Transform t in parent) if (t.name == "Wall") { var s = t.localScale; }
+            foreach (var mr in parent.GetComponentsInChildren<MeshRenderer>())
+                if (mr.name == "Wall")
+                {
+                    var tr = mr.transform; var mf = mr.GetComponent<MeshFilter>(); var b = mr.bounds;
+                    var go = Slab(parent, "Glass", new Vector3(b.center.x, 0.6f, b.center.z), new Vector3(Mathf.Max(0.06f, b.size.x < 0.5f ? 0.05f : b.size.x), 1.2f, Mathf.Max(0.06f, b.size.z < 0.5f ? 0.05f : b.size.z)), kit.glassMat ? kit.glassMat : wallM, 1.1f);
+                    go.GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    var rail = Slab(parent, "Rail", new Vector3(b.center.x, 1.22f, b.center.z), new Vector3(b.size.x < 0.5f ? 0.07f : b.size.x, 0.05f, b.size.z < 0.5f ? 0.07f : b.size.z), kit.aeroWallMat ? kit.aeroWallMat : wallM, 1.1f);
+                    Object.DestroyImmediate(mr.gameObject);
+                }
+            var plaza = new GameObject("Plaza") { layer = ArchLayer, isStatic = true }; plaza.transform.SetParent(parent);
+            var q = GameObject.CreatePrimitive(PrimitiveType.Quad); Object.DestroyImmediate(q.GetComponent<Collider>());
+            q.transform.SetParent(plaza.transform); q.name = "PlazaFloor";
+            q.transform.SetPositionAndRotation(new Vector3(wb.center.x, -0.01f, wb.center.z), Quaternion.Euler(90, 0, 0)); q.transform.localScale = new Vector3(600, 600, 1);
+            var pm = new Material(floorM); pm.mainTextureScale = new Vector2(600 / 1.6f, 600 / 1.6f); if (pm.HasProperty("_BaseMap")) pm.SetTextureScale("_BaseMap", new Vector2(600 / 1.6f, 600 / 1.6f));
+            q.GetComponent<Renderer>().sharedMaterial = pm;
+
+            var sun = new GameObject("Sun"); sun.transform.SetParent(parent);
+            sun.transform.rotation = Quaternion.Euler(rng.Range(48f, 62f), rng.Range(0f, 360f), 0);
+            var l = sun.AddComponent<Light>(); l.type = LightType.Directional; l.intensity = 1.25f; l.color = new Color(1f, 0.97f, 0.9f);
+            l.shadows = LightShadows.Soft; l.shadowStrength = 0.55f;
+            RenderSettings.sun = l;
+        }
+
+        void BuildArchway(ExitPlan e, Transform parent)
+        {
+            // a small tiled pavilion standing against the park wall: inside it smells of chlorine - a water channel,
+            // cyan light and a glowing end where the Poolrooms begin. No door: you just walk in.
+            var go = new GameObject($"Exit{e.index}_Archway_{e.role}") { layer = ArchLayer };
+            go.transform.SetParent(parent);
+            go.transform.SetPositionAndRotation(e.position, Quaternion.LookRotation(e.normal, Vector3.up));
+            var tile = kit.poolTileMat ? kit.poolTileMat : wallM;
+            float W = 1.7f, D = 3.2f, Hh = 2.6f, t = 0.18f;
+            GameObject Part(string n, Vector3 c, Vector3 size, Material m)
+            {
+                var p = Slab(go.transform, n, Vector3.zero, size, m, 0.6f); p.transform.localPosition = c; p.transform.localRotation = Quaternion.identity; p.isStatic = false; return p;
+            }
+            Part("side_l", new Vector3(-W * 0.5f - t * 0.5f, Hh * 0.5f, D * 0.5f), new Vector3(t, Hh, D), tile);
+            Part("side_r", new Vector3(W * 0.5f + t * 0.5f, Hh * 0.5f, D * 0.5f), new Vector3(t, Hh, D), tile);
+            Part("roof", new Vector3(0, Hh + 0.09f, D * 0.5f), new Vector3(W + 2 * t + 0.2f, 0.18f, D + 0.2f), tile);
+            Part("lintel", new Vector3(0, Hh - 0.3f, D - 0.09f), new Vector3(W, 0.6f, 0.18f), tile);
+            Part("step", new Vector3(0, 0.02f, D * 0.5f), new Vector3(W, 0.04f, D), tile);
+            if (kit.waterMat)
+            {
+                var w = GameObject.CreatePrimitive(PrimitiveType.Quad); Object.DestroyImmediate(w.GetComponent<Collider>());
+                w.name = "channel"; w.transform.SetParent(go.transform, false);
+                w.transform.localPosition = new Vector3(0, 0.045f, D * 0.5f - 0.2f); w.transform.localRotation = Quaternion.Euler(90, 0, 0); w.transform.localScale = new Vector3(0.6f, D - 0.6f, 1);
+                w.GetComponent<Renderer>().sharedMaterial = kit.waterMat;
+            }
+            var glow = GameObject.CreatePrimitive(PrimitiveType.Quad); Object.DestroyImmediate(glow.GetComponent<Collider>());
+            glow.name = "glow"; glow.transform.SetParent(go.transform, false);
+            glow.transform.localPosition = new Vector3(0, Hh * 0.45f, 0.03f); glow.transform.localRotation = Quaternion.Euler(0, 180, 0); glow.transform.localScale = new Vector3(W, Hh * 0.9f, 1);
+            if (kit.lightMat) glow.GetComponent<Renderer>().sharedMaterial = kit.lightMat;
+            var lg = new GameObject("Light"); lg.transform.SetParent(go.transform, false); lg.transform.localPosition = new Vector3(0, 2.0f, 1.2f);
+            var li = lg.AddComponent<Light>(); li.type = LightType.Point; li.range = 4.5f; li.intensity = 2.2f; li.color = new Color(0.6f, 0.95f, 1f); li.shadows = LightShadows.None;
+            foreach (var tr in go.GetComponentsInChildren<Transform>(true)) tr.gameObject.layer = ArchLayer;
+            var trig = go.AddComponent<ExitTrigger>(); trig.Bind(e); e.instance = trig; trig.Activate();
+        }
+
+        void BuildBasins(Result res, Transform parent)
+        {
+            float T = 0.15f;
+            int k = 0;
+            foreach (var r in res.basins)
+            {
+                var c = new Vector3(r.center.x, 0, r.center.y);
+                // basin floor + four inner walls (aqua tiles), all below the deck
+                Slab(parent, "BasinFloor", c + Vector3.down * (BasinDepth + 1.0f), new Vector3(r.width + 2 * T, 2f, r.height + 2 * T), kit.basinMat, 1.0f);
+                Slab(parent, "BasinWall", new Vector3(r.xMin - T * 0.5f, -BasinDepth * 0.5f, c.z), new Vector3(T, BasinDepth, r.height + 2 * T), kit.basinMat, 1.0f);
+                Slab(parent, "BasinWall", new Vector3(r.xMax + T * 0.5f, -BasinDepth * 0.5f, c.z), new Vector3(T, BasinDepth, r.height + 2 * T), kit.basinMat, 1.0f);
+                Slab(parent, "BasinWall", new Vector3(c.x, -BasinDepth * 0.5f, r.yMin - T * 0.5f), new Vector3(r.width, BasinDepth, T), kit.basinMat, 1.0f);
+                Slab(parent, "BasinWall", new Vector3(c.x, -BasinDepth * 0.5f, r.yMax + T * 0.5f), new Vector3(r.width, BasinDepth, T), kit.basinMat, 1.0f);
+                // entry steps along the shorter side
+                int n = Mathf.RoundToInt(BasinDepth / StepH);
+                bool alongX = r.width >= r.height;
+                for (int i = 0; i < n - 1; i++)
+                {
+                    float top = -StepH * (i + 1);
+                    float run = StepD * (i + 1);
+                    var size = alongX ? new Vector3(run, -top - 0f, r.height) : new Vector3(r.width, -top, run);
+                    size = alongX ? new Vector3(StepD, BasinDepth + top, Mathf.Min(1.6f, r.height)) : new Vector3(Mathf.Min(1.6f, r.width), BasinDepth + top, StepD);
+                    var pos = alongX ? new Vector3(r.xMin + StepD * (i + 0.5f), -BasinDepth + (BasinDepth + top) * 0.5f, c.z) : new Vector3(c.x, -BasinDepth + (BasinDepth + top) * 0.5f, r.yMin + StepD * (i + 0.5f));
+                    Slab(parent, "Step", pos, size, kit.basinMat, 1.0f);
+                }
+                // water surface
+                if (kit.waterMat)
+                {
+                    var w = GameObject.CreatePrimitive(PrimitiveType.Quad); Object.DestroyImmediate(w.GetComponent<Collider>());
+                    w.name = "Water"; w.transform.SetParent(parent);
+                    w.transform.SetPositionAndRotation(new Vector3(c.x, WaterY, c.z), Quaternion.Euler(90, 0, 0));
+                    w.transform.localScale = new Vector3(r.width, r.height, 1);
+                    w.GetComponent<Renderer>().sharedMaterial = kit.waterMat;
+                    w.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                }
+                // caustics: a spot above the basin projecting an animated light pattern
+                if (lights && kit.caustics != null && kit.caustics.Length > 0)
+                {
+                    var lg = new GameObject("Caustics"); lg.transform.SetParent(parent);
+                    float h = res.layout.height + BasinDepth;
+                    lg.transform.SetPositionAndRotation(new Vector3(c.x, res.layout.height - 0.05f, c.z), Quaternion.Euler(90, 0, 0));
+                    var l = lg.AddComponent<Light>(); l.type = LightType.Spot; l.range = h + 0.4f;   // must not reach through walls
+                    l.spotAngle = Mathf.Clamp(2f * Mathf.Atan(Mathf.Max(r.width, r.height) * 0.5f / h) * Mathf.Rad2Deg, 30f, 100f); l.innerSpotAngle = l.spotAngle * 0.7f;
+                    l.intensity = 1.6f; l.color = new Color(0.8f, 1f, 1f); l.cookie = kit.caustics[0]; l.shadows = LightShadows.None;
+                    lg.AddComponent<CausticAnimator>().Setup(kit.caustics, k++ * 0.37f);
+                }
+            }
+        }
+
+        static IEnumerable<(Vector3, bool)> TrofferSpots(Rect wr, float H)
+        {
+            int nx = Mathf.Max(1, Mathf.RoundToInt(wr.width / 2.4f)), nz = Mathf.Max(1, Mathf.RoundToInt(wr.height / 2.4f));
+            bool rotated = wr.width <= wr.height;
+            for (int ix = 0; ix < nx; ix++)
+                for (int iz = 0; iz < nz; iz++)
+                    yield return (new Vector3(wr.xMin + (ix + 0.5f) * wr.width / nx, H, wr.yMin + (iz + 0.5f) * wr.height / nz), rotated);
+        }
+
+        void Lights(List<(Vector3 pos, bool rotated)> spots, Transform parent)
+        {
+            int k = 0;
+            foreach (var (pos, rotated) in spots)
+            {
+                if (!kit.trofferPrefab) break;
+                var tr = Object.Instantiate(kit.trofferPrefab, parent);
+                tr.name = "Troffer"; tr.layer = ArchLayer;
+                tr.transform.SetPositionAndRotation(pos, Quaternion.Euler(0, rotated ? 90 : 0, 0));
+                foreach (var r in tr.GetComponentsInChildren<Renderer>())
+                {
+                    var mats = r.sharedMaterials;
+                    for (int mi = 0; mi < mats.Length; mi++) if (mats[mi] && mats[mi].name.StartsWith("troffer_diffuser") && kit.lightMat) mats[mi] = kit.lightMat;
+                    r.sharedMaterials = mats;
+                }
+                var lg = new GameObject("Light"); lg.transform.SetParent(tr.transform);
+                lg.transform.SetPositionAndRotation(pos + Vector3.down * 0.02f, Quaternion.Euler(90, 0, 0));
+                var l = lg.AddComponent<Light>();
+                l.type = LightType.Spot; l.spotAngle = 170f; l.innerSpotAngle = 100f; l.range = 7.5f;
+                bool tiles = wallM != kit.wallMat;   // glazed tiles / white plaster bounce far more light than wallpaper
+                l.intensity = tiles ? (glassWalls ? 1.7f : 1.5f) : 3.0f;
+                l.color = tiles ? new Color(0.95f, 0.98f, 1f) : new Color(1f, 0.95f, 0.82f);
+                // shadows are expensive: only every 4th fixture casts them (enough for grounding furniture)
+                l.shadows = (k++ % 4 == 0) ? LightShadows.Soft : LightShadows.None; l.shadowStrength = 0.7f;
+            }
+        }
+
+        GameObject Slab(Transform parent, string name, Vector3 center, Vector3 size, Material mat, float uvScale)
+        {
+            var go = new GameObject(name) { layer = ArchLayer, isStatic = true };
+            go.transform.SetParent(parent);
+            go.transform.position = center;
+            go.AddComponent<MeshFilter>().sharedMesh = TestLevelBuilder.BoxMesh(size, uvScale);
+            go.AddComponent<MeshRenderer>().sharedMaterial = mat;
+            go.AddComponent<BoxCollider>().size = size;
+            return go;
+        }
+    }
+}

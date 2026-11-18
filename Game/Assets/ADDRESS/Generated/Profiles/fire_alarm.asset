@@ -1,0 +1,87 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eba8737bc187a24783fd4a7a538f5b1, type: 3}
+  m_Name: fire_alarm
+  m_EditorClassIdentifier: Address.Runtime::Address.Placement.PlacementProfile
+  id: fire_alarm
+  prefab: {fileID: 8251106655078155401, guid: c74860e72fc774348936b010549bc03e, type: 3}
+  group: alarm
+  size: {x: 0.09944875, y: 0.14364254, z: 0.026374716}
+  centerOfMass: {x: -0.0000000013237842, y: 0.071995005, z: 0.008018791}
+  boxes:
+  - center: {x: 0, y: 0.017955318, z: 0.009890519}
+    size: {x: 0.09944875, y: 0.035910636, z: 0.006593679}
+  - center: {x: 0, y: 0.032918084, z: 0}
+    size: {x: 0.01754978, y: 0.0059851054, z: 0.013187358}
+  - center: {x: -0.02924963, y: 0.06284361, z: 0.009890519}
+    size: {x: 0.040949486, y: 0.053865954, z: 0.006593679}
+  - center: {x: 0.02924963, y: 0.06284361, z: 0.009890519}
+    size: {x: 0.040949486, y: 0.053865954, z: 0.006593679}
+  - center: {x: 0, y: 0.044888295, z: 0}
+    size: {x: 0.02924963, y: 0.0059851035, z: 0.013187358}
+  - center: {x: 0, y: 0.06583617, z: 0.009890519}
+    size: {x: 0.01754978, y: 0.047880847, z: 0.006593679}
+  - center: {x: 0, y: 0.06882872, z: 0.0032968395}
+    size: {x: 0.01754978, y: 0.041895743, z: 0.006593679}
+  - center: {x: -0.023399707, y: 0.08079893, z: 0.0032968395}
+    size: {x: 0.029249633, y: 0.017955318, z: 0.006593679}
+  - center: {x: 0.023399707, y: 0.08079893, z: 0.0032968395}
+    size: {x: 0.029249633, y: 0.017955318, z: 0.006593679}
+  - center: {x: -0.04387445, y: 0.11670957, z: 0.009890519}
+    size: {x: 0.011699852, y: 0.053865954, z: 0.006593679}
+  - center: {x: 0.04387445, y: 0.11670957, z: 0.009890519}
+    size: {x: 0.011699852, y: 0.053865954, z: 0.006593679}
+  - center: {x: 0, y: 0.110724464, z: 0.0032968395}
+    size: {x: 0.076049045, y: 0.0059851035, z: 0.019781038}
+  - center: {x: 0, y: 0.12568723, z: -0.009890519}
+    size: {x: 0.0058499263, y: 0.023940422, z: 0.006593679}
+  - center: {x: 0, y: 0.12867978, z: 0.009890519}
+    size: {x: 0.076049045, y: 0.029925533, z: 0.006593679}
+  - center: {x: -0.0058499263, y: 0.12269467, z: -0.009890519}
+    size: {x: 0.0058499267, y: 0.0059851035, z: 0.006593679}
+  - center: {x: 0.0058499263, y: 0.12269467, z: -0.009890519}
+    size: {x: 0.0058499267, y: 0.0059851035, z: 0.006593679}
+  surfaces: []
+  footprint:
+  - {x: -0.049724374, y: 0.006593679}
+  - {x: 0.049724374, y: 0.006593679}
+  - {x: 0.049724374, y: 0.013187358}
+  - {x: -0.049724374, y: 0.013187358}
+  support: 2
+  rotation: 3
+  maxTiltDeg: 3
+  minSpacing: 0.05
+  clearanceFront: 0
+  wallGap: 0.01
+  massClass: 3
+  mass: 1
+  canStack: 0
+  openable: 0
+  scaleJitter: 0
+  wallMin: 1.25
+  wallMax: 1.45
+  disabled: 0
+  styles:
+  - backrooms
+  - mall
+  - school
+  - hotel
+  - poolrooms
+  moods:
+  - neutral
+  - light
+  rooms:
+  - corridor
+  - office
+  - pool
+  fallenChance: 0
+  fallenEuler: {x: 0, y: 0, z: 0}

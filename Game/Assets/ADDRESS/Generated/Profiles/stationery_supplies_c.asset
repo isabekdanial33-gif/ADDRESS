@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eba8737bc187a24783fd4a7a538f5b1, type: 3}
+  m_Name: stationery_supplies_c
+  m_EditorClassIdentifier: Address.Runtime::Address.Placement.PlacementProfile
+  id: stationery_supplies_c
+  prefab: {fileID: 3231500179524755770, guid: 8a4036000a9277b4fa3ad905cd658ec7, type: 3}
+  group: stationery
+  size: {x: 0.1406968, y: 0.007846288, z: 0.0078462865}
+  centerOfMass: {x: 0, y: 0.0039231437, z: 0}
+  boxes:
+  - center: {x: 0, y: 0.003923144, z: 0}
+    size: {x: 0.1406968, y: 0.007846288, z: 0.0078462865}
+  surfaces: []
+  footprint:
+  - {x: -0.0703484, y: -0.0039231433}
+  - {x: 0.0703484, y: -0.0039231433}
+  - {x: 0.0703484, y: 0.0039231433}
+  - {x: -0.0703484, y: 0.0039231433}
+  support: 1
+  rotation: 0
+  maxTiltDeg: 3
+  minSpacing: 0.05
+  clearanceFront: 0
+  wallGap: 0.01
+  massClass: 0
+  mass: 0.05
+  canStack: 0
+  openable: 0
+  scaleJitter: 0
+  wallMin: 1.2
+  wallMax: 1.9
+  disabled: 0
+  styles:
+  - backrooms
+  - hotel
+  - school
+  - mall
+  - oldweb
+  moods:
+  - neutral
+  - light
+  rooms:
+  - office
+  - school
+  fallenChance: 0
+  fallenEuler: {x: 0, y: 0, z: 0}

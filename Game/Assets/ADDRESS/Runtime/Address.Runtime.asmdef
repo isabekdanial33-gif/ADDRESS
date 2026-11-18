@@ -1,0 +1,19 @@
+{
+  "name": "Address.Runtime",
+  "rootNamespace": "Address",
+  "references": [
+    "Unity.InputSystem",
+    "Unity.RenderPipelines.Universal.Runtime",
+    "Unity.RenderPipelines.Core.Runtime",
+    "Unity.AI.Navigation",
+    "UnityEngine.UI",
+    "Unity.Netcode.Runtime",
+    "Unity.Networking.Transport",
+    "Unity.Collections",
+    "VoltstroStudios.UnityWebBrowser"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "autoReferenced": true
+}

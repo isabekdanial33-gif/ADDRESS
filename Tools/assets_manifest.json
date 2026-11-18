@@ -1,0 +1,21 @@
+{
+  "_comment": "CC0 sources only. Nothing here is stored in the cloud: fetch_assets.py re-downloads on demand. Resolution 2k default; 4k only for Ultra later.",
+  "polyhaven_models": [
+    "metal_office_desk", "SchoolDesk_01", "SchoolChair_01", "modern_arm_chair_01", "plastic_monobloc_chair_01",
+    "drawer_cabinet", "Shelf_01", "wooden_bookshelf_worn", "side_table_01", "modern_coffee_table_01",
+    "Sofa_01", "ArmChair_01", "metal_stool_01", "industrial_storage_cart", "vintage_cabinet_01",
+    "cardboard_box_01", "plastic_crate_01", "binder_notebook", "office_notepads", "clipboard",
+    "stationery_supplies", "vintage_stapler", "classic_laptop", "Television_01", "desk_lamp_arm_01",
+    "potted_plant_01", "potted_plant_02", "wall_clock", "fire_alarm", "korean_fire_extinguisher_01",
+    "WetFloorSign_01", "trashbag", "plastic_thermos", "rubber_duck_toy", "lightbulb_led",
+    "security_camera_01", "alarm_clock_01", "decorative_book_set_01", "Camera_01", "old_gas_mask",
+    "rubber_boots", "life_jacket", "plastic_container", "vintage_suitcase", "fancy_picture_frame_01",
+    "modern_ceiling_lamp_01", "ceiling_fan", "projector_screen", "jug_01", "vintage_electric_kettle"
+  ],
+  "ambientcg_materials": [
+    "Carpet016", "Carpet012", "Carpet006", "Wallpaper001A", "Wallpaper001B", "Wallpaper002A",
+    "OfficeCeiling001", "OfficeCeiling002", "OfficeCeiling005",
+    "Tiles101", "Tiles107", "Tiles074", "Tiles036", "Concrete031", "Plaster001", "PaintedPlaster017",
+    "Fabric026", "Rubber004", "Metal032", "Plastic010"
+  ]
+}
