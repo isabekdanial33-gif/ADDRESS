@@ -34,7 +34,10 @@ namespace Address.World
                 water.name = "Water"; water.transform.SetParent(transform, false);
                 water.transform.rotation = Quaternion.Euler(90, 0, 0); water.transform.localScale = new Vector3(Chunk * 12, Chunk * 12, 1);
                 water.transform.position = new Vector3(0, waterLevel, 0);
-                water.GetComponent<Renderer>().sharedMaterial = kit.waterMat; water.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                // a lake is not a pool: big soft ripples, calmer surface, deeper blue-green
+                var lake = new Material(kit.waterMat); lake.SetFloat("_Tiling", 14f); lake.SetFloat("_NormalScale", 0.25f); lake.SetFloat("_Speed", 0.02f);
+                lake.SetColor("_ShallowColor", new Color(0.45f, 0.82f, 0.86f)); lake.SetColor("_DeepColor", new Color(0.04f, 0.3f, 0.42f)); lake.SetFloat("_Absorb", 0.6f);
+                water.GetComponent<Renderer>().sharedMaterial = lake; water.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
             for (int z = -Radius; z <= Radius; z++) for (int x = -Radius; x <= Radius; x++) BuildChunk(new Vector2Int(x, z));
             Physics.SyncTransforms();
@@ -47,10 +50,10 @@ namespace Address.World
         /// <summary>Height of the ground: soft hills, a river network carved below the water line, flat start.</summary>
         public float Height(float x, float z)
         {
-            float h = (N(x, z, 0.010f, 1) - 0.45f) * 16f + (N(x, z, 0.035f, 2) - 0.5f) * 3f + (N(x, z, 0.12f, 3) - 0.5f) * 0.4f;
+            float h = (N(x, z, 0.008f, 1) - 0.45f) * 9f + (N(x, z, 0.03f, 2) - 0.5f) * 2f + (N(x, z, 0.12f, 3) - 0.5f) * 0.3f;
             // rivers: where a slow noise crosses its middle, cut a smooth channel
             float r = Mathf.Abs(N(x + N(x, z, 0.02f, 9) * 30f, z, 0.005f, 4) - 0.5f);
-            if (r < 0.03f) h = Mathf.Lerp(h, waterLevel - 1.4f, Mathf.SmoothStep(0, 1, 1 - r / 0.03f));
+            if (r < 0.07f) h = Mathf.Lerp(h, waterLevel - 1.2f, Mathf.SmoothStep(0, 1, 1 - r / 0.07f) * Mathf.SmoothStep(0, 1, 1 - r / 0.07f));   // wide, gently sloped banks
             // the arrival spot is a gentle dry meadow
             float d = Mathf.Sqrt(x * x + z * z);
             if (d < 26f) h = Mathf.Lerp(Mathf.Max(h, 0.6f), h, Mathf.SmoothStep(0, 1, (d - 10f) / 16f));
@@ -128,7 +131,7 @@ namespace Address.World
                 if (x * x + z * z < 14f * 14f) continue;                       // not on top of the arrival spot
                 float h0 = Height(x - 4, z - 4), h1 = Height(x + 4, z - 4), h2 = Height(x - 4, z + 4), h3 = Height(x + 4, z + 4), hc = Height(x, z);
                 float lo = Mathf.Min(Mathf.Min(h0, h1), Mathf.Min(h2, h3)), hi = Mathf.Max(Mathf.Max(h0, h1), Mathf.Max(h2, h3));
-                if (lo < waterLevel + 0.5f || hi - lo > 2.2f) continue;
+                if (lo < waterLevel + 0.5f || hi - lo > 1.2f) continue;
                 float y = hi - 0.05f;                                            // plinth sits on the highest corner; the rest is buried
                 var rot = Quaternion.Euler(0, rng.Range(0, 4) * 90f + rng.Range(-20f, 20f), 0);
                 var house = Instantiate(kit.aeroHousePrefab, new Vector3(x, y, z), rot, parent); house.name = "AeroHouse";
@@ -143,6 +146,19 @@ namespace Address.World
                 var skirt = GameObject.CreatePrimitive(PrimitiveType.Cube); skirt.name = "skirt"; skirt.layer = LevelBuilder.ArchLayer;
                 skirt.transform.SetParent(house.transform, false); skirt.transform.localPosition = new Vector3(0, -(hi - lo) * 0.5f - 0.05f, 0); skirt.transform.localScale = new Vector3(7.5f, hi - lo + 0.3f, 6.5f);
                 skirt.GetComponent<Renderer>().sharedMaterial = house.GetComponentInChildren<Renderer>().sharedMaterial;
+                // a ramp from the ground up to the doorstep (the plinth is higher than one can step)
+                var doorFront = house.transform.TransformPoint(new Vector3(0, 0, 3.3f));
+                float ground = Height(doorFront.x, doorFront.z), top = house.transform.position.y + 0.27f, rise = top - ground;
+                if (rise > 0.12f)
+                {
+                    float len = Mathf.Max(1.2f, rise * 3.2f), ang = Mathf.Atan2(rise, len) * Mathf.Rad2Deg;
+                    var ramp = GameObject.CreatePrimitive(PrimitiveType.Cube); ramp.name = "ramp"; ramp.layer = LevelBuilder.ArchLayer;
+                    ramp.transform.SetParent(house.transform, false);
+                    ramp.transform.localRotation = Quaternion.Euler(ang, 0, 0);
+                    ramp.transform.localScale = new Vector3(2.0f, 0.12f, Mathf.Sqrt(len * len + rise * rise));
+                    ramp.transform.position = house.transform.TransformPoint(new Vector3(0, 0, 3.0f + len * 0.5f)) + Vector3.up * (top - rise * 0.5f - house.transform.position.y - 0.06f);
+                    ramp.GetComponent<Renderer>().sharedMaterial = skirt.GetComponent<Renderer>().sharedMaterial;
+                }
                 // the way out stands inside, against the back wall, facing the door
                 var back = house.transform.TransformPoint(new Vector3(0, 0.27f, -2.85f)); var normal = house.transform.forward;
                 var plan = new ExitPlan

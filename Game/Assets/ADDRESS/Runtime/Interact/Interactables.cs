@@ -93,27 +93,40 @@ namespace Address.Interact
 
         /// <summary>The way a sitter looks: away from the backrest. Found from the mesh (the backrest is the tall
         /// part) and confirmed by which side is free (a sofa against a wall faces the room).</summary>
+        /// <summary>Where the hips go: the middle of the whole seat, a little towards its front, at seat height.</summary>
+        public Vector3 SitPoint(Vector3 facing)
+        {
+            var all = po.GetComponentsInChildren<Collider>(); if (all.Length == 0) return SeatPoint;
+            var ob = all[0].bounds; foreach (var c in all) ob.Encapsulate(c.bounds);
+            float depth = Mathf.Abs(Vector3.Dot(ob.extents, new Vector3(Mathf.Abs(facing.x), 0, Mathf.Abs(facing.z))));
+            var p = new Vector3(ob.center.x, SeatPoint.y, ob.center.z) + facing * depth * 0.18f;
+            return p;
+        }
+
         public Vector3 Facing()
         {
             var f = po.transform.forward; f.y = 0; f.Normalize();
-            var rs = po.GetComponentsInChildren<Renderer>(); var b = rs.Length > 0 ? rs[0].bounds : new Bounds(po.transform.position, Vector3.one);
-            foreach (var r in rs) b.Encapsulate(r.bounds);
-            var seat = SeatPoint; float seatY = seat.y;
-            // probe a little above the seat on both sides: the side with the backrest is blocked
-            int mask = (1 << 8) | (1 << 9);
-            float Blocked(Vector3 dir)
+            var seat = SeatPoint; Vector3 sum = Vector3.zero; float w = 0;
+            var all = po.GetComponentsInChildren<Collider>(); if (all.Length == 0) return f;
+            var ob = all[0].bounds; foreach (var c in all) ob.Encapsulate(c.bounds);
+            foreach (var c in all)
             {
-                float hit = 0;
-                foreach (var h in new[] { 0.25f, 0.45f })
-                {
-                    var o = new Vector3(seat.x, seatY + h, seat.z);
-                    foreach (var rh in Physics.RaycastAll(o, dir, 1.2f, mask, QueryTriggerInteraction.Ignore)) hit += 1.2f - rh.distance;
-                }
-                return hit;
+                var bb = c.bounds; if (bb.max.y < seat.y + 0.18f) continue;      // only parts standing up above the seat
+                float k = (bb.max.y - Mathf.Max(bb.min.y, seat.y + 0.18f)) * bb.size.x * bb.size.z + 1e-4f;
+                sum += new Vector3(bb.center.x, 0, bb.center.z) * k; w += k;
             }
-            float back = Blocked(-f), front = Blocked(f);
-            return back >= front ? f : -f;
+            if (w > 0)
+            {
+                var back = sum / w - new Vector3(ob.center.x, 0, ob.center.z);   // relative to the whole seat's centre
+                if (back.sqrMagnitude > 0.0025f) return -back.normalized;          // look away from the backrest
+            }
+            // no backrest (stool): face away from the nearest wall
+            int mask = 1 << 8; float dF = 9, dB = 9;
+            if (Physics.Raycast(seat + Vector3.up * 0.5f, f, out var hf, 9f, mask)) dF = hf.distance;
+            if (Physics.Raycast(seat + Vector3.up * 0.5f, -f, out var hb, 9f, mask)) dB = hb.distance;
+            return dF >= dB ? f : -f;
         }
+
         public override void Use(IInteractHost h) { if (Usable) h.SitOn(this); }
 
         public static Seat TryAttach(PlacedObject po)

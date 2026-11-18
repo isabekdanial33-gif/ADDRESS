@@ -750,14 +750,15 @@ namespace Address.World
                 // the Blender pavilion: glass barrel vault on white ribs; invisible walls keep you inside the tunnel
                 var pv = Object.Instantiate(kit.exitPavilionPrefab, go.transform); pv.name = "pavilion";
                 pv.transform.localPosition = Vector3.zero; pv.transform.localRotation = Quaternion.identity;
+                pv.transform.localScale = new Vector3(1.3f, 1.85f, 1f);              // 2.4 m high, 3.2 m wide: you walk in upright
                 foreach (var r in pv.GetComponentsInChildren<Renderer>())
                 {
                     var ms = r.sharedMaterials; for (int i = 0; i < ms.Length; i++) if (ms[i] && ms[i].name.Contains("glass") && kit.glassMat) ms[i] = kit.glassMat;
                     r.sharedMaterials = ms;
                 }
-                foreach (var sx in new[] { -1f, 1f }) { var bc = go.AddComponent<BoxCollider>(); bc.center = new Vector3(sx * 1.32f, 1.2f, 1.7f); bc.size = new Vector3(0.12f, 2.4f, 3.4f); }
-                var roof = go.AddComponent<BoxCollider>(); roof.center = new Vector3(0, 1.36f, 1.7f); roof.size = new Vector3(2.6f, 0.08f, 3.4f);
-                W = 2.3f; D = 3.4f; Hh = 1.25f;
+                foreach (var sx in new[] { -1f, 1f }) { var bc = go.AddComponent<BoxCollider>(); bc.center = new Vector3(sx * 1.66f, 1.2f, 1.7f); bc.size = new Vector3(0.12f, 2.4f, 3.4f); }
+                var roof = go.AddComponent<BoxCollider>(); roof.center = new Vector3(0, 2.5f, 1.7f); roof.size = new Vector3(3.4f, 0.08f, 3.4f);
+                W = 2.6f; D = 3.4f; Hh = 2.2f;
                 goto Inside;
             }
             GameObject Part(string n, Vector3 c, Vector3 size, Material m)

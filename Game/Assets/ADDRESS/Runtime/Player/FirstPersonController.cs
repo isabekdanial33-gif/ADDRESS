@@ -49,7 +49,7 @@ namespace Address.Player
         {
             cc = GetComponent<CharacterController>();
             cc.height = standHeight; cc.radius = 0.28f; cc.center = new Vector3(0, standHeight / 2, 0);
-            cc.stepOffset = 0.2f; cc.slopeLimit = 40f; cc.skinWidth = 0.02f;
+            cc.stepOffset = 0.3f; cc.slopeLimit = 46f; cc.minMoveDistance = 0f;   // at high fps a frame step is < 1 mm and would be ignored cc.skinWidth = 0.02f;
             height = standHeight;
             yaw = transform.eulerAngles.y;
             input ??= new DeviceInput();

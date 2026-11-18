@@ -71,7 +71,7 @@ namespace Address.Game
             ToMenu();
             var args = System.Environment.GetCommandLineArgs();
             // automated test runs: silent, and they always end (even if a test throws)
-            if (args.Contains("-smoketest") || args.Contains("-shots") || args.Contains("-nethost") || args.Contains("-netclient") || args.Contains("-playvideo") || args.Contains("-computertest") || args.Contains("-opentest"))
+            if (args.Contains("-smoketest") || args.Contains("-shots") || args.Contains("-nethost") || args.Contains("-netclient") || args.Contains("-playvideo") || args.Contains("-computertest") || args.Contains("-opentest") || args.Contains("-verify"))
             {
                 AudioListener.volume = 0f;
                 StartCoroutine(Watchdog(args.Contains("-playvideo") ? 600f : 240f));
@@ -81,6 +81,7 @@ namespace Address.Game
             if (args.Contains("-playvideo")) StartCoroutine(PlayVideo());
             if (args.Contains("-computertest")) StartCoroutine(ComputerTest());
             if (args.Contains("-opentest")) StartCoroutine(OpenTest());
+            if (args.Contains("-verify")) StartCoroutine(Verify());
             if (args.Contains("-nethost")) StartCoroutine(NetHostTest());
             if (args.Contains("-netclient")) StartCoroutine(NetClientTest());
         }
