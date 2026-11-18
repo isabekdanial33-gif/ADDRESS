@@ -126,3 +126,14 @@ Testing: `Tools/run_build.ps1 -Mode -playvideo` -> Build/video_frames -> Docs/vi
 - Bugs fixed: physics Script mode, GPU Resident Drawer, floating anomalies 0.04 -> 0.008, LMB always does something (drop), entity final approach.
 - Tests: -shots, -playvideo (bot plays + records Build/video_frames), -computertest; Tools/run_build.ps1 kills the game after.
 - STILL TODO: sound overhaul (#7), more object variety + wave-2 worlds, props sinking into walls / glass rendering check (#5), full third-person body rework, palm orientation polish, bot pathing.
+
+## Update 2026-11-18 evening - fixes from the user's 12-min playtest video
+- White screen after leaving the computer: Hud.SetVisible re-enabled the dissolve snapshot (destroyed texture = white). Fixed.
+- Perf/hitches: world camera off while the computer is open (was 11 fps); FP arms rig skins only its arm split (GPU skinning on); LevelOptimizer cached fixture renderers (was GetComponentsInChildren x200 every 0.2 s); no per-frame FindObjectsByType/allocations (entities, grab, arms); Ultra tier lighter (MSAA 2, 2K shadows, 3 casters).
+- FP legs: only shins + boots drawn (no torn thighs).
+- Inventory: 4 pockets, G = put held small thing away, 1-4 = take out; HUD strip at the bottom; cables use a slot.
+- Frutiger Aero: grass lawn (ambientCG Grass004, lush tint), billboard cumulus clouds within 120 m, clear air (fog 0.006), bubbles over ponds.
+- Sound: procedural non-repeating ballast hum / air / wind (ProcVoice), real PD recordings (door creak, shutter, empty pool hall), random distant events, footsteps without repeats, breathing only after running. Wikimedia rate-limited further downloads.
+- New rooms: breakroom (vending, cooler), meeting (conference table, whiteboard), server (racks) - kit_office2.py.
+- Release v0.5 on GitHub.
+- Known left: level generation still blocks ~5-8 s behind a black fade; archway pavilions plain; vending glass not transparent; storage tubs recoloured grey.
