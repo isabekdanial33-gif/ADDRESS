@@ -67,10 +67,11 @@ namespace Address.Game
                 if (h.distance > hits[0].distance + 0.4f) break;
                 ia = h.collider.GetComponentInParent<Interactable>();
                 if (ia && ia.Verb(this) != null) break; ia = null;
+                if (h.collider.gameObject.layer == LevelBuilder.ArchLayer) break;   // a wall: nothing behind it counts
             }
             string verb = ia ? ia.Verb(this) : null;
             if (verb == null) return false;
-            hud.Aim(true, "E", verb + (grab.Aimed && grab.Aimed.profile.massClass != MassClass.Fixed ? "     ЛКМ — взять" : ""));
+            hud.Aim(true, "E", verb);
             if (EPressed()) { if (fpArms) fpArms.Reach(ia.transform.position + Vector3.up * 0.3f); ia.Use(this); }
             return true;
         }

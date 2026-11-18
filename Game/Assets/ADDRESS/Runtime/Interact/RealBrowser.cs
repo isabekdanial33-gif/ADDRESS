@@ -92,19 +92,19 @@ namespace Address.Interact
         static string StartPage() => @"<!DOCTYPE html><html><head><meta charset='utf-8'><title>Искатель — стартовая страница</title>
 <style>
 body{margin:0;font-family:Verdana,Tahoma,Arial,sans-serif;font-size:12px;background:#eef2f8 url() repeat;color:#222}
-#top{background:linear-gradient(#5b8fd6,#2a5aa8);color:#fff;padding:10px 18px;border-bottom:3px solid #f2a20c}
-#top b{font-size:30px;font-family:Georgia,serif;letter-spacing:1px;text-shadow:1px 1px 0 #123}
-#top span{background:#f2a20c;color:#fff;font-size:10px;padding:1px 4px;border-radius:3px;margin-left:6px;vertical-align:top}
-#search{margin:22px auto;width:620px;text-align:center}
-#search input[type=text]{width:420px;font-size:16px;padding:4px;border:1px solid #7f9db9}
-#search input[type=submit]{font-size:14px;padding:3px 12px;background:linear-gradient(#fff,#dde5f0);border:1px solid #7f9db9}
+div#top{background:linear-gradient(#5b8fd6,#2a5aa8);color:#fff;padding:10px 18px;border-bottom:3px solid #f2a20c}
+div#top b{font-size:30px;font-family:Georgia,serif;letter-spacing:1px;text-shadow:1px 1px 0 #123}
+div#top span{background:#f2a20c;color:#fff;font-size:10px;padding:1px 4px;border-radius:3px;margin-left:6px;vertical-align:top}
+div#search{margin:22px auto;width:620px;text-align:center}
+div#search input[type=text]{width:420px;font-size:16px;padding:4px;border:1px solid #7f9db9}
+div#search input[type=submit]{font-size:14px;padding:3px 12px;background:linear-gradient(#fff,#dde5f0);border:1px solid #7f9db9}
 table{margin:0 auto;border-collapse:collapse;width:880px}
 td{vertical-align:top;padding:8px}
 .box{background:#fff;border:1px solid #b8c8e0}
 .box h3{margin:0;padding:4px 8px;font-size:12px;color:#fff;background:linear-gradient(#7fa7e0,#4a78c0)}
 .box ul{margin:6px 0 8px 18px;padding:0;line-height:20px}
 a{color:#0033cc}a:visited{color:#660099}
-#foot{text-align:center;color:#888;font-size:10px;margin:18px}
+div#foot{text-align:center;color:#888;font-size:10px;margin:18px}
 marquee{color:#c00;font-weight:bold}
 </style></head><body>
 <div id='top'><b>Искатель</b><span>beta 2.0</span><br>интернет, каким он был</div>

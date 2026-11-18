@@ -20,7 +20,7 @@ def pc_tower():
     beige = mat("pc_plastic", (0.73, 0.69, 0.59), rough=0.48)
     beige2 = mat("pc_bay", (0.66, 0.62, 0.53), rough=0.5)
     dark = mat("pc_dark", (0.08, 0.08, 0.08), rough=0.6)
-    metal = mat("pc_metal", (0.55, 0.55, 0.56), rough=0.35, metal=0.9)
+    metal = mat("pc_metal", (0.42, 0.42, 0.43), rough=0.65, metal=0.3)
     led = mat("pc_led", (0.1, 0.9, 0.2), rough=0.3, emit=(0.1, 1.0, 0.25), emit_strength=6)
     W, H, D = 0.19, 0.42, 0.45
     parts = [box("case", (W, D, H), (0, 0, H / 2), metal, bevel=0.004)]

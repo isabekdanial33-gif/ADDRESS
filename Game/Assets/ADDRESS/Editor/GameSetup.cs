@@ -85,9 +85,9 @@ namespace Address.EditorTools
                 vent = A("vent_open"), shutter = A("camera_shutter"), travel = A("travel"),
                 steps = Enumerable.Range(0, 6).Select(i => A($"step_carpet_{i}")).Where(c => c).ToArray(),
                 // real recordings (Wikimedia Commons, public domain) - Audio/Real/SOURCES.md
-                doorReal = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ADDRESS/Audio/Real/Door_handle_creaking.ogg"),
-                shutterReal = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ADDRESS/Audio/Real/Holga_shuttersound.ogg"),
-                poolHall = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ADDRESS/Audio/Real/Indoor_swimming_pool_hall.ogg"),
+                doorReal = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ADDRESS/Audio/Real/Door_handle_creaking.wav"),
+                shutterReal = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ADDRESS/Audio/Real/Holga_shuttersound.wav"),
+                poolHall = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ADDRESS/Audio/Real/Indoor_swimming_pool_hall.wav"),
             };
             EditorUtility.SetDirty(cfg);
             AssetDatabase.SaveAssets();

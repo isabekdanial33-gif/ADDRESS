@@ -31,7 +31,7 @@ namespace Address.Interact
             rt = new RenderTexture(Mathf.Max(640, Screen.width), Mathf.Max(480, Screen.height), 16) { name = "ComputerScreen" };
             uiCam.targetTexture = rt;
             var c = root.AddComponent<Canvas>(); c.renderMode = RenderMode.ScreenSpaceCamera; c.worldCamera = uiCam; c.planeDistance = 1f; root.layer = 5;
-            var sc = root.AddComponent<CanvasScaler>(); sc.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; sc.referenceResolution = new Vector2(1920, 1080); sc.matchWidthOrHeight = 1f;
+            var sc = root.AddComponent<CanvasScaler>(); sc.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; sc.referenceResolution = new Vector2(1440, 1080); sc.matchWidthOrHeight = 1f;
             root.AddComponent<GraphicRaycaster>();
             ticker = root.AddComponent<UiTicker>();
             // bezel around a 4:3 picture

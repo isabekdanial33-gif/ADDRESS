@@ -29,7 +29,7 @@ namespace Address.Interact
                 case DeviceKind.Tower: return station.On ? (station.Ready ? "сесть за компьютер" : "выключить компьютер") : "включить компьютер";
                 case DeviceKind.Monitor:
                     if (link == null) return h.Pockets.cables > 0 ? "подключить кабелем" : "монитор не подключён — нужен кабель";
-                    return station != null && station.On ? "сесть за компьютер" : "монитор подключён";
+                    return station != null && station.On ? "сесть за компьютер" : "включить компьютер";
                 default:
                     if (link == null) return h.Pockets.cables > 0 ? "подключить кабелем к компьютеру" : null;
                     return null;
@@ -49,7 +49,7 @@ namespace Address.Interact
                 case DeviceKind.Monitor:
                     if (link == null) { TryConnect(h); return; }
                     if (station != null && station.On) h.UseComputer(station);
-                    else h.Toast("экран тёмный", "включите системный блок");
+                    else if (station != null) { station.SetPower(true); h.PlaySfx(station.beep, transform.position, 0.6f); }
                     return;
                 default:
                     if (link == null) TryConnect(h);

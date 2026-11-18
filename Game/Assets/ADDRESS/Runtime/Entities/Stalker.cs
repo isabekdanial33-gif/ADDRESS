@@ -40,6 +40,8 @@ namespace Address.Entities
         public void Init(LevelBuilder.Result level, int gen, AudioClip droneClip)
         {
             nav = level.nav; floorY = level.start.y; generation = gen;
+            if (Physics.Raycast(transform.position + Vector3.up * 2f, Vector3.down, out var fh, 5f, 1 << LevelBuilder.ArchLayer, QueryTriggerInteraction.Ignore)) floorY = fh.point.y;
+            transform.position = new Vector3(transform.position.x, floorY, transform.position.z);
             archPropsMask = (1 << LevelBuilder.ArchLayer) | (1 << LevelBuilder.PropsLayer);
             roomy = new bool[nav.w * nav.h];
             for (int z = 0; z < nav.h; z++) for (int x = 0; x < nav.w; x++) roomy[x + z * nav.w] = nav.Roomy(x, z);

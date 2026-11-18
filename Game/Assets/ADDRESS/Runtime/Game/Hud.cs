@@ -13,7 +13,7 @@ namespace Address.Game
         public GameObject root;
         public Image fade;
         readonly Image dot, ring;
-        readonly RectTransform promptRow; readonly Text promptText; readonly Image keyBg; readonly Text keyText;
+        readonly RectTransform promptRow; readonly Image promptPlate; readonly Text promptText; readonly Image keyBg; readonly Text keyText;
         readonly Text cardTitle, cardSub, corner, toast, toastSub;
         readonly Image cardLine;
         float ringK, promptK, cardT = 99f, toastT = 99f; string cardFull = "", cardName = "";
@@ -27,11 +27,13 @@ namespace Address.Game
             var R = root.transform;
             var vig = UiKit.Image(R, "vignette", new Color(0, 0, 0, 0.35f), UiKit.Vignette); UiKit.Stretch(vig.rectTransform);
 
+            var dotShade = UiKit.Image(R, "dotShade", new Color(0, 0, 0, 0.45f), UiKit.SoftDot); dotShade.rectTransform.sizeDelta = new Vector2(12, 12);
             dot = UiKit.Image(R, "dot", new Color(1, 1, 1, 0.5f), UiKit.SoftDot); dot.rectTransform.sizeDelta = new Vector2(7, 7);
             ring = UiKit.Image(R, "ring", new Color(1, 1, 1, 0), UiKit.Ring); ring.rectTransform.sizeDelta = new Vector2(34, 34);
 
             // prompt: [key] label, under the crosshair
             promptRow = UiKit.Rect(R, "prompt"); promptRow.sizeDelta = new Vector2(600, 40); promptRow.anchoredPosition = new Vector2(0, -60);
+            promptPlate = UiKit.Image(promptRow, "plate", new Color(0, 0, 0, 0.55f)); promptPlate.rectTransform.anchorMin = promptPlate.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
             keyBg = UiKit.Image(promptRow, "key", new Color(1, 1, 1, 0.9f)); keyBg.rectTransform.anchorMin = keyBg.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
             keyText = UiKit.Text(keyBg.transform, "k", UiKit.MonoBold, 22, new Color(0.08f, 0.07f, 0.04f), TextAnchor.MiddleCenter); UiKit.Stretch(keyText.rectTransform);
             promptText = UiKit.Text(promptRow, "label", UiKit.Mono, 24, UiKit.Ink); promptText.rectTransform.anchorMin = promptText.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
@@ -46,8 +48,8 @@ namespace Address.Game
 
             corner = UiKit.Text(R, "corner", UiKit.Mono, 15, new Color(1, 1, 1, 0.3f), TextAnchor.LowerLeft); Anchor(corner.rectTransform, new Vector2(0, 0), new Vector2(24, 18), new Vector2(700, 24), new Vector2(0, 0));
 
-            toast = UiKit.Text(R, "toast", UiKit.Title, 40, UiKit.Accent, TextAnchor.MiddleCenter); Anchor(toast.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0, 120), new Vector2(800, 60));
-            toastSub = UiKit.Text(R, "toastSub", UiKit.Mono, 18, UiKit.Ink, TextAnchor.MiddleCenter); Anchor(toastSub.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0, 82), new Vector2(800, 30));
+            toast = UiKit.Text(R, "toast", UiKit.Title, 40, UiKit.Accent, TextAnchor.MiddleCenter); Anchor(toast.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0, 300), new Vector2(800, 60));
+            toastSub = UiKit.Text(R, "toastSub", UiKit.Mono, 18, UiKit.Ink, TextAnchor.MiddleCenter); Anchor(toastSub.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0, 262), new Vector2(800, 30));
             foreach (var t in new[] { toast, toastSub }) { var s = t.gameObject.AddComponent<Shadow>(); s.effectColor = new Color(0, 0, 0, 0.7f); s.effectDistance = new Vector2(2, -2); }
 
             fade = UiKit.Image(R, "fade", Color.black); UiKit.Stretch(fade.rectTransform);
@@ -108,7 +110,9 @@ namespace Address.Game
         {
             if (!pocketsText)
             {
-                pocketsText = UiKit.Text(root.transform, "pockets", UiKit.Mono, 18, new Color(1, 1, 1, 0.75f), TextAnchor.LowerCenter);
+                var plate = UiKit.Image(root.transform, "pocketsPlate", new Color(0, 0, 0, 0.45f));
+                Anchor(plate.rectTransform, new Vector2(0.5f, 0), new Vector2(0, 14), new Vector2(1000, 44), new Vector2(0.5f, 0));
+                pocketsText = UiKit.Text(root.transform, "pockets", UiKit.Mono, 22, new Color(1, 1, 1, 0.92f), TextAnchor.LowerCenter);
                 Anchor(pocketsText.rectTransform, new Vector2(0.5f, 0), new Vector2(0, 22), new Vector2(1200, 30), new Vector2(0.5f, 0));
                 var sh = pocketsText.gameObject.AddComponent<Shadow>(); sh.effectColor = new Color(0, 0, 0, 0.7f); sh.effectDistance = new Vector2(1, -1);
             }
@@ -137,8 +141,10 @@ namespace Address.Game
                 float kw = Mathf.Max(36, promptKey.Length * 14 + 18), lw = promptText.preferredWidth, total = kw + 10 + lw;
                 keyBg.rectTransform.sizeDelta = new Vector2(kw, 36); keyBg.rectTransform.anchoredPosition = new Vector2(-total / 2 + kw / 2, 0);
                 promptText.rectTransform.anchoredPosition = new Vector2(-total / 2 + kw + 10, 0);
+                promptPlate.rectTransform.sizeDelta = new Vector2(total + 28, 48); promptPlate.rectTransform.anchoredPosition = Vector2.zero;
             }
             float pa = promptK;
+            promptPlate.color = new Color(0, 0, 0, 0.55f * pa);
             keyBg.color = new Color(1, 0.96f, 0.86f, 0.9f * pa); keyText.color = new Color(0.08f, 0.07f, 0.04f, pa); promptText.color = new Color(1, 1, 1, 0.9f * pa);
             promptRow.anchoredPosition = new Vector2(0, -56 - (1 - pa) * 8);
 
@@ -159,7 +165,7 @@ namespace Address.Game
             float ta = toastT < 0.12f ? toastT / 0.12f : Mathf.Clamp01(1 - (toastT - 1.4f) / 0.6f);
             float pop = 1 + Mathf.Max(0, 0.25f - toastT) * 1.2f;
             toast.color = new Color(UiKit.Accent.r, UiKit.Accent.g, UiKit.Accent.b, ta); toastSub.color = new Color(1, 1, 1, 0.85f * ta);
-            toast.rectTransform.localScale = Vector3.one * pop; toast.rectTransform.anchoredPosition = new Vector2(0, 120 + toastT * 12f);
+            toast.rectTransform.localScale = Vector3.one * pop; toast.rectTransform.anchoredPosition = new Vector2(0, 300 + toastT * 12f);
             return true;
         }
     }

@@ -89,8 +89,9 @@ namespace Address.Entities
                     if (n.Contains("lens")) { m.SetColor("_BaseColor", new Color(0.01f, 0.01f, 0.012f)); if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.95f); }
                     else
                     {
-                        float g = c.grayscale; var dark = Color.Lerp(c, new Color(g, g, g), 0.55f) * 0.42f; dark.a = 1;
-                        m.SetColor("_BaseColor", dark); if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", m.GetFloat("_Smoothness") * 0.6f);
+                        float g = c.grayscale; var dark = Color.Lerp(c, new Color(g, g, g), 0.85f) * 0.14f; dark.a = 1;
+                        m.SetColor("_BaseColor", dark); if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.25f);
+                        if (m.HasProperty("_MetallicGlossMap")) { m.SetTexture("_MetallicGlossMap", null); m.DisableKeyword("_METALLICSPECGLOSSMAP"); m.SetFloat("_Metallic", 0f); }
                     }
                 }
                 r.materials = mats;
