@@ -75,6 +75,18 @@ namespace Address.Game
             if (snapshot) { snapshot.gameObject.SetActive(false); snapshot.rectTransform.localScale = Vector3.one; }
         }
 
+        Text loading;
+        /// <summary>While a place is being built the screen is not just black: the address is shown on it.</summary>
+        public void Loading(string text)
+        {
+            if (!loading)
+            {
+                loading = UiKit.Text(root.transform, "loading", UiKit.Mono, 26, new Color(1, 1, 1, 0.7f), TextAnchor.MiddleCenter);
+                Anchor(loading.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1400, 80));
+            }
+            loading.transform.SetAsLastSibling(); loading.text = text ?? ""; loading.gameObject.SetActive(!string.IsNullOrEmpty(text));
+        }
+
         public void SetVisible(bool v)
         {
             foreach (Transform c in root.transform)

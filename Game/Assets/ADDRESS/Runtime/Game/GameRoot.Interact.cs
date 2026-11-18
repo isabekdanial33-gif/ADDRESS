@@ -79,7 +79,7 @@ namespace Address.Game
         {
             if (fpc.Seated || grab.Held) return;
             seatedOn = s; standBackPos = player.transform.position;
-            var seat = s.SeatPoint; var fwd = s.po.transform.forward; fwd.y = 0; fwd.Normalize();
+            var seat = s.SeatPoint; var fwd = s.Facing();
             float floorY = s.po.transform.position.y;
             fpc.Sit(new Vector3(seat.x, floorY, seat.z) + fwd * 0.04f, Mathf.Atan2(fwd.x, fwd.z) * Mathf.Rad2Deg, seat.y - floorY);
             grab.enabled = false;

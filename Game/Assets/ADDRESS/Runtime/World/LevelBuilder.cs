@@ -16,7 +16,7 @@ namespace Address.World
         public ProfileDatabase db;
         public Material floorMat, wallMat, ceilingMat, lightMat;
         public GameObject trofferPrefab, baseboardPrefab, doorFramePrefab;
-        public GameObject exitDoorPrefab, exitElevatorPrefab, exitVentPrefab;
+        public GameObject exitDoorPrefab, exitElevatorPrefab, exitVentPrefab, exitPavilionPrefab, aeroHousePrefab;
         public Material voidMat;
         public Material poolTileMat, basinMat, waterMat;
         public Material aeroFloorMat, aeroWallMat, glassMat, aeroGrassMat;
@@ -136,6 +136,8 @@ namespace Address.World
 
         Result BuildOnce(LevelAddress address, int sizeOverride, int attempt)
         {
+            var sw = System.Diagnostics.Stopwatch.StartNew(); var times = new System.Text.StringBuilder();
+            void Mark(string n) { times.Append($"{n} {sw.ElapsedMilliseconds}ms  "); sw.Restart(); }
             var rng = new Rng(attempt == 0 ? address.BaseSeed : Hashing.Combine(address.BaseSeed, (ulong)attempt * 0xA77E3UL));
             var res = new Result { address = address, aesthetic = address.Aesthetic == "PR" || address.Aesthetic == "FA" ? address.Aesthetic : "BR" };
             bool pool = res.aesthetic == "PR" && kit.poolTileMat;
@@ -147,6 +149,7 @@ namespace Address.World
             res.root = new GameObject("Level " + address);
             var arch = new GameObject("Architecture"); arch.transform.SetParent(res.root.transform);
             var props = new GameObject("Props"); props.transform.SetParent(res.root.transform);
+            if (aero) return BuildAero(res, rng, arch.transform, props.transform);
 
             // rare places (~1 in 18): the exit is found differently; the guarantee still holds
             var rr = rng.Fork("rare"); float rv = rr.Value;
@@ -165,6 +168,12 @@ namespace Address.World
                 var st = c + new Vector3(rng.Fork("st").Range(-6f, 6f), 0, rng.Fork("st2").Range(-6f, 6f));
                 res.exits = ExitPlanner.PlanPark(L, rng.Fork("exits"), st);
                 PlanPonds(L, res, rng.Fork("ponds"), st);
+                // nothing may stand in or right in front of a pavilion
+                foreach (var e in res.exits)
+                {
+                    var c0 = e.position + e.normal * 2.0f; var a2 = Mathf.Abs(e.normal.x) > 0.5f;
+                    L.rooms[0].spec.keepOut.Add(a2 ? new Rect(c0.x - 2.6f, c0.z - 1.6f, 5.2f, 3.2f) : new Rect(c0.x - 1.6f, c0.z - 2.6f, 3.2f, 5.2f));
+                }
             }
             else res.exits = ExitPlanner.Plan(L, rng.Fork("exits"));
             if (pool) PlanBasins(L, res, rng.Fork("basins"), new HashSet<int>(res.exits.Select(e => e.roomId)));
@@ -174,6 +183,7 @@ namespace Address.World
             if (pool || (aero && res.basins.Count > 0)) BuildBasins(res, arch.transform);
             if (aero) foreach (var b in res.basins) Bubbles(b, arch.transform);
             if (aero) BuildSky(L, arch.transform, rng.Fork("sky"));
+            Mark("arch");
             var exitsRoot = new GameObject("Exits"); exitsRoot.transform.SetParent(res.root.transform);   // animated: never static-batched
             BuildExits(res.exits, exitsRoot.transform);
             Physics.SyncTransforms();
@@ -212,6 +222,7 @@ namespace Address.World
                     res.nav.ReservePath(res.nav.Center(c.x, c.y), res.nav.Center(c.x, c.y), 0.25f);
             }
 
+            Mark("nav");
             // furnishing
             var eng = new PlacementEngine(ArchLayer, PropsLayer, props.transform) { style = pool ? "poolrooms" : aero ? "frutiger" : "backrooms", mood = pool || aero ? "light" : "neutral", nav = res.nav, navStart = res.start, settleOnCommit = SettleOnCommit };
             res.engine = eng;
@@ -301,6 +312,7 @@ namespace Address.World
                         break;
                 }
             }
+            Mark("furnish");
             // one realtime reflection probe rendered once: glossy tiles, water and glass reflect the actual place
             var probeGo = new GameObject("ReflectionProbe"); probeGo.transform.SetParent(res.root.transform);
             probeGo.transform.position = res.start + Vector3.up * 1.4f;
@@ -318,6 +330,9 @@ namespace Address.World
                 e.reachable = res.nav.FindPath(sc0, e.approachCell) != null;
                 if (!e.reachable) e.reachable = Repair(res, sc0, e);
             }
+            Mark("verify");
+            Debug.Log($"[ADDRESS] build timing {address}: {times} objects {res.engine.placed.Count} settle {PlacementEngine.TSettle.ElapsedMilliseconds}ms tries {res.engine.stats.candidatesTried} req {res.engine.stats.requested}");
+            PlacementEngine.TSettle.Reset();
             return res;
         }
 
@@ -620,11 +635,31 @@ namespace Address.World
         }
 
         /// <summary>Frutiger Aero sky: big soft cumulus billboards all around, high up.</summary>
-        void Clouds(LayoutGenerator.Layout L, Transform parent, Rng rng)
+        /// <summary>Frutiger Aero: the endless open world (hills, lakes, rivers, houses with the exits inside).</summary>
+        Result BuildAero(Result res, Rng rng, Transform arch, Transform props)
+        {
+            res.rare = ""; res.rooms = new List<RoomSpec>();
+            res.engine = new PlacementEngine(ArchLayer, PropsLayer, props);
+            var world = arch.gameObject.AddComponent<AeroWorld>();
+            world.buildExit = (plan, parent) => { BuildArchway(plan, parent); return plan.instance; };
+            world.Init(res, kit, kit.aeroGrassMat ? LushGrass(kit.aeroGrassMat) : floorM, props);
+            var sun = new GameObject("Sun"); sun.transform.SetParent(arch);
+            sun.transform.rotation = Quaternion.Euler(rng.Range(45f, 60f), rng.Range(0f, 360f), 0);
+            var l = sun.AddComponent<Light>(); l.type = LightType.Directional; l.intensity = 1.3f; l.color = new Color(1f, 0.97f, 0.9f); l.shadows = LightShadows.Soft; l.shadowStrength = 0.6f;
+            RenderSettings.sun = l;
+            Clouds(Vector3.zero, arch, rng);
+            res.start = new Vector3(0, world.Height(0, 0) + 0.05f, 0); res.startYaw = rng.Range(0, 4) * 90f;
+            res.nav = new NavGrid(new Bounds(res.start, new Vector3(24, 2, 24)), 0.5f);
+            res.nav.SetWalkable(new Bounds(res.start, new Vector3(20, 2, 20)), true);
+            return res;
+        }
+
+        void Clouds(LayoutGenerator.Layout L, Transform parent, Rng rng) => Clouds(L.WorldBounds.center, parent, rng);
+        void Clouds(Vector3 c, Transform parent, Rng rng)
         {
             var mat = Resources.Load<Material>("CloudMat"); if (!mat) return;
             mat = new Material(mat); mat.SetTexture("_BaseMap", CloudTex());
-            var c = L.WorldBounds.center; var root = new GameObject("Clouds"); root.transform.SetParent(parent);
+            var root = new GameObject("Clouds"); root.transform.SetParent(parent); root.AddComponent<Address.Rendering.FollowViewerXZ>();
             var mesh = GameObject.CreatePrimitive(PrimitiveType.Quad); var qm = mesh.GetComponent<MeshFilter>().sharedMesh; Object.DestroyImmediate(mesh);
             for (int i = 0; i < 34; i++)
             {
@@ -710,6 +745,21 @@ namespace Address.World
             go.transform.SetPositionAndRotation(e.position, Quaternion.LookRotation(e.normal, Vector3.up));
             var tile = kit.poolTileMat ? kit.poolTileMat : wallM;
             float W = 1.7f, D = 3.2f, Hh = 2.6f, t = 0.18f;
+            if (kit.exitPavilionPrefab)
+            {
+                // the Blender pavilion: glass barrel vault on white ribs; invisible walls keep you inside the tunnel
+                var pv = Object.Instantiate(kit.exitPavilionPrefab, go.transform); pv.name = "pavilion";
+                pv.transform.localPosition = Vector3.zero; pv.transform.localRotation = Quaternion.identity;
+                foreach (var r in pv.GetComponentsInChildren<Renderer>())
+                {
+                    var ms = r.sharedMaterials; for (int i = 0; i < ms.Length; i++) if (ms[i] && ms[i].name.Contains("glass") && kit.glassMat) ms[i] = kit.glassMat;
+                    r.sharedMaterials = ms;
+                }
+                foreach (var sx in new[] { -1f, 1f }) { var bc = go.AddComponent<BoxCollider>(); bc.center = new Vector3(sx * 1.32f, 1.2f, 1.7f); bc.size = new Vector3(0.12f, 2.4f, 3.4f); }
+                var roof = go.AddComponent<BoxCollider>(); roof.center = new Vector3(0, 1.36f, 1.7f); roof.size = new Vector3(2.6f, 0.08f, 3.4f);
+                W = 2.3f; D = 3.4f; Hh = 1.25f;
+                goto Inside;
+            }
             GameObject Part(string n, Vector3 c, Vector3 size, Material m)
             {
                 var p = Slab(go.transform, n, Vector3.zero, size, m, 0.6f); p.transform.localPosition = c; p.transform.localRotation = Quaternion.identity; p.isStatic = false; return p;
@@ -719,6 +769,7 @@ namespace Address.World
             Part("roof", new Vector3(0, Hh + 0.09f, D * 0.5f), new Vector3(W + 2 * t + 0.2f, 0.18f, D + 0.2f), tile);
             Part("lintel", new Vector3(0, Hh - 0.3f, D - 0.09f), new Vector3(W, 0.6f, 0.18f), tile);
             Part("step", new Vector3(0, 0.02f, D * 0.5f), new Vector3(W, 0.04f, D), tile);
+            Inside:
             if (kit.waterMat)
             {
                 var w = GameObject.CreatePrimitive(PrimitiveType.Quad); Object.DestroyImmediate(w.GetComponent<Collider>());
@@ -728,7 +779,7 @@ namespace Address.World
             }
             var glow = GameObject.CreatePrimitive(PrimitiveType.Quad); Object.DestroyImmediate(glow.GetComponent<Collider>());
             glow.name = "glow"; glow.transform.SetParent(go.transform, false);
-            glow.transform.localPosition = new Vector3(0, Hh * 0.45f, 0.03f); glow.transform.localRotation = Quaternion.Euler(0, 180, 0); glow.transform.localScale = new Vector3(W, Hh * 0.9f, 1);
+            glow.transform.localPosition = new Vector3(0, Hh * 0.45f, 0.03f); glow.transform.localRotation = Quaternion.Euler(0, 180, 0); glow.transform.localScale = new Vector3(W * 0.55f, Hh * 0.55f, 1);
             if (kit.lightMat) glow.GetComponent<Renderer>().sharedMaterial = kit.lightMat;
             var lg = new GameObject("Light"); lg.transform.SetParent(go.transform, false); lg.transform.localPosition = new Vector3(0, 2.0f, 1.2f);
             var li = lg.AddComponent<Light>(); li.type = LightType.Point; li.range = 4.5f; li.intensity = 2.2f; li.color = new Color(0.6f, 0.95f, 1f); li.shadows = LightShadows.None;

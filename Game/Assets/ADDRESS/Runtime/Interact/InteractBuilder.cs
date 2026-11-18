@@ -27,6 +27,8 @@ namespace Address.Interact
             foreach (var po in level.engine.placed)
             {
                 if (!po || !po.profile) continue;
+                if (po.profile.support == SupportType.Wall)
+                    foreach (var r in po.GetComponentsInChildren<Renderer>()) { r.receiveShadows = false; r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; }
                 switch (po.profile.group)
                 {
                     case "switch":

@@ -15,7 +15,7 @@ namespace Address.Entities
     {
         public static float ChanceFor(string aesthetic, int generation)
         {
-            float c = aesthetic switch { "BR" => 0.45f, "PR" => 0.22f, "FA" => 0.08f, _ => 0.3f };
+            float c = aesthetic switch { "BR" => 0.45f, "PR" => 0.22f, "FA" => 0f, _ => 0.3f };
             return Mathf.Clamp01(c + generation * 0.15f);
         }
 

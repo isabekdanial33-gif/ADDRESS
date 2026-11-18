@@ -90,6 +90,30 @@ namespace Address.Interact
             Physics.Raycast(po.transform.position + Vector3.up * 0.05f, Vector3.down, 0.12f, (1 << 8) | (1 << 9), QueryTriggerInteraction.Ignore);
 
         public Vector3 SeatPoint => po.transform.TransformPoint(localSeat);
+
+        /// <summary>The way a sitter looks: away from the backrest. Found from the mesh (the backrest is the tall
+        /// part) and confirmed by which side is free (a sofa against a wall faces the room).</summary>
+        public Vector3 Facing()
+        {
+            var f = po.transform.forward; f.y = 0; f.Normalize();
+            var rs = po.GetComponentsInChildren<Renderer>(); var b = rs.Length > 0 ? rs[0].bounds : new Bounds(po.transform.position, Vector3.one);
+            foreach (var r in rs) b.Encapsulate(r.bounds);
+            var seat = SeatPoint; float seatY = seat.y;
+            // probe a little above the seat on both sides: the side with the backrest is blocked
+            int mask = (1 << 8) | (1 << 9);
+            float Blocked(Vector3 dir)
+            {
+                float hit = 0;
+                foreach (var h in new[] { 0.25f, 0.45f })
+                {
+                    var o = new Vector3(seat.x, seatY + h, seat.z);
+                    foreach (var rh in Physics.RaycastAll(o, dir, 1.2f, mask, QueryTriggerInteraction.Ignore)) hit += 1.2f - rh.distance;
+                }
+                return hit;
+            }
+            float back = Blocked(-f), front = Blocked(f);
+            return back >= front ? f : -f;
+        }
         public override void Use(IInteractHost h) { if (Usable) h.SitOn(this); }
 
         public static Seat TryAttach(PlacedObject po)

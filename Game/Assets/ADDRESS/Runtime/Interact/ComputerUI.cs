@@ -215,9 +215,10 @@ namespace Address.Interact
 
         // ------------------------------------------------------------------ browser
 
-        void Browser(string url)
+        void Browser(string url) => Browser(url, false);
+        void Browser(string url, bool offline)
         {
-            if (Application.internetReachability != NetworkReachability.NotReachable && RealBrowser.Available) { RealBrowserWindow(); return; }
+            if (!offline && Application.internetReachability != NetworkReachability.NotReachable && RealBrowser.Available) { RealBrowserWindow(); return; }
             var w = Window("Обозреватель", new Vector2(1180, 860), out var body);
             var tool = UiKit.Rect(body, "toolbar"); tool.anchorMin = new Vector2(0, 1); tool.anchorMax = new Vector2(1, 1); tool.pivot = new Vector2(0.5f, 1); tool.sizeDelta = new Vector2(0, 46);
             var ti = tool.gameObject.AddComponent<RawImage>(); ti.texture = IconTex.Gradient(new Color(0.95f, 0.96f, 0.98f), new Color(0.78f, 0.82f, 0.9f), true);
@@ -258,6 +259,19 @@ namespace Address.Interact
             var statusBar = UiKit.Text(body, "status", sys, 15, Color.black); statusBar.rectTransform.anchorMin = new Vector2(0, 0); statusBar.rectTransform.anchorMax = new Vector2(1, 0); statusBar.rectTransform.pivot = new Vector2(0, 0); statusBar.rectTransform.sizeDelta = new Vector2(0, 26); statusBar.text = "  Соединение...";
             Text titleText = w.Find("title/t").GetComponent<Text>();
             var rb = RealBrowser.Create(view, st.HasMouse, st.HasKeyboard);
+            // the engine takes a few seconds to start: say so, and fall back to the offline web if it never comes up
+            var wait = UiKit.Text(view, "starting", sys, 22, new Color(0.2f, 0.2f, 0.25f), TextAnchor.MiddleCenter); UiKit.Stretch(wait.rectTransform);
+            wait.text = "Обозреватель запускается...\nподключение к сети";
+            float waited = 0;
+            ticker.Add(dt =>
+            {
+                if (!wait || !rb) return false;
+                waited += dt;
+                if (rb.Ready) { UnityEngine.Object.Destroy(wait.gameObject); return false; }
+                wait.text = "Обозреватель запускается" + new string('.', 1 + (int)(waited * 2) % 3) + "\nподключение к сети";
+                if (waited > 14f) { CloseWindow(w); Browser(WebGen.Home, true); Dialog("Обозреватель", "Нет соединения с Интернетом.\nОткрыта локальная сеть.", true); return false; }
+                return true;
+            });
             InputField addr = null; bool era2007 = true; Text eraLabel = null;
             rb.onUrl = u => { if (addr && !addr.isFocused) addr.text = RealBrowser.Pretty(u); };
             rb.onTitle = t => { titleText.text = "  " + t + " — Обозреватель"; };

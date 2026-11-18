@@ -46,7 +46,7 @@ namespace Address.Interact
             go.SetActive(true);
             return rb;
         }
-        bool ready;
+        bool ready; public bool Ready => ready;
         readonly System.Collections.Concurrent.ConcurrentQueue<Action> q = new();
         void LateUpdate() { while (q.TryDequeue(out var a)) { try { a(); } catch (Exception e) { Debug.LogWarning("[ADDRESS] browser event: " + e.Message); } } }
 

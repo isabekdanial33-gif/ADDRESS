@@ -39,6 +39,8 @@ namespace Address.EditorTools
                 basinMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/PR_Basin.mat"),
                 waterMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Water.mat"),
                 aeroFloorMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/FA_Floor.mat"),
+                exitPavilionPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ADDRESS/Art/Exits/exit_aero_pavilion.glb"),
+                aeroHousePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ADDRESS/Art/Exits/aero_house.glb"),
                 aeroGrassMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Grass004.mat"),
                 aeroWallMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/FA_Wall.mat"),
                 glassMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Glass.mat"),

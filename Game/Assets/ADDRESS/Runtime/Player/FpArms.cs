@@ -82,7 +82,7 @@ namespace Address.Player
             // shoulders sit below and slightly behind the eyes
             lUA.localRotation = lUA0; lLA.localRotation = lLA0; lH.localRotation = lH0; rUA.localRotation = rUA0; rLA.localRotation = rLA0; rH.localRotation = rH0;
             var mid = (lUA.position + rUA.position) * 0.5f;
-            rig.transform.position += cam.transform.TransformPoint(new Vector3(0, -0.27f, -0.14f)) - mid;
+            rig.transform.position += cam.transform.TransformPoint(new Vector3(0, -0.36f, -0.26f)) - mid;   // shoulders low and behind: forearms come in from the bottom corners
 
             // targets: the two sides of the held object / the face of what you push / the thing you use
             Vector3 c = new Vector3(0, -0.25f, 0.45f); float half = 0.14f; Vector3 objW = cam.transform.TransformPoint(c);
@@ -101,7 +101,7 @@ namespace Address.Player
                     var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds);
                     objW = b.center; c = cam.transform.InverseTransformPoint(b.center);
                     var e = cam.transform.InverseTransformVector(b.extents);
-                    half = Mathf.Clamp(Mathf.Abs(e.x) + 0.015f, 0.05f, 0.3f); c.z -= Mathf.Abs(e.z) * 0.3f;
+                    half = Mathf.Clamp(Mathf.Abs(e.x) + 0.02f, 0.05f, 0.3f);
                 }
             }
             Solve(lUA, lLA, lH, lPalm, -1, c, half, sway, objW, 0);
@@ -122,7 +122,8 @@ namespace Address.Player
         void Solve(Transform ua, Transform la, Transform hand, Vector3 palmLocal, float side, Vector3 c, float half, Vector3 sway, Vector3 objW, float reachK)
         {
             var idle = new Vector3(side * 0.24f, -0.75f, 0.2f);
-            var holdP = c + new Vector3(side * half, -0.02f, 0);
+            // the target is the WRIST: put it behind and below the grip point so the palm and fingers land on the object
+            var holdP = c + new Vector3(side * (half + 0.035f), -0.045f, -0.075f);
             var reachP = Vector3.ClampMagnitude(cam.transform.InverseTransformPoint(reachPoint), 0.6f);
             var target = Vector3.Lerp(idle, holdP, Ease(hold)); if (reachK > 0 && side > 0) target = Vector3.Lerp(target, reachP, Ease(reachK));
             var tw = cam.transform.TransformPoint(target + sway);

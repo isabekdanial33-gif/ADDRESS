@@ -251,8 +251,8 @@ namespace Address.Game
             Debug.Log($"[ADDRESS] shots fa: exits {string.Join(",", level.exits.Select(x => x.form + "/" + x.role + (x.reachable ? "" : "!")))} basins {level.basins.Count}");
             if (arch != null)
             {
-                var cc3 = player.GetComponent<CharacterController>(); var ap = arch.position + arch.normal * 3.6f;
-                cc3.enabled = false; player.transform.position = new Vector3(ap.x, 0.02f, ap.z); cc3.enabled = true;
+                var cc3 = player.GetComponent<CharacterController>(); var ap = arch.position + arch.normal * 4.6f;
+                cc3.enabled = false; player.transform.position = new Vector3(ap.x, arch.position.y + 0.02f, ap.z); cc3.enabled = true;
                 fpc.SetLook(Mathf.Atan2(-arch.normal.x, -arch.normal.z) * Mathf.Rad2Deg, 5); yield return null; yield return null;
                 Shot(cam, "61_fa_archway");
                 Travel(arch.instance); yield return new WaitForSeconds(0.9f); Shot(cam, "62_dissolve");
@@ -359,7 +359,9 @@ namespace Address.Game
             // touch objects during the physical stability check and change the result between machines)
             var pcc = player ? player.GetComponent<CharacterController>() : null;
             if (pcc) pcc.enabled = false;
+            if (!menuBackground) { hud.Loading("→ " + address + "\nищу это место..."); yield return null; yield return null; }
             level = new LevelBuilder(config.kit).Build(address);
+            hud.Loading(null);
             if (pcc) pcc.enabled = true;
             LevelBuilder.ApplyAtmosphere(level.aesthetic);
             if (level.probe) level.probe.RenderProbe();
@@ -378,6 +380,7 @@ namespace Address.Game
             if (!menuBackground) book.Visit(address);
             if (cameFrom.HasValue && address.Generation > 0) book.LinkEcho(cameFrom.Value, address);
             grab.engine = level.engine;
+            var aeroWorld = level.root.GetComponentInChildren<AeroWorld>(); if (aeroWorld) aeroWorld.viewer = player.transform;
             var cc = player.GetComponent<CharacterController>();
             cc.enabled = false;
             player.transform.position = level.start + Vector3.up * 0.05f;

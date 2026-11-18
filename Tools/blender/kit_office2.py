@@ -22,16 +22,21 @@ def vending_machine():
     steel = mat("vend_steel", (0.6, 0.6, 0.6), rough=0.3, metal=1.0)
     W, D, H = 0.9, 0.8, 1.85
     parts = [box("body", (W, D, H), (0, 0, H / 2), body_m, bevel=0.02, seg=3)]
-    parts.append(box("window", (W * 0.62, 0.02, H * 0.62), (-W * 0.1, -D / 2 - 0.005, H * 0.6), glass, bevel=0.006))
-    parts.append(box("lightstrip", (W * 0.62, 0.012, 0.05), (-W * 0.1, -D / 2 - 0.01, H * 0.93), lit))
+    # a real display box in front of the cabinet: cans stand inside it, behind the glass
+    dw, dh, dd = W * 0.62, H * 0.62, 0.14
+    parts += [box("dback", (dw, 0.01, dh), (-W * 0.1, -D / 2 - 0.005, H * 0.6), dark),
+              box("dl", (0.03, dd, dh), (-W * 0.1 - dw / 2, -D / 2 - dd / 2, H * 0.6), body_m), box("dr", (0.03, dd, dh), (-W * 0.1 + dw / 2, -D / 2 - dd / 2, H * 0.6), body_m),
+              box("dt", (dw + 0.03, dd, 0.03), (-W * 0.1, -D / 2 - dd / 2, H * 0.6 + dh / 2), body_m), box("db", (dw + 0.03, dd, 0.03), (-W * 0.1, -D / 2 - dd / 2, H * 0.6 - dh / 2), body_m)]
+    parts.append(box("window", (dw, 0.01, dh), (-W * 0.1, -D / 2 - dd, H * 0.6), glass))
+    parts.append(box("lightstrip", (W * 0.6, 0.02, 0.02), (-W * 0.1, -D / 2 - 0.07, H * 0.6 + H * 0.31 - 0.03), lit))
     rng = random.Random(3)
     cols = [(0.8, 0.1, 0.1), (0.1, 0.3, 0.8), (0.9, 0.7, 0.1), (0.1, 0.6, 0.2), (0.9, 0.4, 0.05), (0.6, 0.6, 0.65)]
     for row in range(5):
         for c in range(6):
             col = cols[rng.randrange(len(cols))]
             m = mat(f"can{row}{c}", col, rough=0.3, metal=0.6)
-            parts.append(cyl(f"can{row}{c}", 0.028, 0.11, (-W * 0.36 + c * 0.075, -D / 2 + 0.06, H * 0.36 + row * 0.2), m, 16))
-        parts.append(box(f"shelf{row}", (W * 0.6, 0.12, 0.008), (-W * 0.1, -D / 2 + 0.06, H * 0.3 + row * 0.2), steel))
+            parts.append(cyl(f"can{row}{c}", 0.028, 0.11, (-W * 0.36 + c * 0.075, -D / 2 - 0.07, H * 0.36 + row * 0.2), m, 16))
+        parts.append(box(f"shelf{row}", (W * 0.6, 0.12, 0.008), (-W * 0.1, -D / 2 - 0.07, H * 0.3 + row * 0.2), steel))
     parts.append(box("panel", (W * 0.22, 0.02, H * 0.5), (W * 0.33, -D / 2 - 0.005, H * 0.62), dark, bevel=0.004))
     for i in range(12):
         parts.append(box(f"btn{i}", (0.035, 0.012, 0.025), (W * 0.29 + (i % 3) * 0.045, -D / 2 - 0.016, H * 0.72 - (i // 3) * 0.04), steel, bevel=0.003))

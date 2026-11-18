@@ -68,7 +68,7 @@ namespace Address.Placement
             // 7. Style compatibility (per object, not per pose)
             if (!p.AllowsStyle(style) || !p.AllowsMood(mood)) { stats.Reject(Check.Style); stats.skipped++; return null; }
 
-            int tries = req.tries > 0 ? req.tries : maxCandidates;
+            int tries = req.tries > 0 ? Mathf.Min(req.tries, 16) : Mathf.Min(maxCandidates, 14);
             for (int i = 0; i < tries; i++)
             {
                 var c = req.candidate(rng, i);
@@ -95,7 +95,12 @@ namespace Address.Placement
         /// or rotates noticeably, the pose was not really stable and the placement is undone.
         /// </summary>
         public bool settleOnCommit = true;
+        public static readonly System.Diagnostics.Stopwatch TSettle = new(), TReach = new(), TCommit = new();
         bool PhysicalSettle(PlacedObject po)
+        {
+            TSettle.Start(); try { return PhysicalSettleInner(po); } finally { TSettle.Stop(); }
+        }
+        bool PhysicalSettleInner(PlacedObject po)
         {
             var p = po.profile;
             var rb = po.gameObject.AddComponent<Rigidbody>();
@@ -105,7 +110,7 @@ namespace Address.Placement
             var mode = Physics.simulationMode;
             Physics.simulationMode = SimulationMode.Script;
             var t = po.transform; var p0 = t.position; var r0 = t.rotation;
-            for (int i = 0; i < 45; i++) { Physics.Simulate(1f / 60f); if (i > 8 && rb.IsSleeping()) break; }
+            for (int i = 0; i < 22; i++) { Physics.Simulate(1f / 30f); if (i > 3 && rb.IsSleeping()) break; }
             float moved = Vector3.Distance(t.position, p0), turned = Quaternion.Angle(t.rotation, r0);
             bool stillMoving = rb.linearVelocity.magnitude > 0.05f || rb.angularVelocity.magnitude > 0.2f;
             UnityEngine.Object.DestroyImmediate(rb);
@@ -213,7 +218,10 @@ namespace Address.Placement
             stats.placed++;
             var p = req.profile;
             bool movable = !req.anomaly && !req.wallSupport && !req.ceilingSupport && p.massClass != MassClass.Fixed;
-            if (settleOnCommit && movable && !PhysicalSettle(po)) { Uncommit(po, null); stats.Reject(Check.Support); return null; }
+            // the physics check is only needed where it can fail: things on other things, stacked, tilted or fallen.
+            // An upright object standing on the flat floor is already proven stable by the analytic checks.
+            bool needsPhysics = req.supportParent != null || req.state != ObjectState.Normal;
+            if (settleOnCommit && movable && needsPhysics && !PhysicalSettle(po)) { Uncommit(po, null); stats.Reject(Check.Support); return null; }
             pose = new Pose(po.transform.position, po.transform.rotation, pose.scale);
             if (nav != null && req.supportParent == null && !req.wallSupport && !req.ceilingSupport && LowestY(p, pose) < (room?.FloorY ?? 0) + 1.9f)
             {

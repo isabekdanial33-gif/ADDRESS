@@ -137,3 +137,9 @@ Testing: `Tools/run_build.ps1 -Mode -playvideo` -> Build/video_frames -> Docs/vi
 - New rooms: breakroom (vending, cooler), meeting (conference table, whiteboard), server (racks) - kit_office2.py.
 - Release v0.5 on GitHub.
 - Known left: level generation still blocks ~5-8 s behind a black fade; archway pavilions plain; vending glass not transparent; storage tubs recoloured grey.
+
+## Update 2026-11-18 late - video 2 fixes
+- Frutiger Aero = endless open world (World/AeroWorld.cs): 48 m terrain chunks streamed around the player (one per frame), hills + rivers + lakes (water plane at -0.8), Blender aero_house.glb (kit_aerohouse.py) with the exit pavilion (kit_pavilion.py) inside; clouds follow the player. No entities in FA.
+- FP: body pieces no longer drawn in first person at all (only its shadow) - torn cloth gone. FpArms: wrist target behind the grip point, shoulders lower.
+- Seats face away from the backrest (probe), whiteboards don't self-shadow, browser shows "запускается" and falls back to the offline web after 14 s.
+- Loading: address shown while building; physics stability check only for stacked/tilted objects, fewer hopeless candidates (BR big level 5.6 -> ~3.2 s).

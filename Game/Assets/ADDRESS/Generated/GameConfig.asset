@@ -24,6 +24,8 @@ MonoBehaviour:
     exitDoorPrefab: {fileID: 8771091787928289351, guid: 00c4d82772979964f8c39687a737953f, type: 3}
     exitElevatorPrefab: {fileID: 8771091787928289351, guid: dd79de44e79d0784f98d6882502df66d, type: 3}
     exitVentPrefab: {fileID: 8771091787928289351, guid: 529c4a4fcdf621245932301536f5dae0, type: 3}
+    exitPavilionPrefab: {fileID: 5554048088989061398, guid: 4373b2003f9fd3a4ab155de753ec4002, type: 3}
+    aeroHousePrefab: {fileID: -2705103510521274055, guid: d551b67b6b334fe4fafd59b0c7c8369e, type: 3}
     voidMat: {fileID: 2100000, guid: 09aaa1ee74cb3e748af3bb6174247454, type: 2}
     poolTileMat: {fileID: 2100000, guid: b71812d190e4af74db8658fa6c43c68f, type: 2}
     basinMat: {fileID: 2100000, guid: 3b099214915e66745a56b853ae725982, type: 2}

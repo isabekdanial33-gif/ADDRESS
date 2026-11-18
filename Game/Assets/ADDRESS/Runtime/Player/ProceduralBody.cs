@@ -96,8 +96,8 @@ namespace Address.Player
             if (humanBones.TryGetValue(t, out var hb))
             {
                 bool arm = hb == HumanBodyBones.LeftLowerArm || hb == HumanBodyBones.RightLowerArm || hb == HumanBodyBones.LeftHand || hb == HumanBodyBones.RightHand || (hb >= HumanBodyBones.LeftThumbProximal && hb <= HumanBodyBones.RightLittleDistal);
-                bool leg = hb == HumanBodyBones.LeftLowerLeg || hb == HumanBodyBones.RightLowerLeg || hb == HumanBodyBones.LeftFoot || hb == HumanBodyBones.RightFoot || hb == HumanBodyBones.LeftToes || hb == HumanBodyBones.RightToes;
-                return splitMode == SplitMode.Arms ? !arm : !leg;
+                bool leg = hb == HumanBodyBones.LeftFoot || hb == HumanBodyBones.RightFoot || hb == HumanBodyBones.LeftToes || hb == HumanBodyBones.RightToes; bool _unusedLeg = hb == HumanBodyBones.LeftLowerLeg || hb == HumanBodyBones.RightLowerLeg || hb == HumanBodyBones.LeftFoot || hb == HumanBodyBones.RightFoot || hb == HumanBodyBones.LeftToes || hb == HumanBodyBones.RightToes;
+                return splitMode == SplitMode.Arms ? !arm : true;   // legs view: nothing is drawn (only the shadow) - cut cloth looked torn
             }
             if (humanBones.Count > 0)
             {
