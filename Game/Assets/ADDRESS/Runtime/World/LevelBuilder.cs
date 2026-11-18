@@ -92,6 +92,8 @@ namespace Address.World
                 RenderSettings.ambientGroundColor = new Color(0.46f, 0.42f, 0.30f);
                 RenderSettings.fogDensity = 0.022f; RenderSettings.fogColor = new Color(0.42f, 0.38f, 0.24f);
             }
+            // phones draw only 60 m: fog closes the distance so nothing pops in
+            if (Application.isMobilePlatform) RenderSettings.fogDensity = Mathf.Max(RenderSettings.fogDensity, 0.03f);
         }
 
         readonly LevelKit kit;
@@ -320,7 +322,7 @@ namespace Address.World
             probe.mode = UnityEngine.Rendering.ReflectionProbeMode.Realtime; probe.refreshMode = UnityEngine.Rendering.ReflectionProbeRefreshMode.ViaScripting;
             probe.timeSlicingMode = UnityEngine.Rendering.ReflectionProbeTimeSlicingMode.NoTimeSlicing;
             probe.size = new Vector3(L.w * LayoutGenerator.Cell + 2, 6, L.h * LayoutGenerator.Cell + 2); probe.center = L.WorldBounds.center - probeGo.transform.position + Vector3.up * 1.4f;
-            probe.resolution = 128; probe.hdr = true; probe.intensity = 1f;
+            probe.resolution = Application.isMobilePlatform ? 32 : 128; probe.hdr = !Application.isMobilePlatform; probe.intensity = 1f;
             res.probe = probe;
 
             // guarantee: verify every exit is reachable from the start through the furnished level
@@ -661,7 +663,7 @@ namespace Address.World
             mat = new Material(mat); mat.SetTexture("_BaseMap", CloudTex());
             var root = new GameObject("Clouds"); root.transform.SetParent(parent); root.AddComponent<Address.Rendering.FollowViewerXZ>();
             var mesh = GameObject.CreatePrimitive(PrimitiveType.Quad); var qm = mesh.GetComponent<MeshFilter>().sharedMesh; Object.DestroyImmediate(mesh);
-            for (int i = 0; i < 34; i++)
+            for (int i = 0; i < (Application.isMobilePlatform ? 14 : 34); i++)
             {
                 float a = rng.Range(0f, 360f), d = rng.Range(85f, 112f), h = rng.Range(32f, 62f);   // inside the 120 m far plane
                 var p = c + Quaternion.Euler(0, a, 0) * Vector3.forward * d + Vector3.up * h;

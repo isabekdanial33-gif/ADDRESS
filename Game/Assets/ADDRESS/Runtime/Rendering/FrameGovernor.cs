@@ -14,7 +14,7 @@ namespace Address.Rendering
         public static bool Adaptive { get => PlayerPrefs.GetInt("adaptres", 1) == 1; set => PlayerPrefs.SetInt("adaptres", value ? 1 : 0); }
         public static bool ShowFps { get => PlayerPrefs.GetInt("showfps", 0) == 1; set => PlayerPrefs.SetInt("showfps", value ? 1 : 0); }
         public static float TargetFps = 60f;
-        public const float MinScale = 0.72f;
+        public static float MinScale => Application.isMobilePlatform ? 0.5f : 0.72f;
 
         readonly float[] native = new float[8];
         float smooth = 1f / 60f, cooldown, scale = -1f; int lastTier = -1;

@@ -13,7 +13,10 @@ namespace Address.World
     /// </summary>
     public class AeroWorld : MonoBehaviour
     {
-        public const float Chunk = 48f; const int Res = 24; const int Radius = 2, DropRadius = 4;
+        public const float Chunk = 48f;
+        static int Res => Application.isMobilePlatform ? 16 : 24;
+        static int Radius => 2;
+        static int DropRadius => Application.isMobilePlatform ? 3 : 4;
         public float waterLevel = -0.8f;
         public Transform viewer;
         public LevelBuilder.Result level;

@@ -38,7 +38,7 @@ namespace Address.Game
         {
             kit = k; fpc = player;
             if (!silence) silence = AudioClip.Create("silence", 4410, 1, 44100, false);
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < (Application.isMobilePlatform ? 3 : 6); i++)
             {
                 var s = Voice($"hum{i}", ProcVoice.Kind.Hum, 0.22f, true, i);
                 s.minDistance = 0.7f; s.maxDistance = 8f; s.rolloffMode = AudioRolloffMode.Logarithmic;

@@ -179,7 +179,7 @@ namespace Address.Game
             var names = QualitySettings.names;
             Cycle("Графика", () => names[QualitySettings.GetQualityLevel()], () =>
             {
-                int q = (QualitySettings.GetQualityLevel() + 1) % names.Length; QualitySettings.SetQualityLevel(q, true); PlayerPrefs.SetInt("quality", q);
+                int q = (QualitySettings.GetQualityLevel() + 1) % names.Length; QualitySettings.SetQualityLevel(q, true); PlayerPrefs.SetInt("quality2", q);
             });
             Cycle("Авто-разрешение (60 fps)", () => Address.Rendering.FrameGovernor.Adaptive ? "вкл" : "выкл", () => Address.Rendering.FrameGovernor.Adaptive = !Address.Rendering.FrameGovernor.Adaptive);
             Cycle("Счётчик FPS  [F3]", () => Address.Rendering.FrameGovernor.ShowFps ? "вкл" : "выкл", () => Address.Rendering.FrameGovernor.ShowFps = !Address.Rendering.FrameGovernor.ShowFps);

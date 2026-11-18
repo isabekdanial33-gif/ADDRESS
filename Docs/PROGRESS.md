@@ -143,3 +143,9 @@ Testing: `Tools/run_build.ps1 -Mode -playvideo` -> Build/video_frames -> Docs/vi
 - FP: body pieces no longer drawn in first person at all (only its shadow) - torn cloth gone. FpArms: wrist target behind the grip point, shoulders lower.
 - Seats face away from the backrest (probe), whiteboards don't self-shadow, browser shows "запускается" and falls back to the offline web after 14 s.
 - Loading: address shown while building; physics stability check only for stacked/tilted objects, fewer hopeless candidates (BR big level 5.6 -> ~3.2 s).
+
+## Update 2026-11-18 night - mobile (Android) in progress
+- TouchInput (Player/TouchInput.cs): floating left joystick (push far = run), right-half drag look, buttons E / hand / throw / jump / crouch / photo / G / R, pause. `-touchui` forces it on PC for screenshots.
+- Quality tier "Mobile" (index 3, Ultra -> 4; PlayerPrefs key now "quality2"): own renderer without SSAO / depth priming, scale 0.7 (governor down to 0.5), no MSAA, HDR R11G11B10, 1 cascade 512 sun shadow, no lamp shadows, half-res textures, no aniso, probe 32 px, far clip 60 + fog 0.03, LevelOptimizer lights 9 m / props 13 m, 3 hum voices, 14 clouds, Aero chunks 16x16. Phones default to this tier; 60 fps target.
+- RealBrowser compiled only on Windows (stub elsewhere).
+- GameSetup.BuildAndroid: IL2CPP ARM64, API 26+, Vulkan+GLES3, ASTC, landscape -> Build/Android/ADDRESS.apk. Android module install via Unity Hub CLI was slow/aborted - retry: "Unity Hub.exe" -- --headless install-modules --version 6000.4.6f1 -m android android-sdk-ndk-tools android-open-jdk --childModules

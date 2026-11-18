@@ -20,6 +20,7 @@ namespace Address.Rendering
             new Tier { lightRange = 11f, propRange = 16f, shadows = 0 },   // Low
             new Tier { lightRange = 14f, propRange = 22f, shadows = 1 },   // Medium
             new Tier { lightRange = 18f, propRange = 28f, shadows = 2 },   // High
+            new Tier { lightRange = 9f, propRange = 13f, shadows = 0 },    // Mobile
             new Tier { lightRange = 22f, propRange = 34f, shadows = 3 },   // Ultra
         };
 

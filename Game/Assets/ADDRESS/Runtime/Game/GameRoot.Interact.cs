@@ -26,14 +26,16 @@ namespace Address.Game
         /// <summary>Pockets: G puts the held small thing away, 1-4 takes a pocket's thing back into the hands.</summary>
         void TickPockets()
         {
-            var kb = UnityEngine.InputSystem.Keyboard.current; if (kb == null) return;
-            if (kb.gKey.wasPressedThisFrame && grab.Held)
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            bool pocketKey = (kb != null && kb.gKey.wasPressedThisFrame) || (touch && touch.PocketPressed);
+            if (pocketKey && grab.Held)
             {
                 if (pockets.Full) hud.Toast("карманы полны", "4 из 4");
                 else if (grab.Held.profile.massClass != MassClass.Small) hud.Toast("не влезет в карман", Inventory.Name(grab.Held));
                 else if (grab.Held.profile.group == "cable") { var c = grab.PocketHeld(); if (c) { pockets.cables++; Destroy(c.gameObject); } }
                 else { var p = grab.PocketHeld(); if (p) pockets.items.Add(p); }
             }
+            if (kb == null) { hud.SetPockets(pockets.Names().ToList()); return; }
             var keys = new[] { kb.digit1Key, kb.digit2Key, kb.digit3Key, kb.digit4Key };
             for (int i = 0; i < keys.Length; i++)
             {

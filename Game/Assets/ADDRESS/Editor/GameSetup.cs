@@ -146,6 +146,31 @@ namespace Address.EditorTools
             return p;
         }
 
+        /// <summary>-executeMethod Address.EditorTools.GameSetup.BuildAndroid (run Unity with -buildTarget Android).</summary>
+        public static void BuildAndroid()
+        {
+            if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android)
+                EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Android, BuildTarget.Android);
+            RenderingSetup.Run();
+            Setup();
+            PlayerSettings.companyName = "ADDRESS"; PlayerSettings.productName = "ADDRESS";
+            PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.Android, "com.address.game");
+            PlayerSettings.SetScriptingBackend(UnityEditor.Build.NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
+            PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+            PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel26;
+            PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeLeft;
+            PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.Android, false);
+            PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, new[] { UnityEngine.Rendering.GraphicsDeviceType.Vulkan, UnityEngine.Rendering.GraphicsDeviceType.OpenGLES3 });
+            PlayerSettings.gpuSkinning = true;
+            PlayerSettings.SetManagedStrippingLevel(UnityEditor.Build.NamedBuildTarget.Android, ManagedStrippingLevel.Low);
+            EditorUserBuildSettings.androidBuildSubtarget = MobileTextureSubtarget.ASTC;
+            EditorUserBuildSettings.buildAppBundle = false;
+            System.IO.Directory.CreateDirectory("../Build/Android");
+            var opts = new BuildPlayerOptions { scenes = new[] { ScenePath }, locationPathName = "../Build/Android/ADDRESS.apk", target = BuildTarget.Android, options = BuildOptions.None };
+            var r = BuildPipeline.BuildPlayer(opts);
+            Debug.Log($"[ADDRESS] android build {r.summary.result}: {r.summary.totalSize / (1024 * 1024)} MB, {r.summary.totalErrors} errors, {r.summary.totalTime}");
+        }
+
         public static void BuildWindows()
         {
             Setup();

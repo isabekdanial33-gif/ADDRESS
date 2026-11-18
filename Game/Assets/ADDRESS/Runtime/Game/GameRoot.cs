@@ -28,7 +28,7 @@ namespace Address.Game
         GameObject playerBody; float suitTimer; GameObject player; FirstPersonController fpc; GrabSystem grab; Camera cam; FpArms fpArms;
         Image fade; Hud hud;
         bool travelling;
-        DeviceInput input;
+        IPlayerInput input; DeviceInput deviceInput; TouchInput touch;
         MenuUI menu;
         AudioDirector audioDir;
         PhotoAlbum album;
@@ -40,9 +40,12 @@ namespace Address.Game
 
         void Start()
         {
-            Application.targetFrameRate = -1;
+            if (System.Environment.GetCommandLineArgs().Contains("-touchui")) TouchInput.Force = true;
+            Application.targetFrameRate = Application.isMobilePlatform ? 60 : -1;   // phones default to 30
+            if (Application.isMobilePlatform) { Screen.sleepTimeout = SleepTimeout.NeverSleep; QualitySettings.vSyncCount = 0; }
             Physics.simulationMode = SimulationMode.FixedUpdate;   // editor test tools switch it to Script; the game needs real physics
-            if (PlayerPrefs.HasKey("quality")) QualitySettings.SetQualityLevel(PlayerPrefs.GetInt("quality"), true);
+            if (PlayerPrefs.HasKey("quality2")) QualitySettings.SetQualityLevel(PlayerPrefs.GetInt("quality2"), true);   // new key: tier list changed
+            else if (Application.isMobilePlatform) QualitySettings.SetQualityLevel(System.Array.IndexOf(QualitySettings.names, "Mobile") is int mq && mq >= 0 ? mq : 0, true);
             gameObject.AddComponent<Address.Rendering.FrameGovernor>();
             book = AddressBook.Load();
             album = PhotoAlbum.Load();
@@ -94,6 +97,7 @@ namespace Address.Game
             var rt = new RenderTexture(1280, 720, 24); var tex = new Texture2D(1280, 720, TextureFormat.RGB24, false);
             void Shot(Camera c, string name)
             {
+                OverlayToCamera();
                 var prev = c.targetTexture; c.targetTexture = rt; c.Render(); c.targetTexture = prev;
                 RenderTexture.active = rt; tex.ReadPixels(new Rect(0, 0, 1280, 720), 0, 0); tex.Apply(); RenderTexture.active = null;
                 System.IO.File.WriteAllBytes(System.IO.Path.Combine(dir, name + ".png"), tex.EncodeToPNG());
@@ -599,7 +603,9 @@ namespace Address.Game
         {
             TickEntitiesNet();
             TickSuits();
-            input.mouseSensitivity = Settings.Sensitivity; input.invertY = Settings.InvertY; cam.fieldOfView = Settings.Fov;
+            if (deviceInput != null) { deviceInput.mouseSensitivity = Settings.Sensitivity; deviceInput.invertY = Settings.InvertY; }
+            cam.fieldOfView = Settings.Fov;
+            if (touch) touch.gameObject.SetActive(state == State.Playing && computer == null);
             if (state == State.Menu)
             {
                 // slow look-around of the menu room
@@ -609,6 +615,7 @@ namespace Address.Game
                 return;
             }
             if (state == State.Paused) { if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame && !menu.EscConsumed) Resume(); return; }
+            if (touch && touch.PausePressed) { Pause(); return; }
             if (computer != null) return;   // the computer screen has the input (Esc closes it)
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) { Pause(); return; }
             if (travelling || level == null) { hud.Aim(false); return; }
@@ -650,11 +657,13 @@ namespace Address.Game
             player = new GameObject("Player") { layer = 11 };
             player.AddComponent<CharacterController>();
             fpc = player.AddComponent<FirstPersonController>();
-            input = new DeviceInput(); fpc.input = input;
+            if (TouchInput.IsPhone) { var tgo = new GameObject("Touch"); tgo.transform.SetParent(transform, false); touch = tgo.AddComponent<TouchInput>(); input = touch; }
+            else { deviceInput = new DeviceInput(); input = deviceInput; }
+            fpc.input = input;
             var head = new GameObject("Head"); head.transform.SetParent(player.transform, false);
             fpc.head = head.transform;
             head.tag = "MainCamera";
-            cam = head.AddComponent<Camera>(); cam.fieldOfView = 72; cam.nearClipPlane = 0.03f; cam.farClipPlane = 120f;
+            cam = head.AddComponent<Camera>(); cam.fieldOfView = 72; cam.nearClipPlane = 0.03f; cam.farClipPlane = Application.isMobilePlatform ? 60f : 120f;
             var data = head.AddComponent<UniversalAdditionalCameraData>();
             data.renderPostProcessing = true; data.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
             head.AddComponent<AudioListener>();

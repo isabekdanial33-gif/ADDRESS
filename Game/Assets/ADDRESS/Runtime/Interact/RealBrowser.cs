@@ -1,3 +1,4 @@
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
 using System;
 using UnityEngine;
 using UnityEngine.UI;
@@ -130,3 +131,18 @@ marquee{color:#c00;font-weight:bold}
 </body></html>";
     }
 }
+
+#else
+namespace Address.Interact
+{
+    public class RealBrowser : UnityEngine.MonoBehaviour
+    {
+        public static bool Available => false;
+        public bool era2007 = true; public bool Ready => false;
+        public System.Action<string> onUrl, onTitle, onStatus;
+        public static RealBrowser Create(UnityEngine.RectTransform view, bool mouse, bool keyboard) => null;
+        public void Back() { } public void Forward() { } public void Refresh() { } public void Home() { } public void Go(string t) { }
+        public static string Pretty(string u) => u;
+    }
+}
+#endif
