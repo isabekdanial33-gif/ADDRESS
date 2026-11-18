@@ -51,9 +51,11 @@ MonoBehaviour:
   ghostOk: {fileID: 2100000, guid: 27b0bcc2dddfc4c4f98b96e368935edf, type: 2}
   ghostBad: {fileID: 2100000, guid: 336b96a863cd7ff40afe45d988599aa5, type: 2}
   post: {fileID: 11400000, guid: 98370de69dbe6fd4c94083e3c30a0e42, type: 2}
-  bodyPrefab: {fileID: 3922955677500536164, guid: 3ca86b4462c342045847d25470243cbd, type: 3}
+  bodyPrefab: {fileID: 5111967370738092134, guid: 82eb1abb40d4a21479d33de44b9f3704, type: 3}
   fpArmLeft: {fileID: 6519566086452448254, guid: 8577107272dd3f649ae347f5646d6f53, type: 3}
   fpArmRight: {fileID: -7148320282855928985, guid: ccc539f339a155348bac3b8e3c6b68ec, type: 3}
+  suitYellow: {fileID: 2100000, guid: e90ddec45ea6f0745b25fcced9d2020e, type: 2}
+  suitBlue: {fileID: 2100000, guid: 13638acdac8ae014b82c41004a8c1d6c, type: 2}
   audio:
     hum: {fileID: 8300000, guid: 20bcffc0b07d59544b4a68ead5547b4a, type: 3}
     roomTone: {fileID: 8300000, guid: 5f6de2bb746cf5a4d9a791f6b1aec5f1, type: 3}

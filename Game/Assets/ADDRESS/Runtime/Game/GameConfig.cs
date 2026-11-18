@@ -12,6 +12,7 @@ namespace Address.Game
         public Material ghostOk, ghostBad;
         public VolumeProfile post;
         public GameObject bodyPrefab, fpArmLeft, fpArmRight;
+        public Material suitYellow, suitBlue;   // co-op: the host wears yellow, the second explorer blue
         public AudioKit audio;
         public Material dustMat;
         public GameObject netAvatarPrefab, netSessionPrefab;

@@ -43,7 +43,10 @@ namespace Address.EditorTools
             cfg.ghostOk = Ghost("GhostOk", new Color(0.3f, 1f, 0.5f, 0.32f));
             cfg.ghostBad = Ghost("GhostBad", new Color(1f, 0.25f, 0.2f, 0.32f));
             cfg.post = Post();
-            cfg.bodyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterSetup.PrefabPath);
+            // the downloaded character (if imported) replaces my own model
+            cfg.bodyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ADDRESS/Generated/Prefabs/HazmatBody2.prefab") ?? AssetDatabase.LoadAssetAtPath<GameObject>(CharacterSetup.PrefabPath);
+            cfg.suitYellow = AssetDatabase.LoadAssetAtPath<Material>("Assets/ThirdParty/HazmatSuit/M_Hazmat_URP.mat");
+            cfg.suitBlue = AssetDatabase.LoadAssetAtPath<Material>("Assets/ThirdParty/HazmatSuit/M_Hazmat_Blue.mat");
             cfg.fpArmLeft = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ADDRESS/Art/Character/FP/fp_arm_Left.glb");
             cfg.fpArmRight = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ADDRESS/Art/Character/FP/fp_arm_Right.glb");
             var dp = "Assets/ADDRESS/Generated/Materials/Dust.mat"; var dm = AssetDatabase.LoadAssetAtPath<Material>(dp);
@@ -54,7 +57,7 @@ namespace Address.EditorTools
             cfg.netAvatarPrefab = NetPrefab("NetAvatar", go =>
             {
                 var av = go.AddComponent<Address.Net.NetAvatar>();
-                var bodyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterSetup.PrefabPath);
+                var bodyPrefab = cfg.bodyPrefab;
                 if (bodyPrefab)
                 {
                     var b = (GameObject)PrefabUtility.InstantiatePrefab(bodyPrefab); b.transform.SetParent(go.transform, false);

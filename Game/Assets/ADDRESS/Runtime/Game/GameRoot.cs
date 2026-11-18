@@ -25,7 +25,7 @@ namespace Address.Game
 
         LevelBuilder.Result level;
         AddressBook book;
-        GameObject player; FirstPersonController fpc; GrabSystem grab; Camera cam; FpArms fpArms;
+        GameObject playerBody; float suitTimer; GameObject player; FirstPersonController fpc; GrabSystem grab; Camera cam; FpArms fpArms;
         Image fade; Hud hud;
         bool travelling;
         DeviceInput input;
@@ -554,9 +554,31 @@ namespace Address.Game
             }
         }
 
+        /// <summary>Co-op colours: the host is yellow, the second explorer blue (own body and arms, and as seen by the other).</summary>
+        void Suit(GameObject go, bool blue)
+        {
+            if (!go || !config.suitYellow || !config.suitBlue) return;
+            var want = blue ? config.suitBlue : config.suitYellow;
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                var m = r.sharedMaterials; bool ch = false;
+                for (int i = 0; i < m.Length; i++) if ((m[i] == config.suitYellow || m[i] == config.suitBlue) && m[i] != want) { m[i] = want; ch = true; }
+                if (ch) r.sharedMaterials = m;
+            }
+        }
+
+        void TickSuits()
+        {
+            suitTimer -= Time.deltaTime; if (suitTimer > 0) return; suitTimer = 0.5f;
+            bool meBlue = NetLauncher.Manager && NetLauncher.Manager.IsClient && !NetLauncher.Manager.IsServer;
+            Suit(playerBody, meBlue); if (fpArms) Suit(fpArms.Rig, meBlue);
+            foreach (var a in FindObjectsByType<NetAvatar>(FindObjectsSortMode.None)) if (a && !a.IsOwner && a.visual) Suit(a.visual, a.OwnerClientId != NetworkManager.ServerClientId);
+        }
+
         void Update()
         {
             TickEntitiesNet();
+            TickSuits();
             input.mouseSensitivity = Settings.Sensitivity; input.invertY = Settings.InvertY; cam.fieldOfView = Settings.Fov;
             if (state == State.Menu)
             {
@@ -619,13 +641,13 @@ namespace Address.Game
             grab.cam = cam; grab.fpc = fpc; grab.input = input; grab.ghostOk = config.ghostOk; grab.ghostBad = config.ghostBad;
             grab.Init();
             fpArms = head.AddComponent<FpArms>(); fpArms.cam = cam; fpArms.grab = grab; fpArms.fpc = fpc;
-            fpArms.Init(config.fpArmLeft, config.fpArmRight);
+            fpArms.Init(config.bodyPrefab);
             Physics.IgnoreLayerCollision(12, 11, true);
             audioDir = player.AddComponent<AudioDirector>();
             if (config.audio != null) audioDir.Init(config.audio, fpc);
             if (config.bodyPrefab)
             {
-                var body = Instantiate(config.bodyPrefab, player.transform);
+                var body = Instantiate(config.bodyPrefab, player.transform); playerBody = body;
                 body.transform.localPosition = Vector3.zero; body.transform.localRotation = Quaternion.identity;
                 foreach (var t in body.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = 11;
                 foreach (var c in body.GetComponentsInChildren<Collider>(true)) Destroy(c);

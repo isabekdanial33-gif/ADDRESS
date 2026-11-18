@@ -41,9 +41,39 @@ namespace Address.Player
         {
             var all = GetComponentsInChildren<Transform>(true);
             Transform F(string n) { foreach (var t in all) if (t.name == n) return t; return null; }
-            hips = F("Hips"); spine = F("Spine"); chest = F("Chest"); head = F("Head");
-            lUL = F("LeftUpperLeg"); rUL = F("RightUpperLeg"); lLL = F("LeftLowerLeg"); rLL = F("RightLowerLeg"); lFoot = F("LeftFoot"); rFoot = F("RightFoot");
-            lUA = F("LeftUpperArm"); rUA = F("RightUpperArm"); lLA = F("LeftLowerArm"); rLA = F("RightLowerArm"); lHand = F("LeftHand"); rHand = F("RightHand");
+            var an = GetComponentInChildren<Animator>();
+            if (an && an.isHuman)
+            {
+                // a real humanoid rig (downloaded character): bones by role, whatever they are called
+                Transform B(HumanBodyBones b) => an.GetBoneTransform(b);
+                hips = B(HumanBodyBones.Hips); spine = B(HumanBodyBones.Spine); chest = B(HumanBodyBones.Chest); head = B(HumanBodyBones.Head);
+                lUL = B(HumanBodyBones.LeftUpperLeg); rUL = B(HumanBodyBones.RightUpperLeg); lLL = B(HumanBodyBones.LeftLowerLeg); rLL = B(HumanBodyBones.RightLowerLeg);
+                lFoot = B(HumanBodyBones.LeftFoot); rFoot = B(HumanBodyBones.RightFoot);
+                lUA = B(HumanBodyBones.LeftUpperArm); rUA = B(HumanBodyBones.RightUpperArm); lLA = B(HumanBodyBones.LeftLowerArm); rLA = B(HumanBodyBones.RightLowerArm);
+                lHand = B(HumanBodyBones.LeftHand); rHand = B(HumanBodyBones.RightHand);
+                humanBones.Clear();
+                foreach (HumanBodyBones hb in System.Enum.GetValues(typeof(HumanBodyBones))) { if (hb == HumanBodyBones.LastBone) continue; var t = B(hb); if (t) humanBones[t] = hb; }
+                an.enabled = false;
+                // T-pose -> arms down along the body, elbows slightly bent
+                foreach (var (ua, la, side) in new[] { (lUA, lLA, -1f), (rUA, rLA, 1f) })
+                {
+                    if (!ua || !la) continue;
+                    var dir = la.position - ua.position;
+                    if (Mathf.Abs(Vector3.Dot(dir.normalized, Vector3.up)) < 0.5f)
+                    {
+                        var want = transform.TransformDirection(new Vector3(side * 0.18f, -1f, 0.04f)).normalized;
+                        ua.rotation = Quaternion.FromToRotation(dir, want) * ua.rotation;
+                        var hand = la == lLA ? lHand : rHand;
+                        if (hand) { var d2 = hand.position - la.position; la.rotation = Quaternion.FromToRotation(d2, Quaternion.AngleAxis(-12f, transform.right) * want) * la.rotation; }
+                    }
+                }
+            }
+            else
+            {
+                hips = F("Hips"); spine = F("Spine"); chest = F("Chest"); head = F("Head");
+                lUL = F("LeftUpperLeg"); rUL = F("RightUpperLeg"); lLL = F("LeftLowerLeg"); rLL = F("RightLowerLeg"); lFoot = F("LeftFoot"); rFoot = F("RightFoot");
+                lUA = F("LeftUpperArm"); rUA = F("RightUpperArm"); lLA = F("LeftLowerArm"); rLA = F("RightLowerArm"); lHand = F("LeftHand"); rHand = F("RightHand");
+            }
             Quaternion R(Transform t) => t ? t.localRotation : Quaternion.identity;
             hips0 = R(hips); spine0 = R(spine); chest0 = R(chest); lUL0 = R(lUL); rUL0 = R(rUL); lLL0 = R(lLL); rLL0 = R(rLL); lFoot0 = R(lFoot); rFoot0 = R(rFoot);
             lUA0 = R(lUA); rUA0 = R(rUA); lLA0 = R(lLA); rLA0 = R(rLA); lHand0 = R(lHand); rHand0 = R(rHand);
@@ -57,6 +87,26 @@ namespace Address.Player
         // ------------------------------------------------------------------ first-person mesh split
 
         // first person: only hips, legs and boots are drawn - arms come from FpArms, the torso would fill the lens
+        readonly Dictionary<Transform, HumanBodyBones> humanBones = new();
+        /// <summary>Which bones' skin is drawn: legs view (first person) or arms view (first-person arms rig).</summary>
+        public enum SplitMode { Legs, Arms }
+        public SplitMode splitMode = SplitMode.Legs;
+        bool HiddenBone(Transform t)
+        {
+            if (humanBones.TryGetValue(t, out var hb))
+            {
+                bool arm = hb == HumanBodyBones.LeftLowerArm || hb == HumanBodyBones.RightLowerArm || hb == HumanBodyBones.LeftHand || hb == HumanBodyBones.RightHand || (hb >= HumanBodyBones.LeftThumbProximal && hb <= HumanBodyBones.RightLittleDistal);
+                bool leg = hb == HumanBodyBones.Hips || hb == HumanBodyBones.LeftUpperLeg || hb == HumanBodyBones.RightUpperLeg || hb == HumanBodyBones.LeftLowerLeg || hb == HumanBodyBones.RightLowerLeg || hb == HumanBodyBones.LeftFoot || hb == HumanBodyBones.RightFoot || hb == HumanBodyBones.LeftToes || hb == HumanBodyBones.RightToes;
+                return splitMode == SplitMode.Arms ? !arm : !leg;
+            }
+            if (humanBones.Count > 0)
+            {
+                // non-humanoid helper bone: hidden like its nearest humanoid parent
+                for (var p = t.parent; p; p = p.parent) if (humanBones.ContainsKey(p)) return HiddenBone(p);
+                return true;
+            }
+            return System.Array.IndexOf(HiddenBones, t.name) >= 0;
+        }
         static readonly string[] HiddenBones = { "Spine", "Chest", "UpperChest", "Neck", "Head", "LeftShoulder", "RightShoulder", "LeftUpperArm", "RightUpperArm", "LeftLowerArm", "RightLowerArm", "LeftHand", "RightHand" };
 
         void SplitForFirstPerson()
@@ -69,7 +119,7 @@ namespace Address.Player
                 { smr.shadowCastingMode = ShadowCastingMode.ShadowsOnly; continue; }
                 var mesh = smr.sharedMesh; if (!mesh || !mesh.isReadable) { continue; }
                 var bones = smr.bones; var hidden = new bool[bones.Length];
-                for (int i = 0; i < bones.Length; i++) hidden[i] = bones[i] && System.Array.IndexOf(HiddenBones, bones[i].name) >= 0;
+                for (int i = 0; i < bones.Length; i++) hidden[i] = bones[i] && HiddenBone(bones[i]);
                 var bw = mesh.boneWeights; if (bw.Length != mesh.vertexCount) continue;
                 // a vertex is "torso" if most of its weight is on torso bones
                 var torso = new bool[bw.Length];
