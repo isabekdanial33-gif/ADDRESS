@@ -71,7 +71,7 @@ namespace Address.Game
             ToMenu();
             var args = System.Environment.GetCommandLineArgs();
             // automated test runs: silent, and they always end (even if a test throws)
-            if (args.Contains("-smoketest") || args.Contains("-shots") || args.Contains("-nethost") || args.Contains("-netclient") || args.Contains("-playvideo") || args.Contains("-computertest"))
+            if (args.Contains("-smoketest") || args.Contains("-shots") || args.Contains("-nethost") || args.Contains("-netclient") || args.Contains("-playvideo") || args.Contains("-computertest") || args.Contains("-opentest"))
             {
                 AudioListener.volume = 0f;
                 StartCoroutine(Watchdog(args.Contains("-playvideo") ? 600f : 240f));
@@ -80,6 +80,7 @@ namespace Address.Game
             if (args.Contains("-shots")) StartCoroutine(Shots());
             if (args.Contains("-playvideo")) StartCoroutine(PlayVideo());
             if (args.Contains("-computertest")) StartCoroutine(ComputerTest());
+            if (args.Contains("-opentest")) StartCoroutine(OpenTest());
             if (args.Contains("-nethost")) StartCoroutine(NetHostTest());
             if (args.Contains("-netclient")) StartCoroutine(NetClientTest());
         }
@@ -118,6 +119,11 @@ namespace Address.Game
                 foreach (var r in rs) { if (r.gameObject.activeInHierarchy) act++; if (GeometryUtility.TestPlanesAABB(planes, r.bounds)) inF++; foreach (var m in r.sharedMaterials) { if (!m) nullMat++; else shaders.Add(m.shader.name + (m.shader.isSupported ? "" : "(UNSUPPORTED)")); } }
                 var near = rs.OrderBy(r => (r.bounds.center - cam.transform.position).sqrMagnitude).Take(6).Select(r => $"{r.name}@{r.bounds.center} en={r.enabled} act={r.gameObject.activeInHierarchy} layer={r.gameObject.layer}");
                 Debug.Log($"[ADDRESS] shots diag: rootActive {level.root.activeInHierarchy} rootPos {level.root.transform.position} activeRenderers {act} inFrustum {inF} nullMats {nullMat} camMask {cam.cullingMask} far {cam.farClipPlane} fog {RenderSettings.fog} {RenderSettings.fogMode} {RenderSettings.fogDensity} {RenderSettings.fogStartDistance}-{RenderSettings.fogEndDistance} shaders [{string.Join(", ", shaders)}] near: {string.Join(" | ", near)}");
+            }
+            foreach (var kb in level.engine.placed.Where(o => o && o.profile && (o.profile.group == "keyboard" || o.profile.group == "mouse")).Take(12))
+            {
+                var sp = kb.supportParent; float top = sp ? sp.transform.position.y + sp.profile.surfaces.Where(q => q.kind == "top").Select(q => q.height).DefaultIfEmpty(-9).Max() : -9;
+                Debug.Log($"[ADDRESS] kbcheck {kb.name} y {kb.transform.position.y:F3} on {(sp ? sp.name : "-")} top {top:F3} diff {kb.transform.position.y - top:F3} rb {(kb.GetComponent<Rigidbody>() != null)} by {kb.placedBy}");
             }
             for (int i = 0; i < 4; i++) { fpc.SetLook(level.startYaw + i * 90, 5); yield return null; yield return null; Shot(cam, $"1{i}_look{i * 90}"); }
             fpc.SetLook(level.startYaw, 75); yield return null; yield return null; Shot(cam, "20_down");

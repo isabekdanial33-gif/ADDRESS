@@ -38,7 +38,8 @@ namespace Address.Player
         {
             if (!cam || (!left && !right)) return;
             float dt = Time.deltaTime;
-            bool holding = grab && grab.Held;
+            bool pushing = grab && grab.Pushing;
+            bool holding = grab && (grab.Held || pushing);
             hold = Mathf.MoveTowards(hold, holding ? 1 : 0, dt * 4f);
             reachT -= dt; reach = Mathf.MoveTowards(reach, reachT > 0 ? 1 : 0, dt * (reachT > 0 ? 9f : 4f));
             float speed = fpc ? new Vector2(fpc.Velocity.x, fpc.Velocity.z).magnitude : 0;
@@ -47,7 +48,16 @@ namespace Address.Player
 
             // held object: the two grip points on its left and right faces (in camera space)
             Vector3 c = Vector3.zero; float half = 0.12f;
-            if (holding)
+            if (pushing)
+            {
+                // both palms flat on the near face of the furniture, at chest height, shoulder-width apart
+                var po = grab.Pushing; var rs0 = po.GetComponentsInChildren<Renderer>();
+                var b = rs0[0].bounds; foreach (var r in rs0) b.Encapsulate(r.bounds);
+                var eye = cam.transform.position; var aim = b.ClosestPoint(eye + cam.transform.forward * 0.6f);
+                aim.y = Mathf.Clamp(eye.y - 0.45f, b.min.y + 0.1f, b.max.y - 0.03f);
+                c = cam.transform.InverseTransformPoint(aim); c.z = Mathf.Clamp(c.z - 0.04f, 0.3f, 0.6f); half = 0.2f;
+            }
+            else if (holding)
             {
                 var rs = grab.Held.GetComponentsInChildren<Renderer>();
                 if (rs.Length > 0) { var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds); c = cam.transform.InverseTransformPoint(b.center); var e = cam.transform.InverseTransformVector(b.extents); half = Mathf.Clamp(Mathf.Abs(e.x) * 0.9f + 0.02f, 0.06f, 0.32f); c.z -= Mathf.Abs(e.z) * 0.35f; }

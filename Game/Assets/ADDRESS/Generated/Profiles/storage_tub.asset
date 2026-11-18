@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eba8737bc187a24783fd4a7a538f5b1, type: 3}
+  m_Name: storage_tub
+  m_EditorClassIdentifier: Address.Runtime::Address.Placement.PlacementProfile
+  id: storage_tub
+  prefab: {fileID: 7717392248569637460, guid: ab3e739e6f1569a418a5720bd2996d92, type: 3}
+  group: container
+  size: {x: 0.63, y: 0.325, z: 0.44}
+  centerOfMass: {x: 2.5149846e-10, y: 0.1536153, z: -0.0000000011422524}
+  boxes:
+  - center: {x: 0, y: 0.15201612, z: 0}
+    size: {x: 0.60899997, y: 0.30403224, z: 0.41904762}
+  - center: {x: -0.30975, y: 0.30403227, z: 0}
+    size: {x: 0.010500014, y: 0.041935474, z: 0.41904762}
+  - center: {x: 0.30975, y: 0.30403227, z: 0}
+    size: {x: 0.010500014, y: 0.041935474, z: 0.41904762}
+  - center: {x: 0, y: 0.3092742, z: -0.21476191}
+    size: {x: 0.63, y: 0.031451613, z: 0.010476187}
+  - center: {x: 0, y: 0.3092742, z: 0.21476191}
+    size: {x: 0.63, y: 0.031451613, z: 0.010476187}
+  - center: {x: 0, y: 0.31451613, z: -0.20428571}
+    size: {x: 0.126, y: 0.020967752, z: 0.010476187}
+  - center: {x: 0, y: 0.31451613, z: 0.20428571}
+    size: {x: 0.126, y: 0.020967752, z: 0.010476187}
+  surfaces: []
+  footprint:
+  - {x: -0.30449998, y: -0.20952381}
+  - {x: 0.30449998, y: -0.20952381}
+  - {x: 0.30449998, y: 0.20952381}
+  - {x: -0.30449998, y: 0.20952381}
+  support: 0
+  rotation: 1
+  maxTiltDeg: 3
+  minSpacing: 0.05
+  clearanceFront: 0
+  wallGap: 0.01
+  massClass: 1
+  mass: 3
+  canStack: 0
+  openable: 1
+  scaleJitter: 0
+  wallMin: 1.2
+  wallMax: 1.9
+  disabled: 0
+  styles:
+  - backrooms
+  - poolrooms
+  - school
+  moods:
+  - neutral
+  rooms:
+  - storage
+  - utility
+  fallenChance: 0
+  fallenEuler: {x: 0, y: 0, z: 0}

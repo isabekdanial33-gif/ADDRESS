@@ -60,7 +60,7 @@ Shader "ADDRESS/CRT"
                 c.g = tex2D(_MainTex, uv).g;
                 c.b = tex2D(_MainTex, uv - float2(px.x, 0)).b;
                 float3 blur = (tex2D(_MainTex, uv + float2(px.x * 1.5, 0)).rgb + tex2D(_MainTex, uv - float2(px.x * 1.5, 0)).rgb + tex2D(_MainTex, uv + float2(0, px.y)).rgb + tex2D(_MainTex, uv - float2(0, px.y)).rgb) * 0.25;
-                c = lerp(c, blur, 0.35) + blur * 0.12; // phosphor glow
+                c = lerp(c, blur, 0.08) + blur * 0.04; // a touch of phosphor glow, text stays sharp
                 // scanlines + aperture grille
                 float sl = 0.5 + 0.5 * sin(uv.y * _Lines * 3.14159 * 2);
                 c *= lerp(1, 0.55 + 0.45 * sl, _Scan);
@@ -76,7 +76,7 @@ Shader "ADDRESS/CRT"
                 c += (hash(i.uv * 900 + t) - 0.5) * _Noise;
                 // dirty glass: smudges dim and haze the picture, dust specks
                 float sm = fbm(i.uv * float2(3.2, 2.4) + 7.3);
-                float smudge = smoothstep(0.52, 0.8, sm) * _Dirt;
+                float smudge = smoothstep(0.6, 0.85, sm) * _Dirt * 0.6;
                 c = lerp(c, c * 0.82 + 0.035, smudge);
                 float dust = step(0.9975, hash(floor(i.uv * float2(620, 470)))) * _Dirt;
                 c = lerp(c, float3(0.5, 0.5, 0.48), dust * 0.5);

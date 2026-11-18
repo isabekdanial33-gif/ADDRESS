@@ -89,11 +89,14 @@ namespace Address.Game
             c.searched = true; fpc.enabled = false; grab.enabled = false;
             PlaySfx(Sfx.Rustle, c.transform.position + Vector3.up, 0.9f);
             hud.Aim(false, "…", "ищешь");
-            yield return new WaitForSeconds(1.1f);
+            if (fpArms) fpArms.Reach(c.transform.position + Vector3.up * 0.4f);
+            if (c.open) yield return c.open.Open();
+            yield return new WaitForSeconds(c.open && c.open.HasParts ? 0.5f : 1.1f);
             fpc.enabled = state == State.Playing; grab.enabled = state == State.Playing;
             switch (c.loot)
             {
                 case "cable":
+                    if (c.open && c.open.HasParts) { SpawnFound(c, "cable"); hud.Toast("внутри кабель", "E — взять в карман"); break; }
                     if (pockets.Full) { hud.Toast("кабель", "карманы полны — оставил на полке"); SpawnFound(c, "cable"); }
                     else { pockets.cables++; hud.Toast("+ кабель", pockets.Describe()); }
                     break;
@@ -109,7 +112,7 @@ namespace Address.Game
             var list = config.kit.db.Group(group); if (list == null || list.Count == 0) return;
             var p = list[0];
             var fwd = c.po.transform.forward; fwd.y = 0; fwd.Normalize();
-            var pos = c.po.transform.position + fwd * (c.po.profile.size.z * 0.5f + 0.35f) + Vector3.up * 0.9f;
+            var pos = c.open && c.open.HasParts ? c.open.LootPoint : c.po.transform.position + fwd * (c.po.profile.size.z * 0.5f + 0.35f) + Vector3.up * 0.9f;
             var go = Instantiate(p.prefab, pos, Quaternion.LookRotation(-fwd), level.root.transform);
             go.name = p.id;
             var po = go.GetComponent<PlacedObject>() ?? go.AddComponent<PlacedObject>();

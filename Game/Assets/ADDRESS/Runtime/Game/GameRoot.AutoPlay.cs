@@ -156,6 +156,32 @@ namespace Address.Game
             yield return Wait(0.8f);
         }
 
+        /// <summary>"-opentest": the openable props in a row, closed and opened.</summary>
+        IEnumerator OpenTest()
+        {
+            yield return new WaitUntil(() => !travelling && level != null);
+            menu.Show(false, false); state = State.Playing; hud.SetVisible(false);
+            string dir = Path.Combine(Application.dataPath, "..", "shots"); Directory.CreateDirectory(dir);
+            var rtx = new RenderTexture(1600, 900, 24); var tx = new Texture2D(1600, 900, TextureFormat.RGB24, false);
+            void Snap(string n) { var prev = cam.targetTexture; cam.targetTexture = rtx; cam.Render(); cam.targetTexture = prev; RenderTexture.active = rtx; tx.ReadPixels(new Rect(0, 0, 1600, 900), 0, 0); tx.Apply(); RenderTexture.active = null; File.WriteAllBytes(Path.Combine(dir, n + ".png"), tx.EncodeToPNG()); }
+            var fwd = Quaternion.Euler(0, level.startYaw, 0) * Vector3.forward; var right = Vector3.Cross(Vector3.up, fwd);
+            var ids = new[] { "open_box", "storage_tub", "trash_bag_tied", "file_cabinet" };
+            var objs = new List<Address.Interact.Container>();
+            for (int i = 0; i < ids.Length; i++)
+            {
+                var p = config.kit.db.Get(ids[i]); if (!p) { Debug.Log("[ADDRESS] opentest missing " + ids[i]); continue; }
+                var pos = player.transform.position + fwd * 2.6f + right * (i - 1.5f) * 0.85f;
+                var go = Instantiate(p.prefab, pos, Quaternion.LookRotation(-fwd), level.root.transform);
+                var po = go.GetComponent<PlacedObject>() ?? go.AddComponent<PlacedObject>(); po.profile = p; po.uid = 777 + i;
+                var c = Address.Interact.Container.TryAttach(po, 1); if (c) objs.Add(c);
+                Debug.Log($"[ADDRESS] opentest {ids[i]} parts {(c && c.open ? c.open.HasParts : false)} verb {(c ? c.Verb(this) : "-")}");
+            }
+            fpc.SetLook(level.startYaw, 22); yield return new WaitForSeconds(0.3f); Snap("o0_closed");
+            foreach (var c in objs) StartCoroutine(c.open.Open());
+            yield return new WaitForSeconds(1.2f); Snap("o1_open");
+            Application.Quit();
+        }
+
         /// <summary>"-computertest": the computer screen with everything plugged in, the desktop, the real browser.</summary>
         IEnumerator ComputerTest()
         {

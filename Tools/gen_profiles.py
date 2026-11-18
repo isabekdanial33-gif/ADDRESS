@@ -94,6 +94,11 @@ add("vent_grille", source="blender", group="vent", support="Wall", rotation="Fac
 add("pc_tower", source="blender", group="pctower", rotation="FaceAnchor", massClass="Medium", mass=9, styles=OFF + ["vhs"], rooms=[], surfaces="none")
 add("ball_mouse", source="blender", group="mouse", support="Surface", rotation="Free", massClass="Small", mass=0.15, styles=OFF + ["vhs", "frutiger"], rooms=["storage"])
 add("cable_coil", source="blender", group="cable", support="Surface", rotation="Free", massClass="Small", mass=0.3, styles=ALL, rooms=["storage", "utility", "office"])
+# openable props (Tools/blender/kit_open.py) - moving parts animated by Interact/Openable
+add("open_box", source="blender", group="box", rotation="Free", massClass="Medium", mass=3, canStack=True, openable=True, styles=ALL, rooms=["storage", "office", "utility", "corridor"], surfaces="none")
+add("storage_tub", source="blender", group="container", rotation="Step90", massClass="Medium", mass=3, openable=True, styles=["backrooms", "poolrooms", "school"], rooms=["storage", "utility"], surfaces="none")
+add("trash_bag_tied", source="blender", group="trash", rotation="Free", massClass="Small", mass=2, openable=True, styles=["backrooms", "mall", "school"], rooms=["corridor", "office", "utility"], moods=["neutral", "dark"], surfaces="none")
+add("file_cabinet", source="blender", group="cabinet", rotation="FaceWall", massClass="Heavy", mass=55, clearanceFront=0.7, openable=True, styles=OFF, rooms=["office", "storage"])
 # Frutiger Aero props (Tools/blender/kit_aero.py)
 add("aero_tube", source="blender", group="tube", rotation="Free", massClass="Fixed", mass=80, styles=["frutiger"], rooms=["atrium", "lounge"], moods=["light", "neutral"], surfaces="none")
 add("aero_planter", source="blender", group="planter", rotation="Free", massClass="Heavy", mass=60, styles=["frutiger"], rooms=["atrium", "lounge"], moods=["light", "neutral"], surfaces="none")

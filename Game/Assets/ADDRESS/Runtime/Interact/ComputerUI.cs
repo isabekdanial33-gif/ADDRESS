@@ -48,9 +48,9 @@ namespace Address.Interact
             var crt = Resources.Load<Material>("CRT"); if (crt)
             {
                 ri.material = new Material(crt);
-                float k = rt.height / 600f;   // the 4:3 picture is ~600 old pixels tall
+                float k = rt.height / 768f;   // the 4:3 picture is ~768 old pixels tall (1024x768)
                 ri.material.SetVector("_Grid", new Vector4(rt.width / k, rt.height / k, 0, 0));
-                ri.material.SetFloat("_Lines", 600f); ri.material.SetFloat("_Curvature", 0.08f);
+                ri.material.SetFloat("_Lines", 768f); ri.material.SetFloat("_Curvature", 0.07f); ri.material.SetFloat("_Bleed", 0.6f); ri.material.SetFloat("_Noise", 0.03f); ri.material.SetFloat("_Dirt", 0.35f); ri.material.SetFloat("_Scan", 0.22f);
             }
             Boot();
         }

@@ -108,17 +108,19 @@ namespace Address.Interact
         public PlacedObject po;
         public bool searched;
         public string loot = "";          // "", "cable", "mouse", "keyboard"
-        public override string Verb(IInteractHost h) => searched ? null : po.profile.group == "cabinet" ? "открыть и осмотреть" : "осмотреть полки";
+        public Openable open;
+        public override string Verb(IInteractHost h) => searched ? null : open && open.HasParts ? open.Verb : po.profile.group == "cabinet" ? "открыть и осмотреть" : po.profile.group == "trash" ? "порыться в пакете" : po.profile.group == "box" || po.profile.group == "container" ? "заглянуть внутрь" : "осмотреть полки";
         public override void Use(IInteractHost h) { if (!searched) h.Search(this); }
 
         public static Container TryAttach(PlacedObject po, ulong seed)
         {
             var g = po.profile.group;
-            if (g != "shelf" && g != "cabinet" && g != "cart") return null;
+            if (g != "shelf" && g != "cabinet" && g != "cart" && g != "box" && g != "container" && g != "trash") return null;
             var c = po.gameObject.AddComponent<Container>(); c.po = po;
+            c.open = Openable.Attach(po.gameObject, po.uid);
             var r = new Address.Core.Rng(Address.Core.Hashing.Combine(seed, (ulong)po.uid * 2654435761UL));
             float v = r.Value;
-            c.loot = v < 0.36f ? "cable" : v < 0.50f ? "mouse" : v < 0.60f ? "keyboard" : "";
+            c.loot = g == "trash" ? (v < 0.25f ? "cable" : "") : v < 0.36f ? "cable" : v < 0.50f ? "mouse" : v < 0.60f ? "keyboard" : "";
             return c;
         }
     }

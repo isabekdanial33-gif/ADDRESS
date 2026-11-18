@@ -89,7 +89,7 @@ namespace Address.Player
         PlacedObject AimTarget(Ray ray)
         {
             float wallDist = reach;
-            if (Physics.Raycast(ray, out var wh, reach, 1 << archLayer, QueryTriggerInteraction.Ignore)) wallDist = wh.distance;
+            if (Physics.Raycast(ray, out var wh, reach, 1 << archLayer, QueryTriggerInteraction.Ignore)) wallDist = Mathf.Min(reach, wh.distance + (wh.normal.y > 0.7f ? 0.3f : 0f));   // floors: a dropped thing may sink a bit; walls: never through
             var hits = Physics.SphereCastAll(ray, 0.045f, wallDist, 1 << propsLayer, QueryTriggerInteraction.Ignore);
             if (hits.Length == 0) return null;
             System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
@@ -133,9 +133,12 @@ namespace Address.Player
                 // push when walking into it, pull when walking away (hands on it), sideways moves are ignored
                 var dir = toObj.normalized;
                 float along = Vector3.Dot(pv, dir);
-                var want = dir * along * 0.9f;
+                // heavy things are heavy: a 15 kg cart rolls, a 90 kg cabinet barely creeps (and takes effort to start)
+                float m = Mathf.Max(1f, Pushing.profile.mass);
+                float strength = Mathf.Clamp(18f / m, 0.12f, 0.75f);
+                var want = dir * along * strength;
                 // kinematic slide with a sweep: heavy furniture moves exactly as far as the space in front allows
-                pushVel = Vector3.MoveTowards(pushVel, want, 3f * dt);
+                pushVel = Vector3.MoveTowards(pushVel, want, Mathf.Lerp(0.4f, 2.5f, strength) * dt);
                 var step = pushVel * dt;
                 if (step.sqrMagnitude > 1e-8f)
                 {
@@ -185,7 +188,7 @@ namespace Address.Player
             {
                 Pushing = po;
                 rb.isKinematic = true; pushVel = Vector3.zero;
-                fpc.speedMultiplier = 0.55f;
+                fpc.speedMultiplier = Mathf.Clamp(14f / Mathf.Max(1f, p.mass), 0.12f, 0.5f);   // you lean into it, you don't walk
                 LastEvent = "pushing " + po.name;
                 return;
             }

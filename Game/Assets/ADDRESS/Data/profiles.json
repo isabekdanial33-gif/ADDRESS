@@ -1247,6 +1247,88 @@
    ]
   },
   {
+   "id": "open_box",
+   "source": "blender",
+   "group": "box",
+   "rotation": "Free",
+   "massClass": "Medium",
+   "mass": 3,
+   "canStack": true,
+   "openable": true,
+   "styles": [],
+   "rooms": [
+    "storage",
+    "office",
+    "utility",
+    "corridor"
+   ],
+   "surfaces": "none"
+  },
+  {
+   "id": "storage_tub",
+   "source": "blender",
+   "group": "container",
+   "rotation": "Step90",
+   "massClass": "Medium",
+   "mass": 3,
+   "openable": true,
+   "styles": [
+    "backrooms",
+    "poolrooms",
+    "school"
+   ],
+   "rooms": [
+    "storage",
+    "utility"
+   ],
+   "surfaces": "none"
+  },
+  {
+   "id": "trash_bag_tied",
+   "source": "blender",
+   "group": "trash",
+   "rotation": "Free",
+   "massClass": "Small",
+   "mass": 2,
+   "openable": true,
+   "styles": [
+    "backrooms",
+    "mall",
+    "school"
+   ],
+   "rooms": [
+    "corridor",
+    "office",
+    "utility"
+   ],
+   "moods": [
+    "neutral",
+    "dark"
+   ],
+   "surfaces": "none"
+  },
+  {
+   "id": "file_cabinet",
+   "source": "blender",
+   "group": "cabinet",
+   "rotation": "FaceWall",
+   "massClass": "Heavy",
+   "mass": 55,
+   "clearanceFront": 0.7,
+   "openable": true,
+   "styles": [
+    "backrooms",
+    "hotel",
+    "school",
+    "mall",
+    "oldweb"
+   ],
+   "rooms": [
+    "office",
+    "storage"
+   ]
+  },
+  {
    "id": "aero_tube",
    "source": "blender",
    "group": "tube",
