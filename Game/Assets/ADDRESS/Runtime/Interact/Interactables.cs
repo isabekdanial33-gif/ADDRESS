@@ -27,10 +27,21 @@ namespace Address.Interact
     /// <summary>Two-three pockets: small things you carry (cables).</summary>
     public class Inventory
     {
-        public int cables;
-        public const int Slots = 3;
-        public bool Full => cables >= Slots;
-        public string Describe() => cables == 0 ? "карманы пусты" : $"кабель × {cables}";
+        public int cables;                                   // coiled cables (each takes a slot)
+        public readonly List<PlacedObject> items = new();    // small things put away (inactive objects)
+        public const int Slots = 4;
+        public bool Full => cables + items.Count >= Slots;
+        public string Describe() => cables + items.Count == 0 ? "карманы пусты" : string.Join(", ", Names());
+        public IEnumerable<string> Names() { for (int i = 0; i < cables; i++) yield return "кабель"; foreach (var p in items) yield return Name(p); }
+        public static string Name(PlacedObject p)
+        {
+            if (!p || !p.profile) return "?";
+            return p.profile.group switch
+            {
+                "keyboard" => "клавиатура", "mouse" => "мышь", "cable" => "кабель", "drink" => "кружка", "paper" => "бумаги", "stationery" => "канцелярия",
+                "book" => "книга", "box" => "коробка", "plant" => "растение", "clock" => "часы", "sign" => "табличка", "trash" => "пакет", _ => p.profile.id.Replace('_', ' ')
+            };
+        }
     }
 
     // ------------------------------------------------------------------ light switch

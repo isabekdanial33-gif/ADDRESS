@@ -1247,6 +1247,111 @@
    ]
   },
   {
+   "id": "vending_machine",
+   "source": "blender",
+   "group": "vending",
+   "rotation": "FaceWall",
+   "massClass": "Heavy",
+   "mass": 250,
+   "clearanceFront": 0.8,
+   "styles": [
+    "backrooms",
+    "hotel",
+    "school",
+    "mall",
+    "oldweb",
+    "poolrooms"
+   ],
+   "rooms": [
+    "breakroom"
+   ],
+   "surfaces": "none"
+  },
+  {
+   "id": "water_cooler",
+   "source": "blender",
+   "group": "cooler",
+   "rotation": "FaceWall",
+   "massClass": "Heavy",
+   "mass": 25,
+   "clearanceFront": 0.6,
+   "styles": [
+    "backrooms",
+    "hotel",
+    "school",
+    "mall",
+    "oldweb",
+    "poolrooms",
+    "frutiger"
+   ],
+   "rooms": [
+    "breakroom",
+    "office"
+   ],
+   "surfaces": "none"
+  },
+  {
+   "id": "server_rack",
+   "source": "blender",
+   "group": "rack",
+   "rotation": "FaceWall",
+   "massClass": "Heavy",
+   "mass": 300,
+   "clearanceFront": 0.9,
+   "styles": [
+    "backrooms",
+    "hotel",
+    "school",
+    "mall",
+    "oldweb"
+   ],
+   "rooms": [
+    "server"
+   ],
+   "surfaces": "none"
+  },
+  {
+   "id": "whiteboard",
+   "source": "blender",
+   "group": "board",
+   "support": "Wall",
+   "rotation": "FaceWall",
+   "massClass": "Fixed",
+   "wallMin": 0.9,
+   "wallMax": 1.0,
+   "styles": [
+    "backrooms",
+    "hotel",
+    "school",
+    "mall",
+    "oldweb"
+   ],
+   "rooms": [
+    "meeting",
+    "office"
+   ]
+  },
+  {
+   "id": "conference_table",
+   "source": "blender",
+   "group": "conftable",
+   "rotation": "Step90",
+   "massClass": "Heavy",
+   "mass": 90,
+   "clearanceFront": 0.4,
+   "styles": [
+    "backrooms",
+    "hotel",
+    "school",
+    "mall",
+    "oldweb",
+    "frutiger"
+   ],
+   "rooms": [
+    "meeting"
+   ]
+  },
+  {
    "id": "open_box",
    "source": "blender",
    "group": "box",

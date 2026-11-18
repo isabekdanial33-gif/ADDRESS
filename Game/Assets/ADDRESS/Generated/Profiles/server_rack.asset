@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eba8737bc187a24783fd4a7a538f5b1, type: 3}
+  m_Name: server_rack
+  m_EditorClassIdentifier: Address.Runtime::Address.Placement.PlacementProfile
+  id: server_rack
+  prefab: {fileID: 1748680963594508472, guid: d48d078387ea2cb4cbb2c2bebd6c7094, type: 3}
+  group: rack
+  size: {x: 0.62, y: 2, z: 1.019}
+  centerOfMass: {x: -0.000000030499702, y: 1.0000017, z: 0.35777742}
+  boxes:
+  - center: {x: 0, y: 0.014925373, z: -0.49451473}
+    size: {x: 0.62, y: 0.029850746, z: 0.029970586}
+  - center: {x: -0.29523808, y: 0.014925373, z: 0.014985293}
+    size: {x: 0.02952382, y: 0.029850746, z: 0.98902947}
+  - center: {x: 0.29523808, y: 0.014925373, z: 0.014985293}
+    size: {x: 0.02952382, y: 0.029850746, z: 0.98902947}
+  - center: {x: 0, y: 1, z: 0.49451473}
+    size: {x: 0.56095237, y: 2, z: 0.029970586}
+  - center: {x: -0.29523808, y: 1.0149254, z: -0.49451473}
+    size: {x: 0.02952382, y: 1.9701493, z: 0.029970586}
+  - center: {x: 0.29523808, y: 1.0149254, z: -0.49451473}
+    size: {x: 0.02952382, y: 1.9701493, z: 0.029970586}
+  - center: {x: -0.29523808, y: 1.0149254, z: 0.49451473}
+    size: {x: 0.02952382, y: 1.9701493, z: 0.029970586}
+  - center: {x: 0.29523808, y: 1.0149254, z: 0.49451473}
+    size: {x: 0.02952382, y: 1.9701493, z: 0.029970586}
+  - center: {x: 0, y: 1.9850746, z: -0.49451473}
+    size: {x: 0.56095237, y: 0.029850721, z: 0.029970586}
+  - center: {x: -0.29523808, y: 1.9850746, z: 0}
+    size: {x: 0.02952382, y: 0.029850721, z: 0.9590589}
+  - center: {x: 0.29523808, y: 1.9850746, z: 0}
+    size: {x: 0.02952382, y: 0.029850721, z: 0.9590589}
+  surfaces: []
+  footprint:
+  - {x: -0.31, y: -0.5095}
+  - {x: 0.31, y: -0.5095}
+  - {x: 0.31, y: 0.5095}
+  - {x: -0.31, y: 0.5095}
+  support: 0
+  rotation: 3
+  maxTiltDeg: 3
+  minSpacing: 0.05
+  clearanceFront: 0.9
+  wallGap: 0.01
+  massClass: 2
+  mass: 300
+  canStack: 0
+  openable: 0
+  scaleJitter: 0
+  wallMin: 1.2
+  wallMax: 1.9
+  disabled: 0
+  styles:
+  - backrooms
+  - hotel
+  - school
+  - mall
+  - oldweb
+  moods:
+  - neutral
+  rooms:
+  - server
+  fallenChance: 0
+  fallenEuler: {x: 0, y: 0, z: 0}

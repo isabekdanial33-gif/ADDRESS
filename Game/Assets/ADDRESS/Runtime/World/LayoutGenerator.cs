@@ -104,7 +104,7 @@ namespace Address.World
                 var wr = room.World;
                 if (Mathf.Min(wr.width, wr.height) < 3.2f) { room.kind = "corridor"; continue; }
                 float k = rng.Value;
-                room.kind = k < 0.45f ? "empty" : k < 0.72f ? "office" : k < 0.86f ? "storage" : "lounge";
+                room.kind = k < 0.40f ? "empty" : k < 0.60f ? "office" : k < 0.72f ? "storage" : k < 0.80f ? "lounge" : k < 0.88f ? "breakroom" : k < 0.94f ? "meeting" : "server";
             }
             L.startRoom = rng.Range(0, L.rooms.Count);
             return L;

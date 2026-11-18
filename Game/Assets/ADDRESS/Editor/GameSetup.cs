@@ -30,6 +30,19 @@ namespace Address.EditorTools
                 m.SetColor("_SkyTint", tint); m.SetColor("_GroundColor", ground); m.SetFloat("_Exposure", exp); m.SetFloat("_AtmosphereThickness", thick); m.SetFloat("_SunSize", 0.035f);
                 EditorUtility.SetDirty(m);
             }
+            // transparent materials used at runtime (clouds, bubbles): created here so their shader variants ship
+            void Transparent(string n, string shader, Color c)
+            {
+                var path = $"Assets/ADDRESS/Resources/{n}.mat"; var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+                var sh = Shader.Find(shader); if (!sh) return;
+                if (!m) { m = new Material(sh); AssetDatabase.CreateAsset(m, path); }
+                m.shader = sh; m.SetFloat("_Surface", 1); m.SetFloat("_Blend", 0); m.SetColor("_BaseColor", c);
+                m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); m.SetOverrideTag("RenderType", "Transparent"); m.renderQueue = 3000;
+                m.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha); m.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha); m.SetInt("_ZWrite", 0);
+                EditorUtility.SetDirty(m);
+            }
+            Transparent("CloudMat", "Universal Render Pipeline/Unlit", Color.white);
+            Transparent("BubbleMat", "Universal Render Pipeline/Particles/Unlit", Color.white);
             if (!AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Resources/CRT.mat"))
             {
                 var sh = Shader.Find("ADDRESS/CRT");
@@ -40,6 +53,7 @@ namespace Address.EditorTools
             var cfg = AssetDatabase.LoadAssetAtPath<GameConfig>(ConfigPath);
             if (!cfg) { cfg = ScriptableObject.CreateInstance<GameConfig>(); AssetDatabase.CreateAsset(cfg, ConfigPath); }
             cfg.kit = LevelFarm.Kit();
+            PlayerSettings.gpuSkinning = true;
             cfg.ghostOk = Ghost("GhostOk", new Color(0.3f, 1f, 0.5f, 0.32f));
             cfg.ghostBad = Ghost("GhostBad", new Color(1f, 0.25f, 0.2f, 0.32f));
             cfg.post = Post();
@@ -69,7 +83,11 @@ namespace Address.EditorTools
             {
                 hum = A("hum_fluorescent"), roomTone = A("room_tone"), breath = A("breath_mask"), door = A("door_open"), elevator = A("elevator_open"),
                 vent = A("vent_open"), shutter = A("camera_shutter"), travel = A("travel"),
-                steps = Enumerable.Range(0, 6).Select(i => A($"step_carpet_{i}")).Where(c => c).ToArray()
+                steps = Enumerable.Range(0, 6).Select(i => A($"step_carpet_{i}")).Where(c => c).ToArray(),
+                // real recordings (Wikimedia Commons, public domain) - Audio/Real/SOURCES.md
+                doorReal = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ADDRESS/Audio/Real/Door_handle_creaking.ogg"),
+                shutterReal = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ADDRESS/Audio/Real/Holga_shuttersound.ogg"),
+                poolHall = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/ADDRESS/Audio/Real/Indoor_swimming_pool_hall.ogg"),
             };
             EditorUtility.SetDirty(cfg);
             AssetDatabase.SaveAssets();

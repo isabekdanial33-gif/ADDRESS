@@ -20,7 +20,7 @@ namespace Address.Rendering
             new Tier { lightRange = 11f, propRange = 16f, shadows = 0 },   // Low
             new Tier { lightRange = 14f, propRange = 22f, shadows = 1 },   // Medium
             new Tier { lightRange = 18f, propRange = 28f, shadows = 2 },   // High
-            new Tier { lightRange = 24f, propRange = 36f, shadows = 4 },   // Ultra
+            new Tier { lightRange = 22f, propRange = 34f, shadows = 3 },   // Ultra
         };
 
         Light[] lights; Renderer[] fixtureRenderers; Renderer[] props;
@@ -50,7 +50,7 @@ namespace Address.Rendering
             {
                 lightTimer = 0.2f;
                 float r2 = t.lightRange * t.lightRange;
-                var near = new List<(Light l, float d)>();
+                var near = nearBuf; near.Clear();
                 foreach (var l in lights)
                 {
                     if (!l || l.type == LightType.Directional) continue;   // the sun is always on
@@ -79,13 +79,15 @@ namespace Address.Rendering
             }
         }
 
-        // lights the Echo turned off stay off (their fixture renderers are disabled)
-        static bool IsEchoOff(Light l)
+        readonly List<(Light l, float d)> nearBuf = new();
+        readonly Dictionary<Light, Renderer[]> fixtureCache = new();
+        // lights the Echo turned off stay off (their fixture renderers are disabled) - renderers cached per light
+        bool IsEchoOff(Light l)
         {
-            var parent = l.transform.parent;
-            if (!parent) return false;
-            var rs = parent.GetComponentsInChildren<Renderer>();
-            return rs.Length > 0 && rs.All(r => !r.enabled);
+            if (!fixtureCache.TryGetValue(l, out var rs)) { var parent = l.transform.parent; rs = parent ? parent.GetComponentsInChildren<Renderer>() : new Renderer[0]; fixtureCache[l] = rs; }
+            if (rs.Length == 0) return false;
+            foreach (var r in rs) if (r && r.enabled) return false;
+            return true;
         }
     }
 }

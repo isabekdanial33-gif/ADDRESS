@@ -28,7 +28,7 @@ namespace Address.Player
         /// <summary>Raised ~10x/s for objects the player is moving (held, pushed, recently thrown/placed) - used by co-op sync.</summary>
         public System.Action<PlacedObject> onObjectMoved;
         readonly System.Collections.Generic.Dictionary<PlacedObject, float> settling = new();
-        float syncTimer;
+        float syncTimer; readonly System.Collections.Generic.List<PlacedObject> doneBuf = new();
 
         Rigidbody rb;
         Vector3 pushVel;
@@ -58,7 +58,7 @@ namespace Address.Player
                 syncTimer = 0.1f;
                 if (Held) onObjectMoved(Held);
                 if (Pushing) onObjectMoved(Pushing);
-                var done = new System.Collections.Generic.List<PlacedObject>();
+                var done = doneBuf; done.Clear();
                 foreach (var kv in settling) { if (!kv.Key || Time.time > kv.Value) done.Add(kv.Key); else onObjectMoved(kv.Key); }
                 foreach (var d in done) { if (d) onObjectMoved(d); settling.Remove(d); }
             }
@@ -239,6 +239,29 @@ namespace Address.Player
             Held = null; rb = null;
             fpc.speedMultiplier = 1f; fpc.LookLocked = false;
             HideGhost();
+        }
+
+        /// <summary>Put the held thing into a pocket: it disappears from the world until taken out.</summary>
+        public PlacedObject PocketHeld()
+        {
+            if (Held == null || Held.profile.massClass != MassClass.Small) return null;
+            var po = Held; var body = rb;
+            Release(Vector3.zero);
+            if (body) { body.linearVelocity = Vector3.zero; body.angularVelocity = Vector3.zero; }
+            settling.Remove(po);
+            po.gameObject.SetActive(false);
+            LastEvent = "pocketed " + po.name;
+            return po;
+        }
+
+        /// <summary>Take something out of a pocket straight into the hands.</summary>
+        public void TakeOut(PlacedObject po)
+        {
+            if (!po || Held != null || Pushing != null) return;
+            po.gameObject.SetActive(true);
+            po.transform.SetPositionAndRotation(cam.transform.position + cam.transform.forward * 0.6f - Vector3.up * 0.2f, Quaternion.Euler(0, fpc.transform.eulerAngles.y, 0));
+            Physics.SyncTransforms();
+            Grab(po);
         }
 
         void Throw()

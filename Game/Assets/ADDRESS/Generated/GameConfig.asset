@@ -31,6 +31,7 @@ MonoBehaviour:
     aeroFloorMat: {fileID: 2100000, guid: 16e53bc1fc605c244b07dfec723c2422, type: 2}
     aeroWallMat: {fileID: 2100000, guid: c55f8836e048f374e857498eb3795c31, type: 2}
     glassMat: {fileID: 2100000, guid: 32ebe4e227f70e84c9af9361a5a08f89, type: 2}
+    aeroGrassMat: {fileID: 2100000, guid: a1dfdaef89a25b74b965426ee8ec145b, type: 2}
     caustics:
     - {fileID: 2800000, guid: b6c5578ceaeaa834e98060445e71f2eb, type: 3}
     - {fileID: 2800000, guid: 9a8be477262742844a94fe46803ad66c, type: 3}
@@ -72,6 +73,9 @@ MonoBehaviour:
     - {fileID: 8300000, guid: 5b3615c3c55a8634bb66359c41678abf, type: 3}
     - {fileID: 8300000, guid: 7594498515926304cb653167dbf92b7c, type: 3}
     - {fileID: 8300000, guid: caec148ce97f6fe4d9ba6fadc424887e, type: 3}
+    doorReal: {fileID: 0}
+    shutterReal: {fileID: 8300000, guid: e267ced8d5ab64743b63447debe85635, type: 3}
+    poolHall: {fileID: 0}
   dustMat: {fileID: 2100000, guid: 0aeb6a4b8fefdc64685332b1f18acc69, type: 2}
   netAvatarPrefab: {fileID: 2764750054443914304, guid: b89844b4c27b6fd468dc04be83700d68, type: 3}
   netSessionPrefab: {fileID: 8730916101995771076, guid: 9466f63515f38a54ca5c87a39da36f14, type: 3}

@@ -25,7 +25,7 @@ namespace Address.EditorTools
             new Tier{ name="Low",    renderScale=0.67f, msaa=1, shadowDist=18, cascades=1, shadowRes=1024, addLights=4,  softShadows=false, addShadowRes=512,  hdr=true },
             new Tier{ name="Medium", renderScale=0.85f, msaa=1, shadowDist=30, cascades=2, shadowRes=2048, addLights=8,  softShadows=true,  addShadowRes=1024, hdr=true },
             new Tier{ name="High",   renderScale=1.0f,  msaa=2, shadowDist=45, cascades=3, shadowRes=2048, addLights=16, softShadows=true,  addShadowRes=2048, hdr=true },
-            new Tier{ name="Ultra",  renderScale=1.0f,  msaa=4, shadowDist=70, cascades=4, shadowRes=4096, addLights=32, softShadows=true,  addShadowRes=4096, hdr=true },
+            new Tier{ name="Ultra",  renderScale=1.0f,  msaa=2, shadowDist=60, cascades=3, shadowRes=2048, addLights=16, softShadows=true,  addShadowRes=2048, hdr=true },
         };
 
         [MenuItem("ADDRESS/Setup Rendering (URP tiers)")]

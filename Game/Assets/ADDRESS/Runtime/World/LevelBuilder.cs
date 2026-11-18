@@ -19,7 +19,7 @@ namespace Address.World
         public GameObject exitDoorPrefab, exitElevatorPrefab, exitVentPrefab;
         public Material voidMat;
         public Material poolTileMat, basinMat, waterMat;
-        public Material aeroFloorMat, aeroWallMat, glassMat;
+        public Material aeroFloorMat, aeroWallMat, glassMat, aeroGrassMat;
         public Texture[] caustics;
     }
 
@@ -76,7 +76,7 @@ namespace Address.World
                 RenderSettings.ambientSkyColor = new Color(0.30f, 0.42f, 0.55f);
                 RenderSettings.ambientEquatorColor = new Color(0.52f, 0.60f, 0.66f);   // walls get the bounce of white floors
                 RenderSettings.ambientGroundColor = new Color(0.55f, 0.62f, 0.68f);
-                RenderSettings.fogDensity = 0.018f; RenderSettings.fogColor = new Color(0.70f, 0.85f, 0.95f);
+                RenderSettings.fogDensity = 0.006f; RenderSettings.fogColor = new Color(0.72f, 0.86f, 0.98f);   // open air: clear, a light haze only
             }
             else if (aesthetic == "PR")
             {
@@ -140,7 +140,7 @@ namespace Address.World
             var res = new Result { address = address, aesthetic = address.Aesthetic == "PR" || address.Aesthetic == "FA" ? address.Aesthetic : "BR" };
             bool pool = res.aesthetic == "PR" && kit.poolTileMat;
             bool aero = res.aesthetic == "FA" && kit.aeroWallMat;
-            floorM = pool ? kit.poolTileMat : aero ? kit.aeroFloorMat : kit.floorMat;
+            floorM = pool ? kit.poolTileMat : aero ? (kit.aeroGrassMat ? LushGrass(kit.aeroGrassMat) : kit.aeroFloorMat) : kit.floorMat;
             wallM = pool ? kit.poolTileMat : aero ? kit.aeroWallMat : kit.wallMat;
             ceilM = pool ? kit.poolTileMat : aero ? kit.aeroWallMat : kit.ceilingMat;
             glassWalls = aero;
@@ -172,6 +172,7 @@ namespace Address.World
             basinsForArch = res.basins;
             BuildArchitecture(L, runs, arch.transform, rng.Fork("arch"), res.exits);
             if (pool || (aero && res.basins.Count > 0)) BuildBasins(res, arch.transform);
+            if (aero) foreach (var b in res.basins) Bubbles(b, arch.transform);
             if (aero) BuildSky(L, arch.transform, rng.Fork("sky"));
             var exitsRoot = new GameObject("Exits"); exitsRoot.transform.SetParent(res.root.transform);   // animated: never static-batched
             BuildExits(res.exits, exitsRoot.transform);
@@ -269,6 +270,24 @@ namespace Address.World
                         for (int i = 0; i < r.Range(1, 4); i++) sc.Stack(spec, r.Fork("stack", i), r.Range(1, 4));
                         if (r.Chance(0.4f)) sc.FloorSingle(spec, r, "cart", false);
                         if (r.Chance(0.3f)) sc.FloorSingle(spec, r, "sign");
+                        break;
+                    case "breakroom":   // vending machines, a water cooler, a table with chairs, a bin
+                        for (int i = 0; i < r.Range(1, 3); i++) sc.AgainstWallSingle(spec, r.Fork("vend", i), "vending");
+                        sc.AgainstWallSingle(spec, r.Fork("cool", 0), "cooler");
+                        if (r.Chance(0.7f)) sc.DeskIsland(spec, r.Fork("tbl", 0));
+                        if (r.Chance(0.6f)) sc.FloorSingle(spec, r, "trash");
+                        if (r.Chance(0.5f)) sc.WallDecor(spec, r, "wallclock");
+                        break;
+                    case "meeting":     // one long table, whiteboard, chairs around
+                        sc.FloorSingle(spec, r.Fork("conf", 0), "conftable", false);
+                        for (int i = 0; i < r.Range(3, 9); i++) sc.FloorSingle(spec, r.Fork("chair", i), "chair");
+                        sc.WallDecor(spec, r.Fork("wb", 0), "board");
+                        if (r.Chance(0.5f)) sc.FloorSingle(spec, r, "plant");
+                        break;
+                    case "server":      // rows of humming racks
+                        int racks = Mathf.Clamp(Mathf.RoundToInt(areaM2 / 4f), 2, 10);
+                        for (int i = 0; i < racks; i++) sc.AgainstWallSingle(spec, r.Fork("rack", i), "rack");
+                        if (r.Chance(0.5f)) sc.Stack(spec, r.Fork("stack", 0), r.Range(1, 3));
                         break;
                     case "lounge":
                         sc.Lounge(spec, r);
@@ -597,6 +616,89 @@ namespace Address.World
             var l = sun.AddComponent<Light>(); l.type = LightType.Directional; l.intensity = 1.25f; l.color = new Color(1f, 0.97f, 0.9f);
             l.shadows = LightShadows.Soft; l.shadowStrength = 0.55f;
             RenderSettings.sun = l;
+            Clouds(L, parent, rng);
+        }
+
+        /// <summary>Frutiger Aero sky: big soft cumulus billboards all around, high up.</summary>
+        void Clouds(LayoutGenerator.Layout L, Transform parent, Rng rng)
+        {
+            var mat = Resources.Load<Material>("CloudMat"); if (!mat) return;
+            mat = new Material(mat); mat.SetTexture("_BaseMap", CloudTex());
+            var c = L.WorldBounds.center; var root = new GameObject("Clouds"); root.transform.SetParent(parent);
+            var mesh = GameObject.CreatePrimitive(PrimitiveType.Quad); var qm = mesh.GetComponent<MeshFilter>().sharedMesh; Object.DestroyImmediate(mesh);
+            for (int i = 0; i < 34; i++)
+            {
+                float a = rng.Range(0f, 360f), d = rng.Range(85f, 112f), h = rng.Range(32f, 62f);   // inside the 120 m far plane
+                var p = c + Quaternion.Euler(0, a, 0) * Vector3.forward * d + Vector3.up * h;
+                var go = new GameObject("cloud"); go.transform.SetParent(root.transform);
+                go.transform.position = p; go.transform.rotation = Quaternion.LookRotation(p - new Vector3(c.x, h * 0.6f, c.z));
+                float w = rng.Range(40f, 85f); go.transform.localScale = new Vector3(w, w * rng.Range(0.4f, 0.55f), 1);
+                go.AddComponent<Address.Rendering.Billboard>();
+                go.AddComponent<MeshFilter>().sharedMesh = qm; var r = go.AddComponent<MeshRenderer>(); r.sharedMaterial = mat;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; r.receiveShadows = false;
+            }
+        }
+
+        static Material lush;
+        /// <summary>The Aero lawn is a saturated, sunny green (the scanned grass alone reads dull under the sky).</summary>
+        static Material LushGrass(Material src) { if (!lush) { lush = new Material(src); lush.SetColor("_BaseColor", new Color(1.05f, 1.35f, 0.75f)); } return lush; }
+
+        static Texture2D cloudTex;
+        static Texture2D CloudTex()
+        {
+            if (cloudTex) return cloudTex;
+            int W = 256, H = 128; cloudTex = new Texture2D(W, H, TextureFormat.RGBA32, true) { wrapMode = TextureWrapMode.Clamp };
+            var rnd = new System.Random(5); var blobs = new System.Collections.Generic.List<(float x, float y, float r)>();
+            for (int i = 0; i < 14; i++) blobs.Add(((float)(0.18 + rnd.NextDouble() * 0.64), (float)(0.3 + rnd.NextDouble() * 0.25), (float)(0.09 + rnd.NextDouble() * 0.13)));
+            for (int y = 0; y < H; y++) for (int x = 0; x < W; x++)
+            {
+                float u = (x + 0.5f) / W, v = (y + 0.5f) / H, d = 0, shade = 0;
+                foreach (var b in blobs) { float dx = (u - b.x) / b.r, dy = (v - b.y) / (b.r * 2f); float k = Mathf.Clamp01(1 - (dx * dx + dy * dy)); d = Mathf.Max(d, k); shade += k * (v - b.y); }
+                float n = Mathf.PerlinNoise(u * 9f, v * 9f) * 0.35f + 0.65f;
+                // soft edges everywhere (fade to 0 well inside the card), puffy top, flat-ish bottom
+                float edge = Mathf.Clamp01(Mathf.Min(Mathf.Min(u, 1 - u), Mathf.Min(v, 1 - v)) * 6f);
+                float a = Mathf.SmoothStep(0, 1, Mathf.Clamp01(d * 1.3f * n - 0.15f)) * edge * 0.92f;
+                float lit = Mathf.Lerp(0.78f, 1f, Mathf.Clamp01(v * 1.6f));    // flat, slightly grey underside
+                cloudTex.SetPixel(x, y, new Color(lit, lit, Mathf.Min(1, lit + 0.03f), a));
+            }
+            cloudTex.Apply(); return cloudTex;
+        }
+
+        /// <summary>Glossy bubbles rising out of the water (the Aero signature).</summary>
+        void Bubbles(Rect basin, Transform parent)
+        {
+            var mat = Resources.Load<Material>("BubbleMat"); if (!mat) return;
+            var go = new GameObject("Bubbles"); go.transform.SetParent(parent);
+            go.transform.position = new Vector3(basin.center.x, 0.1f, basin.center.y);
+            var ps = go.AddComponent<ParticleSystem>(); ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main; main.startLifetime = new ParticleSystem.MinMaxCurve(5f, 9f); main.startSpeed = new ParticleSystem.MinMaxCurve(0.15f, 0.45f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.06f, 0.28f); main.maxParticles = 90; main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.gravityModifier = -0.01f;
+            var em = ps.emission; em.rateOverTime = Mathf.Clamp(basin.width * basin.height * 0.5f, 3f, 14f);
+            var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Box; sh.scale = new Vector3(basin.width * 0.8f, 0.05f, basin.height * 0.8f);
+            var nz = ps.noise; nz.enabled = true; nz.strength = 0.12f; nz.frequency = 0.4f;
+            var col = ps.colorOverLifetime; col.enabled = true; var g = new Gradient();
+            g.SetKeys(new[] { new GradientColorKey(Color.white, 0), new GradientColorKey(Color.white, 1) }, new[] { new GradientAlphaKey(0, 0), new GradientAlphaKey(0.9f, 0.12f), new GradientAlphaKey(0.9f, 0.8f), new GradientAlphaKey(0, 1) });
+            col.color = g;
+            var r = go.GetComponent<ParticleSystemRenderer>(); var m = new Material(mat); m.SetTexture("_BaseMap", BubbleTex()); r.sharedMaterial = m;
+            ps.Play();
+        }
+
+        static Texture2D bubbleTex;
+        static Texture2D BubbleTex()
+        {
+            if (bubbleTex) return bubbleTex;
+            int N = 64; bubbleTex = new Texture2D(N, N, TextureFormat.RGBA32, true);
+            for (int y = 0; y < N; y++) for (int x = 0; x < N; x++)
+            {
+                float u = (x + 0.5f) / N * 2 - 1, v = (y + 0.5f) / N * 2 - 1, d = Mathf.Sqrt(u * u + v * v);
+                float rim = Mathf.Clamp01(1 - Mathf.Abs(d - 0.88f) * 9f) * 0.9f;
+                float body = d < 0.9f ? 0.08f + 0.18f * d * d : 0;
+                float hi = Mathf.Clamp01(1 - Mathf.Sqrt((u + 0.35f) * (u + 0.35f) + (v - 0.4f) * (v - 0.4f)) * 4.5f);
+                float a = Mathf.Clamp01(rim + body + hi) * (d < 1 ? 1 : 0);
+                bubbleTex.SetPixel(x, y, new Color(0.85f + hi * 0.15f, 0.97f, 1f, a));
+            }
+            bubbleTex.Apply(); return bubbleTex;
         }
 
         void BuildArchway(ExitPlan e, Transform parent)

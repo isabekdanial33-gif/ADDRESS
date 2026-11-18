@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using Address.Interact;
 using Address.Placement;
 using Address.World;
@@ -21,6 +22,28 @@ namespace Address.Game
         public void PlaySfx(AudioClip c, Vector3 at, float vol = 1f) { if (c) audioDir?.PlayAt(c, at, vol); }
 
         bool EPressed() { bool e = input.InteractPressed || botE; botE = false; return e; }
+
+        /// <summary>Pockets: G puts the held small thing away, 1-4 takes a pocket's thing back into the hands.</summary>
+        void TickPockets()
+        {
+            var kb = UnityEngine.InputSystem.Keyboard.current; if (kb == null) return;
+            if (kb.gKey.wasPressedThisFrame && grab.Held)
+            {
+                if (pockets.Full) hud.Toast("карманы полны", "4 из 4");
+                else if (grab.Held.profile.massClass != MassClass.Small) hud.Toast("не влезет в карман", Inventory.Name(grab.Held));
+                else if (grab.Held.profile.group == "cable") { var c = grab.PocketHeld(); if (c) { pockets.cables++; Destroy(c.gameObject); } }
+                else { var p = grab.PocketHeld(); if (p) pockets.items.Add(p); }
+            }
+            var keys = new[] { kb.digit1Key, kb.digit2Key, kb.digit3Key, kb.digit4Key };
+            for (int i = 0; i < keys.Length; i++)
+            {
+                if (!keys[i].wasPressedThisFrame || grab.Held) continue;
+                int idx = i - pockets.cables;
+                if (i < pockets.cables) { hud.Toast("кабель", "подключите им устройство: E на мониторе / клавиатуре / мыши"); continue; }
+                if (idx >= 0 && idx < pockets.items.Count) { var p = pockets.items[idx]; pockets.items.RemoveAt(idx); grab.TakeOut(p); }
+            }
+            hud.SetPockets(pockets.Names().ToList());
+        }
 
         /// <summary>Returns true when the interaction layer took this frame (seated / prompt shown / used).</summary>
         bool TickInteract(Ray ray, bool exitAimed)
@@ -130,10 +153,10 @@ namespace Address.Game
             botE = false;
             computer.onClose = () =>
             {
-                computer = null; botE = false; hud.SetVisible(true);
+                computer = null; botE = false; hud.SetVisible(true); cam.enabled = true;
                 if (state == State.Playing) { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; fpc.enabled = true; grab.enabled = true; }
             };
-            hud.SetVisible(false); fpc.enabled = false; grab.enabled = false;
+            hud.SetVisible(false); fpc.enabled = false; grab.enabled = false; cam.enabled = false;
             Cursor.lockState = CursorLockMode.None; Cursor.visible = s.HasMouse;
             Debug.Log($"[ADDRESS] computer opened (kb {s.HasKeyboard}, mouse {s.HasMouse})");
         }

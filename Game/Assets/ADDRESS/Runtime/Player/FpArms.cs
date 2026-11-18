@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Address.Player
@@ -18,7 +19,8 @@ namespace Address.Player
         readonly List<(Transform t, Quaternion rest, float side, int seg)> fingers = new();
         Quaternion lUA0, lLA0, lH0, rUA0, rLA0, rH0;
         Vector3 lPalm, rPalm; float upperLen, lowerLen;
-        float hold, reach, reachT, bob, grip; Vector3 reachPoint; bool ready;
+        float hold, reach, reachT, bob, grip; Vector3 reachPoint; bool ready, shown = true;
+        Renderer[] rigRenderers; readonly HashSet<Transform> thumbs = new();
 
         public void Init(GameObject bodyPrefab)
         {
@@ -40,6 +42,11 @@ namespace Address.Player
             lUA = B(HumanBodyBones.LeftUpperArm); lLA = B(HumanBodyBones.LeftLowerArm); lH = B(HumanBodyBones.LeftHand);
             rUA = B(HumanBodyBones.RightUpperArm); rLA = B(HumanBodyBones.RightLowerArm); rH = B(HumanBodyBones.RightHand);
             if (!lUA || !rUA) return;
+            // the arms copy draws only its visible split: the full original (shadow copy) is not needed here
+            foreach (var smr in rig.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                if (!smr.name.EndsWith("_fp")) smr.enabled = false; else { smr.updateWhenOffscreen = false; smr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; }
+            rigRenderers = rig.GetComponentsInChildren<SkinnedMeshRenderer>(true).Where(r => r.name.EndsWith("_fp")).ToArray();
+            foreach (var tb in new[] { HumanBodyBones.LeftThumbProximal, HumanBodyBones.LeftThumbIntermediate, HumanBodyBones.LeftThumbDistal, HumanBodyBones.RightThumbProximal, HumanBodyBones.RightThumbIntermediate, HumanBodyBones.RightThumbDistal }) { var t = B(tb); if (t) thumbs.Add(t); }
             lUA0 = lUA.localRotation; lLA0 = lLA.localRotation; lH0 = lH.localRotation; rUA0 = rUA.localRotation; rLA0 = rLA.localRotation; rH0 = rH.localRotation;
             upperLen = Vector3.Distance(lUA.position, lLA.position); lowerLen = Vector3.Distance(lLA.position, lH.position);
             var mid = (lUA.position + rUA.position) * 0.5f;
@@ -65,7 +72,7 @@ namespace Address.Player
             reachT -= dt; reach = Mathf.MoveTowards(reach, reachT > 0 ? 1 : 0, dt * (reachT > 0 ? 9f : 4f));
             grip = Mathf.MoveTowards(grip, grab && grab.Held ? 1 : pushing ? 0.15f : 0, dt * 3f);
             bool show = hold > 0.02f || reach > 0.02f;
-            foreach (var r in rig.GetComponentsInChildren<Renderer>()) r.enabled = show;
+            if (show != shown && rigRenderers != null) { shown = show; foreach (var r in rigRenderers) r.enabled = show; }
             if (!show) return;
 
             float speed = fpc ? new Vector2(fpc.Velocity.x, fpc.Velocity.z).magnitude : 0;
@@ -102,8 +109,7 @@ namespace Address.Player
             // fingers close around the object
             foreach (var (t, rest, side, seg) in fingers)
             {
-                bool thumb = (t == an.GetBoneTransform(HumanBodyBones.LeftThumbProximal) || t == an.GetBoneTransform(HumanBodyBones.LeftThumbIntermediate) || t == an.GetBoneTransform(HumanBodyBones.LeftThumbDistal)
-                           || t == an.GetBoneTransform(HumanBodyBones.RightThumbProximal) || t == an.GetBoneTransform(HumanBodyBones.RightThumbIntermediate) || t == an.GetBoneTransform(HumanBodyBones.RightThumbDistal));
+                bool thumb = thumbs.Contains(t);
                 t.localRotation = rest;
                 var hand = side < 0 ? lH : rH; var palm = hand.TransformDirection(side < 0 ? lPalm : rPalm);
                 var child = t.childCount > 0 ? t.GetChild(0) : null; var dir = child ? (child.position - t.position).normalized : hand.forward;

@@ -94,6 +94,12 @@ add("vent_grille", source="blender", group="vent", support="Wall", rotation="Fac
 add("pc_tower", source="blender", group="pctower", rotation="FaceAnchor", massClass="Medium", mass=9, styles=OFF + ["vhs"], rooms=[], surfaces="none")
 add("ball_mouse", source="blender", group="mouse", support="Surface", rotation="Free", massClass="Small", mass=0.15, styles=OFF + ["vhs", "frutiger"], rooms=["storage"])
 add("cable_coil", source="blender", group="cable", support="Surface", rotation="Free", massClass="Small", mass=0.3, styles=ALL, rooms=["storage", "utility", "office"])
+# office set 2 (Tools/blender/kit_office2.py)
+add("vending_machine", source="blender", group="vending", rotation="FaceWall", massClass="Heavy", mass=250, clearanceFront=0.8, styles=OFF + ["poolrooms"], rooms=["breakroom"], surfaces="none")
+add("water_cooler", source="blender", group="cooler", rotation="FaceWall", massClass="Heavy", mass=25, clearanceFront=0.6, styles=OFF + ["poolrooms", "frutiger"], rooms=["breakroom", "office"], surfaces="none")
+add("server_rack", source="blender", group="rack", rotation="FaceWall", massClass="Heavy", mass=300, clearanceFront=0.9, styles=OFF, rooms=["server"], surfaces="none")
+add("whiteboard", source="blender", group="board", support="Wall", rotation="FaceWall", massClass="Fixed", wallMin=0.9, wallMax=1.0, styles=OFF, rooms=["meeting", "office"])
+add("conference_table", source="blender", group="conftable", rotation="Step90", massClass="Heavy", mass=90, clearanceFront=0.4, styles=OFF + ["frutiger"], rooms=["meeting"])
 # openable props (Tools/blender/kit_open.py) - moving parts animated by Interact/Openable
 add("open_box", source="blender", group="box", rotation="Free", massClass="Medium", mass=3, canStack=True, openable=True, styles=ALL, rooms=["storage", "office", "utility", "corridor"], surfaces="none")
 add("storage_tub", source="blender", group="container", rotation="Step90", massClass="Medium", mass=3, openable=True, styles=["backrooms", "poolrooms", "school"], rooms=["storage", "utility"], surfaces="none")

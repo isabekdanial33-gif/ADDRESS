@@ -96,7 +96,7 @@ namespace Address.Player
             if (humanBones.TryGetValue(t, out var hb))
             {
                 bool arm = hb == HumanBodyBones.LeftLowerArm || hb == HumanBodyBones.RightLowerArm || hb == HumanBodyBones.LeftHand || hb == HumanBodyBones.RightHand || (hb >= HumanBodyBones.LeftThumbProximal && hb <= HumanBodyBones.RightLittleDistal);
-                bool leg = hb == HumanBodyBones.Hips || hb == HumanBodyBones.LeftUpperLeg || hb == HumanBodyBones.RightUpperLeg || hb == HumanBodyBones.LeftLowerLeg || hb == HumanBodyBones.RightLowerLeg || hb == HumanBodyBones.LeftFoot || hb == HumanBodyBones.RightFoot || hb == HumanBodyBones.LeftToes || hb == HumanBodyBones.RightToes;
+                bool leg = hb == HumanBodyBones.LeftLowerLeg || hb == HumanBodyBones.RightLowerLeg || hb == HumanBodyBones.LeftFoot || hb == HumanBodyBones.RightFoot || hb == HumanBodyBones.LeftToes || hb == HumanBodyBones.RightToes;
                 return splitMode == SplitMode.Arms ? !arm : !leg;
             }
             if (humanBones.Count > 0)
@@ -149,7 +149,7 @@ namespace Address.Player
                 go.transform.localPosition = smr.transform.localPosition; go.transform.localRotation = smr.transform.localRotation; go.transform.localScale = smr.transform.localScale;
                 var v2 = go.AddComponent<SkinnedMeshRenderer>();
                 v2.sharedMesh = visible; v2.bones = bones; v2.rootBone = smr.rootBone; v2.sharedMaterials = smr.sharedMaterials;
-                v2.shadowCastingMode = ShadowCastingMode.Off; v2.updateWhenOffscreen = true; v2.localBounds = smr.localBounds;
+                v2.shadowCastingMode = ShadowCastingMode.Off; v2.updateWhenOffscreen = false; v2.localBounds = smr.localBounds;
             }
         }
 

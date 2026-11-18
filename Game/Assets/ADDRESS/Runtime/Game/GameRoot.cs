@@ -228,6 +228,21 @@ namespace Address.Game
             StartCoroutine(Enter(new LevelAddress("BR", Hashing.Combine(Hashing.Fnv64("menu"), (ulong)System.DateTime.Now.DayOfYear)), null, true));
             yield return new WaitForSeconds(0.5f); yield return new WaitUntil(() => !travelling); yield return new WaitForSeconds(1f);
             Shot(cam, "40_menu_again");
+            // ---- the new room kinds
+            foreach (var addr in new[] { "rooms a", "rooms b", "rooms c" })
+            {
+                StartCoroutine(Enter(new LevelAddress("BR", Hashing.Fnv64(addr)), null));
+                yield return new WaitForSeconds(0.5f); yield return new WaitUntil(() => !travelling); yield return new WaitForSeconds(0.5f);
+                foreach (var kind in new[] { "breakroom", "meeting", "server" })
+                {
+                    var room = level.rooms.FirstOrDefault(rm => rm.kind == kind); if (room == null) continue;
+                    var cc4 = player.GetComponent<CharacterController>(); var b = room.bounds;
+                    var corner = new Vector3(b.min.x + 0.6f, 0.02f, b.min.z + 0.6f);
+                    cc4.enabled = false; player.transform.position = corner; cc4.enabled = true;
+                    var lk = b.center - corner; fpc.SetLook(Mathf.Atan2(lk.x, lk.z) * Mathf.Rad2Deg, 8); yield return null; yield return null;
+                    Shot(cam, $"80_{kind}_{addr.Replace(' ', '_')}");
+                }
+            }
             // ---- Frutiger Aero park + the archway into the Poolrooms
             StartCoroutine(Enter(new LevelAddress("FA", Hashing.Fnv64("shots fa")), null));
             yield return new WaitForSeconds(0.5f); yield return new WaitUntil(() => !travelling); yield return new WaitForSeconds(1f);
@@ -523,7 +538,7 @@ namespace Address.Game
             ScreenCapture.CaptureScreenshot(file);
             album.photos.Add(new PhotoRecord { file = file, address = level.address.ToString(), date = System.DateTime.Now.ToString("s"), score = score, subjects = subjects });
             album.Save();
-            audioDir?.Play(config.audio?.shutter, 0.9f);
+            audioDir?.Play(config.audio?.shutterReal ? config.audio.shutterReal : config.audio?.shutter, 0.8f);
             flash = 1f; hud.Toast(score > 0 ? $"+{score}" : "снимок", score >= 300 ? "редкий кадр · сохранён в архив" : "сохранён в архив");
             Debug.Log($"[ADDRESS] photo {score} [{string.Join(", ", subjects)}] -> {file}");
         }
@@ -540,14 +555,14 @@ namespace Address.Game
             switch (exit.plan.role)
             {
                 case ExitRole.Forward:
-                    audioDir?.Play(config.audio?.travel, 0.8f);
+                    audioDir?.Play(config.audio?.travel, 0.3f);
                     ulong ns = Hashing.Combine(cur.Seed, (ulong)(exit.plan.index + 1) * 0x51ED27UL);
                     // the park's tiled archways lead straight down into the Poolrooms, without a door or a black screen
                     bool arch = exit.plan.form == ExitForm.Archway;
                     var next = book.NextFree(arch ? "PR" : NextAesthetic(exit.plan.form, cur.Aesthetic, ns), ns);
                     StartCoroutine(Enter(next, cur, false, arch)); break;
                 case ExitRole.Loop:
-                    audioDir?.Play(config.audio?.travel, 0.8f);
+                    audioDir?.Play(config.audio?.travel, 0.3f);
                     StartCoroutine(Enter(cur.NextEcho(), cur)); break;
                 case ExitRole.False:
                     break; // nothing behind it - the player walks into a wall
@@ -572,7 +587,8 @@ namespace Address.Game
             suitTimer -= Time.deltaTime; if (suitTimer > 0) return; suitTimer = 0.5f;
             bool meBlue = NetLauncher.Manager && NetLauncher.Manager.IsClient && !NetLauncher.Manager.IsServer;
             Suit(playerBody, meBlue); if (fpArms) Suit(fpArms.Rig, meBlue);
-            foreach (var a in FindObjectsByType<NetAvatar>(FindObjectsSortMode.None)) if (a && !a.IsOwner && a.visual) Suit(a.visual, a.OwnerClientId != NetworkManager.ServerClientId);
+            avatars = NetLauncher.Manager ? FindObjectsByType<NetAvatar>(FindObjectsSortMode.None) : System.Array.Empty<NetAvatar>();
+            foreach (var a in avatars) if (a && !a.IsOwner && a.visual) Suit(a.visual, a.OwnerClientId != NetworkManager.ServerClientId);
         }
 
         void Update()
@@ -597,6 +613,7 @@ namespace Address.Game
             ExitTrigger aimed = null;
             if (Physics.Raycast(ray, out var hit, 2.0f, 1 << LevelBuilder.ArchLayer, QueryTriggerInteraction.Ignore))
                 aimed = hit.collider.GetComponentInParent<ExitTrigger>();
+            TickPockets();
             bool exitAim = aimed && !aimed.IsOpen;
             if (TickInteract(ray, exitAim)) { }
             else if (grab.Held) hud.Aim(false, "ЛКМ", "положить     ПКМ — бросить     R — вращать");
@@ -612,7 +629,7 @@ namespace Address.Game
             if (exitAim && EPressed())
             {
                 aimed.Activate();
-                var clip = aimed.plan.form == ExitForm.Elevator ? config.audio?.elevator : aimed.plan.form == ExitForm.VentHatch ? config.audio?.vent : config.audio?.door;
+                var clip = aimed.plan.form == ExitForm.Elevator ? config.audio?.elevator : aimed.plan.form == ExitForm.VentHatch ? config.audio?.vent : (config.audio?.doorReal ? config.audio.doorReal : config.audio?.door);
                 audioDir?.PlayAt(clip, aimed.transform.position + Vector3.up, 0.9f);
             }
             if (input.PhotoPressed) TakePhoto();
@@ -632,6 +649,7 @@ namespace Address.Game
             input = new DeviceInput(); fpc.input = input;
             var head = new GameObject("Head"); head.transform.SetParent(player.transform, false);
             fpc.head = head.transform;
+            head.tag = "MainCamera";
             cam = head.AddComponent<Camera>(); cam.fieldOfView = 72; cam.nearClipPlane = 0.03f; cam.farClipPlane = 120f;
             var data = head.AddComponent<UniversalAdditionalCameraData>();
             data.renderPostProcessing = true; data.antialiasing = AntialiasingMode.SubpixelMorphologicalAntiAliasing;
@@ -686,11 +704,12 @@ namespace Address.Game
             if (entities.Count > 0) Debug.Log($"[ADDRESS] entities: {entities.Count} at {string.Join(", ", entities.Select(x => x.transform.position.ToString("F1")))}");
         }
 
+        readonly List<Transform> targetBuf = new(); NetAvatar[] avatars = System.Array.Empty<NetAvatar>();
         List<Transform> EntityTargets()
         {
-            var l = new List<Transform>();
+            var l = targetBuf; l.Clear();
             if (state == State.Playing && !travelling) l.Add(cam.transform);
-            foreach (var a in FindObjectsByType<NetAvatar>(FindObjectsSortMode.None)) if (!a.IsOwner && a.IsSpawned) l.Add(a.transform);
+            foreach (var a in avatars) if (a && !a.IsOwner && a.IsSpawned) l.Add(a.transform);   // cached list (scene scans every frame cost hitches)
             return l;
         }
 

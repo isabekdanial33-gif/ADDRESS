@@ -50,8 +50,8 @@ def open_box():
 
 def storage_tub():
     reset()
-    plastic = mat("tub_plastic", (0.55, 0.62, 0.70), rough=0.35, alpha=1.0)
-    lidm = mat("tub_lid", (0.12, 0.30, 0.55), rough=0.3)
+    plastic = mat("tub_plastic", (0.36, 0.38, 0.40), rough=0.5, alpha=1.0)
+    lidm = mat("tub_lid", (0.16, 0.19, 0.24), rough=0.55)
     W, D, H, t = 0.60, 0.40, 0.30, 0.008
     parts = [box("bottom", (W - 0.04, D - 0.04, t), (0, 0, t / 2), plastic, bevel=0.004),
              box("wf", (W, t, H), (0, -D / 2 + t / 2, H / 2), plastic, bevel=0.003), box("wb", (W, t, H), (0, D / 2 - t / 2, H / 2), plastic, bevel=0.003),

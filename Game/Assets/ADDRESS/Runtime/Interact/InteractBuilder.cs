@@ -117,6 +117,9 @@ namespace Address.Interact
             float env = 0.5f + 0.5f * Mathf.Sin(t * 23f) * Mathf.Sin(t * 7.3f);
             return (Random01(i) * 2 - 1) * 0.35f * env * Mathf.Clamp01(1.1f - t) * Mathf.Clamp01(t * 20f);
         });
+        static AudioClip thud, tick;
+        public static AudioClip DistantThud => thud ? thud : thud = Make("distant_thud", 1.6f, (t, i) => (Mathf.Sin(t * 2 * Mathf.PI * (48f - t * 14f)) * 0.9f + (Random01(i) * 2 - 1) * 0.25f * Mathf.Exp(-t * 12f)) * Mathf.Exp(-t * 2.6f) * Mathf.Clamp01(t * 60f));
+        public static AudioClip MetalTick => tick ? tick : tick = Make("metal_tick", 1.2f, (t, i) => (Mathf.Sin(t * 2 * Mathf.PI * 820f) * 0.5f + Mathf.Sin(t * 2 * Mathf.PI * 1310f) * 0.35f + Mathf.Sin(t * 2 * Mathf.PI * 2215f) * 0.2f) * Mathf.Exp(-t * 5.5f) * Mathf.Clamp01(t * 400f) * 0.6f);
         static float Random01(int i) { uint x = (uint)i * 747796405u + 2891336453u; x = ((x >> (int)((x >> 28) + 4u)) ^ x) * 277803737u; return ((x >> 22) ^ x) / 4294967295f; }
         static AudioClip Make(string n, float len, System.Func<float, int, float> f)
         {

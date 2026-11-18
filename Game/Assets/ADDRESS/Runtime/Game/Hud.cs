@@ -75,7 +75,11 @@ namespace Address.Game
             if (snapshot) { snapshot.gameObject.SetActive(false); snapshot.rectTransform.localScale = Vector3.one; }
         }
 
-        public void SetVisible(bool v) { foreach (Transform c in root.transform) if (c != fade.transform) c.gameObject.SetActive(v); }
+        public void SetVisible(bool v)
+        {
+            foreach (Transform c in root.transform)
+                if (c != fade.transform && (!snapshot || c != snapshot.transform)) c.gameObject.SetActive(v);
+        }
 
         /// <summary>Crosshair state + prompt. key null = no prompt.</summary>
         public void Aim(bool usable, string key = null, string label = null) { aimUsable = usable; promptKey = key; promptLabel = label; }
@@ -84,6 +88,22 @@ namespace Address.Game
         public void EnterPlace(string address, string placeName)
         {
             cardFull = address; cardName = placeName; cardT = 0; corner.text = "";
+        }
+
+        Text pocketsText; string lastPockets = null;
+        /// <summary>The four pockets, always visible at the bottom: [1] кабель  [2] мышь  [3] —  [4] —</summary>
+        public void SetPockets(System.Collections.Generic.List<string> names)
+        {
+            if (!pocketsText)
+            {
+                pocketsText = UiKit.Text(root.transform, "pockets", UiKit.Mono, 18, new Color(1, 1, 1, 0.75f), TextAnchor.LowerCenter);
+                Anchor(pocketsText.rectTransform, new Vector2(0.5f, 0), new Vector2(0, 22), new Vector2(1200, 30), new Vector2(0.5f, 0));
+                var sh = pocketsText.gameObject.AddComponent<Shadow>(); sh.effectColor = new Color(0, 0, 0, 0.7f); sh.effectDistance = new Vector2(1, -1);
+            }
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < 4; i++) sb.Append($"[{i + 1}] {(i < names.Count ? names[i] : "—")}     ");
+            var s = sb.ToString() + "  G — в карман";
+            if (s != lastPockets) { lastPockets = s; pocketsText.text = s; }
         }
 
         public void Toast(string big, string small) { toast.text = big; toastSub.text = small; toastT = 0; }
