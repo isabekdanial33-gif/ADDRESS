@@ -286,6 +286,15 @@ namespace Address.Game
                     Destroy(e.gameObject); yield return null;
                 }
             }
+            // ---- the new worlds: garage and hotel, four looks each from the start
+            foreach (var w in new[] { "PG", "HT" })
+                for (int v = 0; v < 2; v++)
+                {
+                    StartCoroutine(Enter(new LevelAddress(w, Hashing.Fnv64("world " + w + v)), null));
+                    yield return new WaitForSeconds(0.5f); yield return new WaitUntil(() => !travelling); yield return new WaitForSeconds(1.0f);
+                    Debug.Log($"[ADDRESS] world {w}: {level.address} rooms {level.rooms.Count} exits {level.exits.Count(e => e.reachable)}/{level.exits.Count} {string.Join(",", level.exits.Select(e => e.form))} props {level.engine.placed.Count}");
+                    for (int i = 0; i < 4; i += (v == 0 ? 1 : 2)) { fpc.SetLook(level.startYaw + i * 90, 3); yield return new WaitForSeconds(0.35f); Shot(cam, $"86_{w}{v}_look{i}"); }
+                }
             if (System.Environment.GetCommandLineArgs().Contains("-roomsonly")) { Application.Quit(); yield break; }
             // ---- Frutiger Aero park + the archway into the Poolrooms
             StartCoroutine(Enter(new LevelAddress("FA", Hashing.Fnv64("shots fa")), null));
@@ -336,7 +345,7 @@ namespace Address.Game
             var dir = level.root.GetComponent<Director>();
             if (dir) { dir.stage1 = 0.1f; dir.stage2 = 0.2f; dir.stage3 = 0.3f; }
             yield return new WaitForSeconds(0.6f);
-            foreach (var aest in new[] { "PR", "FA" })
+            foreach (var aest in new[] { "PR", "FA", "PG", "HT" })
             {
                 StartCoroutine(Enter(new LevelAddress(aest, 777UL), level.address));
                 yield return new WaitForSeconds(0.5f); yield return new WaitUntil(() => !travelling);
@@ -564,8 +573,12 @@ namespace Address.Game
             float fa = form == ExitForm.Elevator ? 0.35f : form == ExitForm.HandlelessDoor ? 0.15f : 0.1f;
             if (current == "PR") pr += 0.15f;   // the water pulls you in
             if (current == "FA") fa += 0.15f;
+            // lifts go down into the garage, plain doors open onto hotel corridors
+            float pg = form == ExitForm.Elevator ? 0.2f : form == ExitForm.VentHatch ? 0.1f : 0.08f;
+            float ht = form == ExitForm.HandlelessDoor ? 0.18f : form == ExitForm.Elevator ? 0.12f : 0.05f;
+            if (current == "PG") pg += 0.1f; if (current == "HT") ht += 0.1f;
             float x = (seed % 1000) / 1000f;
-            return x < pr ? "PR" : x < pr + fa ? "FA" : "BR";
+            return x < pr ? "PR" : x < pr + fa ? "FA" : x < pr + fa + pg ? "PG" : x < pr + fa + pg + ht ? "HT" : "BR";
         }
 
         void TakePhoto()
@@ -827,7 +840,7 @@ namespace Address.Game
 
         static string PlaceName(string aesthetic, int generation)
         {
-            string n = aesthetic switch { "BR" => "Жёлтые комнаты", "PR" => "Бассейны", "FA" => "Frutiger Aero", _ => aesthetic };
+            string n = aesthetic switch { "BR" => "Жёлтые комнаты", "PR" => "Бассейны", "FA" => "Frutiger Aero", "PG" => "Подземная парковка", "HT" => "Бесконечный отель", _ => aesthetic };
             return generation > 0 ? $"{n} · эхо {generation}" : n;
         }
 

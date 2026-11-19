@@ -79,6 +79,30 @@ namespace Address.EditorTools
             Override("Crawler", "Crouch_Idle_Loop", "Crouch_Fwd_Loop", "Crouch_Fwd_Loop");
             Override("Mannequin", "Idle_FoldArms_Loop", "Walk_Loop", "Sprint_Loop");
             Override("Limper", "Zombie_Idle_Loop", "Zombie_Walk_Fwd_Loop", "Zombie_Walk_Fwd_Loop");
+            Override("Faceling", "Idle_TalkingPhone_Loop", "Walk_Loop", "Walk_Loop");
+            Override("Partygoer", "Dance_Loop", "Walk_Loop", "Sprint_Loop");
+            Override("Smiler", "Idle_Loop", "Walk_Loop", "Walk_Loop");
+
+            // face materials (textures from Art_src/faces, copied into Resources/Entities)
+            Material FaceMat(string name, string tex, bool additive)
+            {
+                var path = R + name + ".mat"; AssetDatabase.DeleteAsset(path);
+                var t = AssetDatabase.LoadAssetAtPath<Texture2D>(R + tex);
+                var sh = Shader.Find(additive ? "Universal Render Pipeline/Particles/Unlit" : "Universal Render Pipeline/Unlit");
+                var m = new Material(sh) { name = name };
+                m.SetTexture("_BaseMap", t); m.SetColor("_BaseColor", Color.white);
+                if (additive)
+                {
+                    m.SetFloat("_Surface", 1); m.SetFloat("_Blend", 2); // additive
+                    m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One); m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
+                    m.SetFloat("_ZWrite", 0); m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); m.renderQueue = 3000;
+                    m.SetOverrideTag("RenderType", "Transparent");
+                }
+                else { m.SetFloat("_AlphaClip", 1); m.SetFloat("_Cutoff", 0.5f); m.EnableKeyword("_ALPHATEST_ON"); m.renderQueue = 2450; }
+                AssetDatabase.CreateAsset(m, path); return m;
+            }
+            FaceMat("SmilerMat", "smiler.png", true);
+            FaceMat("PartyFaceMat", "party.png", false);
 
             // the mannequin body as a prefab under Resources
             var fbx = AssetDatabase.LoadAssetAtPath<GameObject>(Dir + "Mannequin_F.fbx");

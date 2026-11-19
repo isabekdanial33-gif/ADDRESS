@@ -31,6 +31,8 @@ namespace Address.World
     {
         public static float Width(ExitForm f) => f switch { ExitForm.Elevator => 1.6f, ExitForm.VentHatch => 0.7f, ExitForm.Archway => 1.8f, _ => 0.95f };
 
+        public static ExitForm? ForceForm;   // set by the builder for worlds with a single exit type
+
         public static List<ExitPlan> Plan(LayoutGenerator.Layout L, Rng rng)
         {
             // room graph distances
@@ -54,7 +56,7 @@ namespace Address.World
             {
                 if (plans.Count >= n) break;
                 if (usedRooms.Contains(room.id)) continue;
-                var form = PickForm(rng);
+                var form = ForceForm ?? PickForm(rng);
                 var plan = Slot(room, form, rng);
                 if (plan == null && form != ExitForm.VentHatch) plan = Slot(room, form = ExitForm.VentHatch, rng);
                 if (plan == null) continue;

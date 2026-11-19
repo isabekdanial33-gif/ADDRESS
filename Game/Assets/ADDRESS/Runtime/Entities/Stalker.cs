@@ -60,7 +60,7 @@ namespace Address.Entities
         }
         Address.Player.ProceduralBody body;
         Animator anim; AudioSource voice, steps; AudioClip[] vocals; AudioClip sting; float voiceT = 4f, stingCd;
-        public EntityKind kind; public bool freezeWhenSeen = true;
+        public EntityKind kind; public bool freezeWhenSeen = true, passive;
         static AudioClip[] allSfx;
         static AudioClip[] Sfx(params string[] prefixes)
         {
@@ -80,6 +80,9 @@ namespace Address.Entities
                 case EntityKind.Crawler: wanderSpeed = 0.9f; stalkSpeed = 2.3f; freezeWhenSeen = false; catchRadius = 0.95f; vocals = Sfx("beast_"); break;
                 case EntityKind.Mannequin: wanderSpeed = 0f; stalkSpeed = 3.6f; freezeWhenSeen = true; noticeRange = 22f; vocals = Sfx("spirit_"); stepSet = "step_hard_"; break;
                 case EntityKind.Limper: wanderSpeed = 0.45f; stalkSpeed = 1.25f; freezeWhenSeen = false; vocals = Sfx("beast_", "growl_"); break;
+                case EntityKind.Smiler: wanderSpeed = 0.35f; stalkSpeed = 1.9f; freezeWhenSeen = true; noticeRange = 12f; vocals = Sfx("eerie_", "deep_"); stepSet = "none"; break;
+                case EntityKind.Faceling: wanderSpeed = 0.8f; stalkSpeed = 0.8f; passive = true; vocals = Sfx("spirit_2"); break;
+                case EntityKind.Partygoer: wanderSpeed = 0.7f; stalkSpeed = 3.0f; freezeWhenSeen = false; noticeRange = 16f; vocals = Sfx("spirit_1", "spirit_2"); break;
             }
             stalkSpeed *= 1f + 0.06f * generation;
             sting = Resources.Load<AudioClip>("EntitySfx/deep_1");
@@ -149,6 +152,7 @@ namespace Address.Entities
             currentTarget = best;
             if (best == null) { mode = Mode.Wander; Wander(dt); return; }
 
+            if (passive) { mode = Mode.Wander; Wander(dt); return; }   // facelings just wander about their business
             bool los = HasLineOfSight(best.position);
             if (mode == Mode.Dormant || mode == Mode.Wander)
             {

@@ -34,6 +34,11 @@ MonoBehaviour:
     aeroWallMat: {fileID: 2100000, guid: c55f8836e048f374e857498eb3795c31, type: 2}
     glassMat: {fileID: 2100000, guid: 32ebe4e227f70e84c9af9361a5a08f89, type: 2}
     aeroGrassMat: {fileID: 2100000, guid: a1dfdaef89a25b74b965426ee8ec145b, type: 2}
+    pgFloorMat: {fileID: 2100000, guid: a20dc8d1dad4bba4ea97aa177d0300b4, type: 2}
+    pgWallMat: {fileID: 2100000, guid: f029cd390b1e0db4eb0224f01e1e1581, type: 2}
+    pgCeilMat: {fileID: 2100000, guid: e0e1aa223bfa7d140a327b7381b00578, type: 2}
+    htFloorMat: {fileID: 2100000, guid: b29161281b255674caaa0ceaaf5eabf0, type: 2}
+    htWallMat: {fileID: 2100000, guid: 48dc953cbe0f29141af432539bd48cae, type: 2}
     caustics:
     - {fileID: 2800000, guid: b6c5578ceaeaa834e98060445e71f2eb, type: 3}
     - {fileID: 2800000, guid: 9a8be477262742844a94fe46803ad66c, type: 3}

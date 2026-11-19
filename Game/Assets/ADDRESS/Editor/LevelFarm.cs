@@ -43,6 +43,11 @@ namespace Address.EditorTools
                 aeroHousePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ADDRESS/Art/Exits/aero_house.glb"),
                 aeroGrassMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Grass004.mat"),
                 aeroWallMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/FA_Wall.mat"),
+                pgFloorMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Asphalt031.mat"),
+                pgWallMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Concrete034.mat"),
+                pgCeilMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Concrete047A.mat"),
+                htFloorMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Carpet015.mat"),
+                htWallMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Wallpaper002B.mat"),
                 glassMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Glass.mat"),
                 caustics = Enumerable.Range(0, 16).Select(i => (Texture)AssetDatabase.LoadAssetAtPath<Texture2D>($"Assets/ADDRESS/Art/Textures/caustic_{i:00}.png")).Where(t => t).ToArray()
             };

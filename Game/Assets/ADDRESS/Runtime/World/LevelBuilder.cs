@@ -20,6 +20,7 @@ namespace Address.World
         public Material voidMat;
         public Material poolTileMat, basinMat, waterMat;
         public Material aeroFloorMat, aeroWallMat, glassMat, aeroGrassMat;
+        public Material pgFloorMat, pgWallMat, pgCeilMat, htFloorMat, htWallMat;
         public Texture[] caustics;
     }
 
@@ -77,6 +78,20 @@ namespace Address.World
                 RenderSettings.ambientEquatorColor = new Color(0.52f, 0.60f, 0.66f);   // walls get the bounce of white floors
                 RenderSettings.ambientGroundColor = new Color(0.55f, 0.62f, 0.68f);
                 RenderSettings.fogDensity = 0.006f; RenderSettings.fogColor = new Color(0.72f, 0.86f, 0.98f);   // open air: clear, a light haze only
+            }
+            else if (aesthetic == "PG")
+            {
+                RenderSettings.ambientSkyColor = new Color(0.07f, 0.08f, 0.09f);
+                RenderSettings.ambientEquatorColor = new Color(0.12f, 0.13f, 0.14f);
+                RenderSettings.ambientGroundColor = new Color(0.22f, 0.23f, 0.24f);
+                RenderSettings.fogDensity = 0.035f; RenderSettings.fogColor = new Color(0.2f, 0.22f, 0.24f);   // concrete dust
+            }
+            else if (aesthetic == "HT")
+            {
+                RenderSettings.ambientSkyColor = new Color(0.08f, 0.05f, 0.03f);
+                RenderSettings.ambientEquatorColor = new Color(0.16f, 0.09f, 0.06f);
+                RenderSettings.ambientGroundColor = new Color(0.3f, 0.14f, 0.1f);
+                RenderSettings.fogDensity = 0.03f; RenderSettings.fogColor = new Color(0.22f, 0.12f, 0.08f);
             }
             else if (aesthetic == "PR")
             {
@@ -141,12 +156,17 @@ namespace Address.World
             var sw = System.Diagnostics.Stopwatch.StartNew(); var times = new System.Text.StringBuilder();
             void Mark(string n) { times.Append($"{n} {sw.ElapsedMilliseconds}ms  "); sw.Restart(); }
             var rng = new Rng(attempt == 0 ? address.BaseSeed : Hashing.Combine(address.BaseSeed, (ulong)attempt * 0xA77E3UL));
-            var res = new Result { address = address, aesthetic = address.Aesthetic == "PR" || address.Aesthetic == "FA" ? address.Aesthetic : "BR" };
+            var a0 = address.Aesthetic;
+            var res = new Result { address = address, aesthetic = a0 == "PR" || a0 == "FA" || a0 == "PG" || a0 == "HT" ? a0 : "BR" };
+            bool garage = res.aesthetic == "PG" && kit.pgFloorMat, hotel = res.aesthetic == "HT" && kit.htFloorMat;
+            world = garage ? "PG" : hotel ? "HT" : res.aesthetic;
             bool pool = res.aesthetic == "PR" && kit.poolTileMat;
             bool aero = res.aesthetic == "FA" && kit.aeroWallMat;
             floorM = pool ? kit.poolTileMat : aero ? (kit.aeroGrassMat ? LushGrass(kit.aeroGrassMat) : kit.aeroFloorMat) : kit.floorMat;
             wallM = pool ? kit.poolTileMat : aero ? kit.aeroWallMat : kit.wallMat;
             ceilM = pool ? kit.poolTileMat : aero ? kit.aeroWallMat : kit.ceilingMat;
+            if (garage) { floorM = kit.pgFloorMat; wallM = kit.pgWallMat ? kit.pgWallMat : kit.wallMat; ceilM = kit.pgCeilMat ? kit.pgCeilMat : kit.ceilingMat; }
+            if (hotel) { floorM = kit.htFloorMat; wallM = kit.htWallMat ? kit.htWallMat : kit.wallMat; }
             glassWalls = aero;
             res.root = new GameObject("Level " + address);
             var arch = new GameObject("Architecture"); arch.transform.SetParent(res.root.transform);
@@ -156,8 +176,11 @@ namespace Address.World
             // rare places (~1 in 18): the exit is found differently; the guarantee still holds
             var rr = rng.Fork("rare"); float rv = rr.Value;
             res.rare = rv < 0.022f ? "silent" : rv < 0.044f ? "photo" : rv < 0.056f ? "vast" : "";
+            if (garage || hotel) res.rare = "";
             int size = sizeOverride > 0 ? sizeOverride : (rng.Fork("size").Chance(0.4f) ? 24 : 36);
             var L = aero ? LayoutGenerator.Park(rng.Fork("size").Range(34, 46))
+                  : hotel ? LayoutGenerator.Hotel(rng.Fork("layout"), 44)
+                  : garage ? new LayoutGenerator { minRoomM = 9f, maxRoomLo = 13f, maxRoomHi = 19f, doorShare = 0f, forceKind = "parking" }.Generate(rng.Fork("layout"), 44, 44)
                   : res.rare == "vast" ? LayoutGenerator.Vast(40) : new LayoutGenerator().Generate(rng.Fork("layout"), size, size);
             if (aero) res.rare = "";
             res.layout = L;
@@ -177,7 +200,12 @@ namespace Address.World
                     L.rooms[0].spec.keepOut.Add(a2 ? new Rect(c0.x - 2.6f, c0.z - 1.6f, 5.2f, 3.2f) : new Rect(c0.x - 1.6f, c0.z - 2.6f, 3.2f, 5.2f));
                 }
             }
-            else res.exits = ExitPlanner.Plan(L, rng.Fork("exits"));
+            else
+            {
+                ExitPlanner.ForceForm = hotel ? ExitForm.Elevator : (ExitForm?)null;
+                res.exits = ExitPlanner.Plan(L, rng.Fork("exits"));
+                ExitPlanner.ForceForm = null;
+            }
             if (pool) PlanBasins(L, res, rng.Fork("basins"), new HashSet<int>(res.exits.Select(e => e.roomId)));
 
             basinsForArch = res.basins;
@@ -301,6 +329,19 @@ namespace Address.World
                         int racks = Mathf.Clamp(Mathf.RoundToInt(areaM2 / 4f), 2, 10);
                         for (int i = 0; i < racks; i++) sc.AgainstWallSingle(spec, r.Fork("rack", i), "rack");
                         if (r.Chance(0.5f)) sc.Stack(spec, r.Fork("stack", 0), r.Range(1, 3));
+                        break;
+                    case "parking":     // a few things left behind between the columns
+                        if (r.Chance(0.5f)) sc.FloorSingle(spec, r, "cart", false);
+                        for (int i = 0; i < r.Range(1, 4); i++) sc.FloorSingle(spec, r.Fork("junk", i), r.Pick(new[] { "box", "trash", "sign", "crate", "box" }), r.Chance(0.7f));
+                        if (r.Chance(0.4f)) sc.Stack(spec, r.Fork("stack", 0), r.Range(1, 3));
+                        if (r.Chance(0.5f)) sc.AgainstWallSingle(spec, r, "extinguisher");
+                        break;
+                    case "hall":        // hotel corridor: a picture, a side table with a lamp, a plant, a housekeeping trolley
+                        if (r.Chance(0.6f)) sc.WallDecor(spec, r, "picture");
+                        if (r.Chance(0.25f)) sc.AgainstWallSingle(spec, r, "smalltable");
+                        if (r.Chance(0.2f)) sc.FloorSingle(spec, r, "plant");
+                        if (r.Chance(0.12f)) sc.FloorSingle(spec, r, "cart");
+                        if (r.Chance(0.15f)) sc.FloorSingle(spec, r, r.Pick(new[] { "suitcase", "trash", "chair" }));
                         break;
                     case "showroom":    // a furniture showroom: display sets spread out in rows, all facing the same way
                         sc.Showroom(spec, r);
@@ -480,6 +521,8 @@ namespace Address.World
                     // 0 lit, 1 dead, 2 failing (flickers), 3 dim
                     float v = lr.Value;
                     int mode = room.dark ? (v < 0.72f ? 1 : v < 0.9f ? 2 : 3) : (v < 0.035f ? 2 : v < 0.05f ? 1 : 0);
+                    if (world == "PG" && mode == 0) mode = v < 0.12f ? 1 : v < 0.2f ? 2 : 0;          // half the garage tubes are dead or dying
+                    if (world == "HT" && mode == 0 && ((int)(s.Item1.x * 2 + s.Item1.z * 3) & 1) == 0) mode = 1;   // hotel: every other light off
                     if (mode != 0) spotMode[SpotKey(s.Item1)] = mode;
                 }
             }
@@ -568,7 +611,7 @@ namespace Address.World
             // columns: a grid of square pillars in big halls (kept off doors, exits and troffers)
             foreach (var room in L.rooms)
             {
-                if (room.kind != "pillars" || openSky) continue;
+                if ((room.kind != "pillars" && room.kind != "parking") || openSky) continue;
                 var b = room.spec.bounds; const float P = 3.0f, S = 0.5f;
                 int nx = Mathf.FloorToInt((b.size.x - 2.4f) / P) + 1, nz = Mathf.FloorToInt((b.size.z - 2.4f) / P) + 1;
                 if (nx < 2 || nz < 2) continue;
@@ -583,7 +626,64 @@ namespace Address.World
                         Slab(parent, "Pillar", new Vector3(p.x, H * 0.5f, p.z), new Vector3(S, H, S), wallM, 1.1f);
                     }
             }
+            if (world == "PG") ParkingLines(L, parent, rng.Fork("lines"));
+            if (world == "HT") HotelDoors(L, parent, rng.Fork("doors"), exits);
             if (lights && !openSky) Lights(spots, parent);
+        }
+
+        string world = "BR";
+
+        /// <summary>Painted parking stalls along the walls of every section: white lines, a yellow kerb band, a few numbers worn off.</summary>
+        void ParkingLines(LayoutGenerator.Layout L, Transform parent, Rng rng)
+        {
+            var lit = Shader.Find("Universal Render Pipeline/Lit");
+            var white = new Material(lit) { name = "paint_white" }; white.SetColor("_BaseColor", new Color(0.78f, 0.78f, 0.74f)); white.SetFloat("_Smoothness", 0.15f);
+            var yellow = new Material(lit) { name = "paint_yellow" }; yellow.SetColor("_BaseColor", new Color(0.75f, 0.6f, 0.12f)); yellow.SetFloat("_Smoothness", 0.15f);
+            var quad = GameObject.CreatePrimitive(PrimitiveType.Quad); var qm = quad.GetComponent<MeshFilter>().sharedMesh; Object.Destroy(quad);
+            void Stripe(Vector3 c, float yaw, float len, float wid, Material m)
+            {
+                var g = new GameObject("Stripe") { layer = ArchLayer, isStatic = true }; g.transform.SetParent(parent);
+                g.transform.SetPositionAndRotation(c + Vector3.up * 0.004f, Quaternion.Euler(90, yaw, 0)); g.transform.localScale = new Vector3(wid, len, 1);
+                g.AddComponent<MeshFilter>().sharedMesh = qm; var r = g.AddComponent<MeshRenderer>(); r.sharedMaterial = m; r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            foreach (var room in L.rooms)
+                foreach (var w in room.spec.walls)
+                {
+                    var along = (w.b - w.a); float len = along.magnitude; if (len < 3f) continue; along /= len;
+                    float yaw = Mathf.Atan2(w.normal.x, w.normal.z) * Mathf.Rad2Deg;
+                    // stall dividers every 2.5 m, 4.6 m long, perpendicular to the wall
+                    for (float t = 1.25f; t < len - 0.5f; t += 2.5f)
+                    {
+                        if (rng.Chance(0.12f)) continue;   // worn away
+                        Stripe(w.a + along * t + w.normal * 2.4f, yaw, 4.6f, 0.11f, white);
+                    }
+                    Stripe((w.a + w.b) * 0.5f + w.normal * 0.12f, yaw + 90f, len - 0.3f, 0.16f, yellow);   // kerb band
+                }
+        }
+
+        /// <summary>Room doors along the hotel corridors: dark wood, a handle, a number plate; locked (decor only).</summary>
+        void HotelDoors(LayoutGenerator.Layout L, Transform parent, Rng rng, List<ExitPlan> exits)
+        {
+            if (!kit.exitDoorPrefab) return;
+            int number = 100 + rng.Range(0, 800);
+            var lit = Shader.Find("Universal Render Pipeline/Lit");
+            var wood = new Material(lit) { name = "hotel_door" }; wood.SetColor("_BaseColor", new Color(0.26f, 0.15f, 0.09f)); wood.SetFloat("_Smoothness", 0.35f);
+            foreach (var room in L.rooms)
+                foreach (var w in room.spec.walls)
+                {
+                    var along = (w.b - w.a); float len = along.magnitude; if (len < 2.4f) continue; along /= len;
+                    for (float t = 1.4f; t < len - 1.0f; t += rng.Range(3.0f, 4.2f))
+                    {
+                        var p = w.a + along * t;
+                        bool nearExit = false; foreach (var e in exits) if (Vector3.Distance(new Vector3(e.position.x, 0, e.position.z), new Vector3(p.x, 0, p.z)) < 2.2f) nearExit = true;
+                        if (nearExit) continue;
+                        var go = Object.Instantiate(kit.exitDoorPrefab, parent); go.name = "HotelDoor" + (number++);
+                        go.transform.SetPositionAndRotation(new Vector3(p.x, 0, p.z) - w.normal * 0.075f, Quaternion.LookRotation(w.normal, Vector3.up));
+                        foreach (var t2 in go.GetComponentsInChildren<Transform>(true)) { t2.gameObject.layer = ArchLayer; t2.gameObject.isStatic = true; }
+                        foreach (var r in go.GetComponentsInChildren<Renderer>())
+                            if (r.name == "leaf") { var m = r.sharedMaterials; for (int i = 0; i < m.Length; i++) m[i] = wood; r.sharedMaterials = m; }
+                    }
+                }
         }
 
         readonly Dictionary<Vector2Int, int> spotMode = new();
@@ -944,6 +1044,8 @@ namespace Address.World
                 bool tiles = wallM != kit.wallMat;   // glazed tiles / white plaster bounce far more light than wallpaper
                 l.intensity = tiles ? (glassWalls ? 1.7f : 1.5f) : 3.0f;
                 l.color = tiles ? new Color(0.95f, 0.98f, 1f) : new Color(1f, 0.95f, 0.82f);
+                if (world == "PG") { l.intensity = 2.4f; l.color = new Color(0.86f, 0.95f, 1f); }
+                if (world == "HT") { l.intensity = 1.7f; l.color = new Color(1f, 0.78f, 0.5f); l.range = 5.5f; }
                 // shadows are expensive: only every 4th fixture casts them (enough for grounding furniture)
                 l.shadows = (k++ % 4 == 0) ? LightShadows.Soft : LightShadows.None; l.shadowStrength = 0.7f;
                 // lit tubes next to a dark zone reach less far: light must not leak through the walls into the dark

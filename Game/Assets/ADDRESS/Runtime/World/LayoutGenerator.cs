@@ -44,6 +44,10 @@ namespace Address.World
             public Bounds WorldBounds => new(new Vector3(w * Cell * 0.5f, height * 0.5f, h * Cell * 0.5f), new Vector3(w * Cell, height, h * Cell));
         }
 
+        // BSP room size and door share (the parking garage uses huge open sections)
+        public float minRoomM = 3.5f, maxRoomLo = 6.5f, maxRoomHi = 10f, doorShare = 0.5f;
+        public string forceKind;
+
         public Layout Generate(Rng rng, int widthM, int depthM)
         {
             var L = new Layout { w = Mathf.RoundToInt(widthM / Cell), h = Mathf.RoundToInt(depthM / Cell) };
@@ -79,7 +83,7 @@ namespace Address.World
             {
                 float len = e.to - e.from;
                 float r = rng.Value;
-                e.kind = r < 0.5f ? OpeningKind.Door : r < 0.85f ? OpeningKind.Wide : OpeningKind.Merge;
+                e.kind = r < doorShare ? OpeningKind.Door : r < doorShare + (1 - doorShare) * 0.7f ? OpeningKind.Wide : OpeningKind.Merge;
                 if (e.kind == OpeningKind.Door || len < DoorW + 0.8f)
                 {
                     e.kind = OpeningKind.Door;
@@ -104,6 +108,7 @@ namespace Address.World
             foreach (var room in L.rooms)
             {
                 var wr = room.World;
+                if (forceKind != null) { room.kind = forceKind; continue; }
                 if (Mathf.Min(wr.width, wr.height) < 3.2f) { room.kind = "corridor"; continue; }
                 if (halls.Contains(room.cells)) { room.kind = rng.Chance(0.55f) ? "showroom" : "pillars"; continue; }
                 float k = rng.Value, area = wr.width * wr.height;
@@ -145,6 +150,44 @@ namespace Address.World
             }
         }
 
+        /// <summary>
+        /// Endless hotel: a grid of 2 m corridors (rows every 7-9 m, cross corridors every 10-14 m), everything else is
+        /// solid. Corridor segments and crossings are rooms; neighbours are fully open to each other.
+        /// </summary>
+        public static Layout Hotel(Rng rng, int sizeM)
+        {
+            var L = new Layout { w = Mathf.RoundToInt(sizeM / Cell), h = Mathf.RoundToInt(sizeM / Cell), height = 2.6f };
+            L.cellRoom = new int[L.w, L.h];
+            for (int x = 0; x < L.w; x++) for (int z = 0; z < L.h; z++) L.cellRoom[x, z] = -1;
+            const int CW = 4;                                   // 2 m wide
+            var rows = new List<int>(); var cols = new List<int>();
+            for (int z = 2; z + CW < L.h - 1; z += rng.Range(14, 19)) rows.Add(z);
+            for (int x = 2; x + CW < L.w - 1; x += rng.Range(20, 29)) cols.Add(x);
+            void Add(RectInt r, string kind)
+            {
+                if (r.width <= 0 || r.height <= 0) return;
+                var room = new Room { id = L.rooms.Count, cells = r, kind = kind };
+                L.rooms.Add(room);
+                for (int x = r.xMin; x < r.xMax; x++) for (int z = r.yMin; z < r.yMax; z++) L.cellRoom[x, z] = room.id;
+            }
+            int left = cols[0], right = cols[cols.Count - 1] + CW, bottom = rows[0], top = rows[rows.Count - 1] + CW;
+            // crossings
+            foreach (var z in rows) foreach (var x in cols) Add(new RectInt(x, z, CW, CW), "hall");
+            // horizontal segments between crossings
+            foreach (var z in rows) for (int i = 0; i + 1 < cols.Count; i++) Add(new RectInt(cols[i] + CW, z, cols[i + 1] - cols[i] - CW, CW), "hall");
+            // vertical segments; a few are missing (dead ends, detours), but never on the first column
+            foreach (var x in cols) for (int j = 0; j + 1 < rows.Count; j++)
+                if (x == cols[0] || rng.Chance(0.8f)) Add(new RectInt(x, rows[j] + CW, CW, rows[j + 1] - rows[j] - CW), "hall");
+            for (int i = 0; i < L.rooms.Count; i++)
+                for (int j = i + 1; j < L.rooms.Count; j++)
+                {
+                    var o = Shared(L.rooms[i].cells, L.rooms[j].cells);
+                    if (o != null && o.to - o.from >= 1.5f) { o.a = i; o.b = j; o.kind = OpeningKind.Merge; L.openings.Add(o); }
+                }
+            L.startRoom = rng.Range(0, L.rooms.Count);
+            return L;
+        }
+
         /// <summary>Frutiger Aero park: ONE open space (no rooms, no ceiling), walled only at its edge.</summary>
         public static Layout Park(int sizeM)
         {
@@ -178,7 +221,7 @@ namespace Address.World
             // a big hall (showroom / columns) now and then: stop splitting a 9..15 m block
             float wm = r.width * Cell, hm = r.height * Cell;
             if (hallsLeft > 0 && depth >= 1 && wm >= 9f && hm >= 8f && wm <= 15f && hm <= 15f && rng.Chance(0.6f)) { hallsLeft--; halls.Add(r); leaves.Add(r); return; }
-            int minCells = Mathf.RoundToInt(3.5f / Cell), maxCells = Mathf.RoundToInt(rng.Range(6.5f, 10f) / Cell);
+            int minCells = Mathf.RoundToInt(minRoomM / Cell), maxCells = Mathf.RoundToInt(rng.Range(maxRoomLo, maxRoomHi) / Cell);
             bool canX = r.width >= 2 * minCells, canZ = r.height >= 2 * minCells;
             bool big = r.width > maxCells || r.height > maxCells;
             if ((!canX && !canZ) || (!big && rng.Chance(0.35f)) || depth > 12) { leaves.Add(r); return; }

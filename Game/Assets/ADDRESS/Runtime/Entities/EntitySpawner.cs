@@ -11,7 +11,8 @@ namespace Address.Entities
     /// starts, then builds its body from the hazmat model: stretched limbs, a darker soiled suit, black lenses with two
     /// dim points behind them. Light places rarely have one; Echo copies have them more often.
     /// </summary>
-    public enum EntityKind { Echo, Salesman, Crawler, Mannequin, Limper }
+    // Smiler, Faceling and Partygoer follow the community Backrooms wiki (CC BY-SA) archetypes; models and code are our own.
+    public enum EntityKind { Echo, Salesman, Crawler, Mannequin, Limper, Smiler, Faceling, Partygoer }
 
     public static class EntitySpawner
     {
@@ -19,11 +20,13 @@ namespace Address.Entities
         static EntityKind PickKind(LevelBuilder.Result level, Rng rng)
         {
             var opts = new List<EntityKind>();
+            if (level.aesthetic == "PG") { opts.AddRange(new[] { EntityKind.Crawler, EntityKind.Crawler, EntityKind.Limper, EntityKind.Echo, EntityKind.Smiler, EntityKind.Smiler }); return opts[rng.Range(0, opts.Count)]; }
+            if (level.aesthetic == "HT") { opts.AddRange(new[] { EntityKind.Mannequin, EntityKind.Salesman, EntityKind.Echo, EntityKind.Limper, EntityKind.Partygoer, EntityKind.Partygoer, EntityKind.Faceling, EntityKind.Faceling }); return opts[rng.Range(0, opts.Count)]; }
             if (level.aesthetic == "PR") { opts.AddRange(new[] { EntityKind.Mannequin, EntityKind.Mannequin, EntityKind.Limper, EntityKind.Echo }); return opts[rng.Range(0, opts.Count)]; }
-            opts.AddRange(new[] { EntityKind.Echo, EntityKind.Echo, EntityKind.Limper, EntityKind.Mannequin });
+            opts.AddRange(new[] { EntityKind.Echo, EntityKind.Echo, EntityKind.Limper, EntityKind.Mannequin, EntityKind.Faceling, EntityKind.Faceling, EntityKind.Partygoer });
             var rooms = level.layout?.rooms;
             if (rooms != null && rooms.Exists(r => r.kind == "showroom")) opts.AddRange(new[] { EntityKind.Salesman, EntityKind.Salesman, EntityKind.Salesman });
-            if (rooms != null && rooms.Exists(r => r.dark)) opts.AddRange(new[] { EntityKind.Crawler, EntityKind.Crawler, EntityKind.Crawler });
+            if (rooms != null && rooms.Exists(r => r.dark)) opts.AddRange(new[] { EntityKind.Crawler, EntityKind.Crawler, EntityKind.Smiler, EntityKind.Smiler, EntityKind.Smiler });
             return opts[rng.Range(0, opts.Count)];
         }
 
@@ -35,7 +38,7 @@ namespace Address.Entities
                 var p = level.nav.Center(c.x, c.y, 0);
                 foreach (var r in rooms)
                 {
-                    bool home = kind == EntityKind.Salesman ? r.kind == "showroom" : kind == EntityKind.Crawler ? r.dark : false;
+                    bool home = kind == EntityKind.Salesman ? r.kind == "showroom" : kind == EntityKind.Crawler || kind == EntityKind.Smiler ? r.dark : false;
                     if (home && r.World.Contains(new Vector2(p.x, p.z))) { res.Add(c); break; }
                 }
             }
@@ -43,7 +46,7 @@ namespace Address.Entities
         }
         public static float ChanceFor(string aesthetic, int generation)
         {
-            float c = aesthetic switch { "BR" => 0.45f, "PR" => 0.22f, "FA" => 0f, _ => 0.3f };
+            float c = aesthetic switch { "BR" => 0.45f, "PR" => 0.22f, "FA" => 0f, "PG" => 0.5f, "HT" => 0.5f, _ => 0.3f };
             return Mathf.Clamp01(c + generation * 0.15f);
         }
 
@@ -102,7 +105,16 @@ namespace Address.Entities
         {
             var root = new GameObject($"Entity_{index}_{kind}"); root.transform.SetParent(level.root.transform, false);
             root.transform.SetPositionAndRotation(pos, rot);
-            bool mannequin = kind == EntityKind.Mannequin;
+            if (kind == EntityKind.Smiler)
+            {
+                // no body at all: eyes and a grin hanging in the dark at head height, always turned to you
+                var q = GameObject.CreatePrimitive(PrimitiveType.Quad); Object.Destroy(q.GetComponent<Collider>());
+                q.name = "Grin"; q.transform.SetParent(root.transform, false); q.transform.localPosition = new Vector3(0, 1.62f, 0); q.transform.localScale = Vector3.one * 0.95f;
+                var mr = q.GetComponent<MeshRenderer>(); mr.sharedMaterial = Resources.Load<Material>("Entities/SmilerMat"); mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                q.AddComponent<Address.Rendering.Billboard>();
+                return root.AddComponent<Stalker>();
+            }
+            bool mannequin = kind == EntityKind.Mannequin || kind == EntityKind.Faceling || kind == EntityKind.Partygoer;
             var mp = mannequin ? Resources.Load<GameObject>("Entities/Mannequin") : null;
             var body = Build0(mp ? mp : bodyPrefab, root.transform); body.name = "Body";
             body.transform.localPosition = Vector3.zero; body.transform.localRotation = Quaternion.identity;
@@ -131,10 +143,25 @@ namespace Address.Entities
                 var lit = Shader.Find("Universal Render Pipeline/Lit");
                 var m = new Material(lit) { name = "mannequin_plastic" };
                 m.SetColor("_BaseColor", new Color(0.86f, 0.83f, 0.78f)); m.SetFloat("_Smoothness", 0.62f); m.SetFloat("_Metallic", 0f);
+                if (kind == EntityKind.Faceling) { m.SetColor("_BaseColor", new Color(0.62f, 0.5f, 0.42f)); m.SetFloat("_Smoothness", 0.3f); }   // skin, no features
+                if (kind == EntityKind.Partygoer) { m.SetColor("_BaseColor", new Color(0.95f, 0.78f, 0.12f)); m.SetFloat("_Smoothness", 0.5f); }
                 foreach (var r in body.GetComponentsInChildren<Renderer>(true))
                 {
                     var ms = r.sharedMaterials; for (int i = 0; i < ms.Length; i++) ms[i] = m; r.sharedMaterials = ms;
                     if (r is SkinnedMeshRenderer s0) s0.updateWhenOffscreen = true;
+                }
+                if (kind == EntityKind.Partygoer)
+                {
+                    var hd = F("Head"); var fm = Resources.Load<Material>("Entities/PartyFaceMat");
+                    if (hd && fm)
+                    {
+                        var face = GameObject.CreatePrimitive(PrimitiveType.Quad); Object.Destroy(face.GetComponent<Collider>()); face.name = "Face";
+                        face.transform.SetParent(hd, false);
+                        face.transform.position = hd.position + root.transform.forward * 0.115f + Vector3.up * 0.07f;
+                        face.transform.rotation = Quaternion.LookRotation(-root.transform.forward, Vector3.up);
+                        face.transform.localScale = Vector3.one * 0.2f / Mathf.Max(0.001f, hd.lossyScale.x);
+                        face.GetComponent<MeshRenderer>().sharedMaterial = fm;
+                    }
                 }
                 return root.AddComponent<Stalker>();
             }
