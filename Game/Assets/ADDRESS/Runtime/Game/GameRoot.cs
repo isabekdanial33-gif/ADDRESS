@@ -259,6 +259,33 @@ namespace Address.Game
                     Debug.Log($"[ADDRESS] tour {kind} {addr}: {b.size.x:F1}x{b.size.z:F1} props {level.engine.placed.Count(o => o && b.Contains(new Vector3(o.transform.position.x, b.center.y, o.transform.position.z)))} pillars {level.root.GetComponentsInChildren<Transform>().Count(t => t.name == "Pillar" && b.Contains(new Vector3(t.position.x, b.center.y, t.position.z)))}");
                 }
             }
+            // ---- every entity kind, walking in place 3 m in front of the camera
+            {
+                var cc5 = player.GetComponent<CharacterController>(); cc5.enabled = false; player.transform.position = level.start; cc5.enabled = true;
+                // the most open of 8 directions from the start
+                float bestFree = 0; float yawE = level.startYaw;
+                for (int i = 0; i < 8; i++)
+                {
+                    var d = Quaternion.Euler(0, i * 45f, 0) * Vector3.forward;
+                    float free = Physics.Raycast(level.start + Vector3.up * 1.0f, d, out var hh, 20f, ~0, QueryTriggerInteraction.Ignore) ? hh.distance : 20f;
+                    if (free > bestFree) { bestFree = free; yawE = i * 45f; }
+                }
+                var fwd = Quaternion.Euler(0, yawE, 0) * Vector3.forward; float distE = Mathf.Clamp(bestFree - 1.0f, 1.8f, 3.4f);
+                foreach (Address.Entities.EntityKind kind in System.Enum.GetValues(typeof(Address.Entities.EntityKind)))
+                {
+                    var e = Address.Entities.EntitySpawner.SpawnKind(level, config.bodyPrefab, kind, level.start + fwd * distE, Quaternion.LookRotation(-fwd), null);
+                    e.enabled = false;
+                    var an = e.GetComponentInChildren<Animator>();
+                    foreach (var sp in new[] { 0f, 1.2f })
+                    {
+                        if (an) an.SetFloat("Speed", sp);
+                        fpc.SetLook(yawE, 2); yield return new WaitForSeconds(0.9f);
+                        Shot(cam, $"85_ent_{kind}_{(sp > 0 ? "walk" : "idle")}");
+                    }
+                    Debug.Log($"[ADDRESS] entity {kind}: animator {(an ? an.runtimeAnimatorController?.name : "none")} human {(an && an.isHuman)}");
+                    Destroy(e.gameObject); yield return null;
+                }
+            }
             if (System.Environment.GetCommandLineArgs().Contains("-roomsonly")) { Application.Quit(); yield break; }
             // ---- Frutiger Aero park + the archway into the Poolrooms
             StartCoroutine(Enter(new LevelAddress("FA", Hashing.Fnv64("shots fa")), null));

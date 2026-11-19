@@ -59,16 +59,73 @@ namespace Address.Entities
             body = GetComponentInChildren<Address.Player.ProceduralBody>();
         }
         Address.Player.ProceduralBody body;
+        Animator anim; AudioSource voice, steps; AudioClip[] vocals; AudioClip sting; float voiceT = 4f, stingCd;
+        public EntityKind kind; public bool freezeWhenSeen = true;
+        static AudioClip[] allSfx;
+        static AudioClip[] Sfx(params string[] prefixes)
+        {
+            allSfx ??= Resources.LoadAll<AudioClip>("EntitySfx");
+            return System.Array.FindAll(allSfx, c => System.Array.Exists(prefixes, p => c.name.StartsWith(p)));
+        }
+
+        /// <summary>Per-kind behaviour, animation and voice.</summary>
+        public void Configure(EntityKind k)
+        {
+            kind = k; anim = GetComponentInChildren<Animator>(); body = null;
+            string stepSet = "step_carpet_";
+            switch (k)
+            {
+                case EntityKind.Echo: wanderSpeed = 0.75f; stalkSpeed = 2.0f; freezeWhenSeen = true; vocals = Sfx("growl_"); break;
+                case EntityKind.Salesman: wanderSpeed = 0.6f; stalkSpeed = 2.7f; freezeWhenSeen = true; noticeRange = 18f; vocals = Sfx("demon_", "eerie_"); break;
+                case EntityKind.Crawler: wanderSpeed = 0.9f; stalkSpeed = 2.3f; freezeWhenSeen = false; catchRadius = 0.95f; vocals = Sfx("beast_"); break;
+                case EntityKind.Mannequin: wanderSpeed = 0f; stalkSpeed = 3.6f; freezeWhenSeen = true; noticeRange = 22f; vocals = Sfx("spirit_"); stepSet = "step_hard_"; break;
+                case EntityKind.Limper: wanderSpeed = 0.45f; stalkSpeed = 1.25f; freezeWhenSeen = false; vocals = Sfx("beast_", "growl_"); break;
+            }
+            stalkSpeed *= 1f + 0.06f * generation;
+            sting = Resources.Load<AudioClip>("EntitySfx/deep_1");
+            AudioSource Src(float max) { var s = gameObject.AddComponent<AudioSource>(); s.spatialBlend = 1; s.rolloffMode = AudioRolloffMode.Linear; s.minDistance = 1.5f; s.maxDistance = max; s.dopplerLevel = 0; return s; }
+            voice = Src(26f);
+            var sc = Sfx(stepSet);
+            if (sc.Length > 0) { steps = Src(16f); steps.clip = sc[Random.Range(0, sc.Length)]; steps.loop = true; steps.volume = 0; steps.Play(); }
+        }
+
+        void Voices(float dt)
+        {
+            if (anim)
+            {
+                anim.SetFloat("Speed", Speed, 0.12f, dt);
+                anim.speed = mode == Mode.Frozen ? 0f : 1f;   // caught mid-step when looked at
+            }
+            if (steps)
+            {
+                float v = Mathf.Clamp01(Speed / 2f) * (kind == EntityKind.Mannequin ? 1f : 0.7f);
+                steps.volume = Mathf.MoveTowards(steps.volume, mode == Mode.Frozen ? 0 : v, dt * 4f);
+                steps.pitch = Mathf.Clamp(0.75f + Speed * 0.2f, 0.7f, 1.5f);
+            }
+            stingCd -= dt;
+            if (voice && vocals != null && vocals.Length > 0 && mode != Mode.Dormant && mode != Mode.Frozen)
+            {
+                voiceT -= dt;
+                if (voiceT <= 0)
+                {
+                    voiceT = mode == Mode.Stalk ? Random.Range(3.5f, 7f) : Random.Range(8f, 16f);
+                    voice.pitch = Random.Range(0.85f, 1.05f) - generation * 0.04f;
+                    voice.PlayOneShot(vocals[Random.Range(0, vocals.Length)], mode == Mode.Stalk ? 1f : 0.6f);
+                }
+            }
+        }
 
         void Update()
         {
             float dt = Time.deltaTime; if (dt <= 0 || nav == null) return;
             UpdateAtmosphere(dt);
+            Voices(dt);
             if (body) body.freeze = mode == Mode.Frozen;
             if (puppet)
             {
                 if (hasNet)
                 {
+                    Speed = Flat(netPos - transform.position).magnitude * 10f;
                     transform.position = Vector3.Lerp(transform.position, netPos, 1 - Mathf.Exp(-10f * dt));
                     transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.Euler(0, netYaw, 0), 1 - Mathf.Exp(-10f * dt));
                 }
@@ -95,7 +152,11 @@ namespace Address.Entities
             bool los = HasLineOfSight(best.position);
             if (mode == Mode.Dormant || mode == Mode.Wander)
             {
-                if ((los && bestD < noticeRange) || bestD < 4f) { mode = Mode.Stalk; lostTimer = 0; }
+                if ((los && bestD < noticeRange) || bestD < 4f)
+                {
+                    mode = Mode.Stalk; lostTimer = 0;
+                    if (stingCd <= 0 && voice) { stingCd = 25f; if (sting) voice.PlayOneShot(sting, 1f); if (vocals != null && vocals.Length > 0) voice.PlayOneShot(vocals[Random.Range(0, vocals.Length)], 1f); }
+                }
             }
             if (mode == Mode.Stalk || mode == Mode.Frozen)
             {
@@ -105,11 +166,12 @@ namespace Address.Entities
 
             if (mode == Mode.Stalk || mode == Mode.Frozen)
             {
-                if (SeenNow) { mode = Mode.Frozen; Speed = 0; seenTimer += dt; return; }
+                if (SeenNow && freezeWhenSeen) { mode = Mode.Frozen; Speed = 0; seenTimer += dt; return; }
                 mode = Mode.Stalk; seenTimer = 0;
                 if (bestD < catchRadius) { onCatch?.Invoke(best); enabled = false; return; }
                 // close in: faster when far, careful when near
                 float sp = stalkSpeed * Mathf.Lerp(0.75f, 1.25f, Mathf.InverseLerp(3f, 14f, bestD));
+                if (SeenNow) sp *= 0.6f;   // the ones that do not freeze still slow down under your gaze
                 MoveAlongField(best.position, sp, dt);
             }
             else Wander(dt);
@@ -250,7 +312,8 @@ namespace Address.Entities
             if (head)
             {
                 float tilt = (SeenNow ? 8f : 28f) + generation * 6f;
-                head.localRotation = head0;
+                if (kind == EntityKind.Mannequin) return;          // a mannequin never moves its head on its own
+                if (!anim) head.localRotation = head0;             // animated bodies: tilt on top of the animation
                 head.rotation = Quaternion.AngleAxis(tilt, transform.forward) * Quaternion.AngleAxis(SeenNow ? -12f : 6f, transform.right) * head.rotation;
             }
         }

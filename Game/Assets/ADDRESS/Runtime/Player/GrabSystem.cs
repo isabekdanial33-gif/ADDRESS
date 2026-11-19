@@ -165,10 +165,11 @@ namespace Address.Player
         {
             float yaw = fpc.transform.eulerAngles.y, pitch = Mathf.Clamp(fpc.Pitch, -45f, 28f);
             var dir = Quaternion.Euler(pitch, yaw, 0) * Vector3.forward;
-            var p = cam.transform.position + dir * holdDist - Vector3.up * 0.2f;
             float radius = Held ? HeldRadius : 0.15f;
+            // held close to the chest, within arm's reach: the hands must actually be ON the object
+            var p = cam.transform.position + dir * (holdDist + radius * 0.35f) - Vector3.up * 0.29f;
             var flat = p - fpc.transform.position; flat.y = 0;
-            float minH = 0.42f + radius;                       // never inside the capsule / body
+            float minH = 0.31f + radius * 0.9f;               // never inside the capsule (r 0.28) / body
             var fwd = Quaternion.Euler(0, yaw, 0) * Vector3.forward;
             if (Vector3.Dot(flat, fwd) < minH) p += fwd * (minH - Vector3.Dot(flat, fwd));
             p.y = Mathf.Max(p.y, fpc.transform.position.y + 0.35f + radius * 0.5f);
@@ -195,7 +196,7 @@ namespace Address.Player
             Held = po;
             rb.useGravity = false;
             rb.linearDamping = 4f; rb.angularDamping = 6f;
-            holdDist = p.massClass == MassClass.Medium ? 0.95f : 0.75f;
+            holdDist = p.massClass == MassClass.Medium ? 0.42f : 0.36f;
             { var rs = po.GetComponentsInChildren<Renderer>(); var b = rs.Length > 0 ? rs[0].bounds : new Bounds(po.transform.position, Vector3.one * 0.2f); foreach (var r in rs) b.Encapsulate(r.bounds); HeldRadius = Mathf.Clamp(Mathf.Max(b.extents.x, b.extents.z), 0.05f, 0.45f); }
             po.intentionalAnomaly = false;   // a floating thing you took in your hands is just a thing now
             foreach (var m in po.GetComponentsInChildren<MonoBehaviour>()) if (m && m.GetType().Name == "AnomalyMotion") m.enabled = false;

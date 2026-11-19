@@ -19,7 +19,7 @@ namespace Address.Player
         readonly List<(Transform t, Quaternion rest, float side, int seg)> fingers = new();
         Quaternion lUA0, lLA0, lH0, rUA0, rLA0, rH0;
         Vector3 lPalm, rPalm; float upperLen, lowerLen;
-        float hold, reach, reachT, bob, grip; Vector3 reachPoint; bool ready, shown = true;
+        float hold, reach, reachT, bob, grip, depthHalf; Vector3 reachPoint; bool ready, shown = true;
         Renderer[] rigRenderers; readonly HashSet<Transform> thumbs = new();
 
         public void Init(GameObject bodyPrefab)
@@ -49,8 +49,20 @@ namespace Address.Player
             foreach (var tb in new[] { HumanBodyBones.LeftThumbProximal, HumanBodyBones.LeftThumbIntermediate, HumanBodyBones.LeftThumbDistal, HumanBodyBones.RightThumbProximal, HumanBodyBones.RightThumbIntermediate, HumanBodyBones.RightThumbDistal }) { var t = B(tb); if (t) thumbs.Add(t); }
             lUA0 = lUA.localRotation; lLA0 = lLA.localRotation; lH0 = lH.localRotation; rUA0 = rUA.localRotation; rLA0 = rLA.localRotation; rH0 = rH.localRotation;
             upperLen = Vector3.Distance(lUA.position, lLA.position); lowerLen = Vector3.Distance(lLA.position, lH.position);
+            Debug.Log($"[ADDRESS] fp arms: upper {upperLen:F3} lower {lowerLen:F3}");
             var mid = (lUA.position + rUA.position) * 0.5f;
-            lPalm = lH.InverseTransformDirection((mid - lH.position).normalized); rPalm = rH.InverseTransformDirection((mid - rH.position).normalized);
+            // the real palm normal from the finger roots (index x little), pointing to the palm side (rest pose: palms down)
+            Vector3 PalmN(Transform hand, HumanBodyBones idx, HumanBodyBones lit, HumanBodyBones mid1)
+            {
+                var i = B(idx); var l = B(lit); var m = B(mid1);
+                if (!i || !l) return hand.InverseTransformDirection(-rig.transform.up);
+                var n = Vector3.Cross(i.position - hand.position, l.position - hand.position).normalized;
+                if (Vector3.Dot(n, -rig.transform.up) < 0) n = -n;
+                return hand.InverseTransformDirection(n);
+            }
+            lPalm = PalmN(lH, HumanBodyBones.LeftIndexProximal, HumanBodyBones.LeftLittleProximal, HumanBodyBones.LeftMiddleProximal);
+            rPalm = PalmN(rH, HumanBodyBones.RightIndexProximal, HumanBodyBones.RightLittleProximal, HumanBodyBones.RightMiddleProximal);
+            Debug.Log($"[ADDRESS] fp palms: L {lH.TransformDirection(lPalm)} R {rH.TransformDirection(rPalm)} up {rig.transform.up}");
             for (var b = HumanBodyBones.LeftThumbProximal; b <= HumanBodyBones.RightLittleDistal; b++)
             {
                 var t = B(b); if (!t) continue;
@@ -82,10 +94,10 @@ namespace Address.Player
             // shoulders sit below and slightly behind the eyes
             lUA.localRotation = lUA0; lLA.localRotation = lLA0; lH.localRotation = lH0; rUA.localRotation = rUA0; rLA.localRotation = rLA0; rH.localRotation = rH0;
             var mid = (lUA.position + rUA.position) * 0.5f;
-            rig.transform.position += cam.transform.TransformPoint(new Vector3(0, -0.27f, -0.14f)) - mid;   // shoulders low and behind: forearms come in from the bottom corners
+            rig.transform.position += cam.transform.TransformPoint(new Vector3(0, -0.30f, 0.04f)) - mid;   // FP cheat: shoulders a bit forward so 0.5 m arms reach what you hold   // shoulders low and behind: forearms come in from the bottom corners
 
             // targets: the two sides of the held object / the face of what you push / the thing you use
-            Vector3 c = new Vector3(0, -0.25f, 0.45f); float half = 0.14f; Vector3 objW = cam.transform.TransformPoint(c);
+            Vector3 c = new Vector3(0, -0.25f, 0.45f); float half = 0.14f; depthHalf = 0f; Vector3 objW = cam.transform.TransformPoint(c);
             if (pushing)
             {
                 var rs = grab.Pushing.GetComponentsInChildren<Renderer>(); var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds);
@@ -102,6 +114,7 @@ namespace Address.Player
                     objW = b.center; c = cam.transform.InverseTransformPoint(b.center);
                     var e = cam.transform.InverseTransformVector(b.extents);
                     half = Mathf.Clamp(Mathf.Abs(e.x) + 0.02f, 0.05f, 0.3f);
+                    depthHalf = Mathf.Clamp(Mathf.Abs(e.z), 0f, 0.3f);
                 }
             }
             Solve(lUA, lLA, lH, lPalm, -1, c, half, sway, objW, 0);
@@ -114,7 +127,7 @@ namespace Address.Player
                 var hand = side < 0 ? lH : rH; var palm = hand.TransformDirection(side < 0 ? lPalm : rPalm);
                 var child = t.childCount > 0 ? t.GetChild(0) : null; var dir = child ? (child.position - t.position).normalized : hand.forward;
                 var axis = Vector3.Cross(dir, palm); if (axis.sqrMagnitude < 1e-6f) continue;
-                float ang = grip * (thumb ? 25f : seg == 0 ? 55f : 60f);
+                float ang = grip * (thumb ? (seg == 0 ? 10f : 20f) : seg == 0 ? 45f : seg == 1 ? 55f : 35f);
                 t.rotation = Quaternion.AngleAxis(ang, axis.normalized) * t.rotation;
             }
         }
@@ -123,7 +136,7 @@ namespace Address.Player
         {
             var idle = new Vector3(side * 0.24f, -0.75f, 0.2f);
             // the target is the WRIST: put it behind and below the grip point so the palm and fingers land on the object
-            var holdP = c + new Vector3(side * (half + 0.02f), -0.03f, -0.035f);
+            var holdP = c + new Vector3(side * (half + 0.02f), -0.03f, -0.035f - depthHalf * 0.45f);   // grip the near half of big things
             var reachP = Vector3.ClampMagnitude(cam.transform.InverseTransformPoint(reachPoint), 0.6f);
             var target = Vector3.Lerp(idle, holdP, Ease(hold)); if (reachK > 0 && side > 0) target = Vector3.Lerp(target, reachP, Ease(reachK));
             var tw = cam.transform.TransformPoint(target + sway);

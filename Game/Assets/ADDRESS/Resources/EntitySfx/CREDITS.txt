@@ -1,0 +1,5 @@
+All CC0 (public domain):
+- growl_*, step_*: "Free Horror SFX" by liminal-space-dev (itch.io), CC0
+- beast_*, demon_*, spirit_*: "Monsters or Beasts" (OpenGameArt), CC0
+- scare_*, deep_*, eerie_*: "Horror Sound Pack" by Phlegmlee (itch.io), CC0
+Animations: Quaternius Universal Animation Library 1 & 2 + Female Mannequin, CC0
