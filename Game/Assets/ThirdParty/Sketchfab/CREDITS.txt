@@ -1,0 +1,10 @@
+Downloaded from Sketchfab, licensed CC Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/).
+Converted to FBX (Blender), otherwise unmodified; in game bones are stretched for the distorted Captain Clark.
+
+smiler.fbx       "Smiler (Backrooms)" by Edward Johnson 3 (@sirenhead1929) - https://sketchfab.com/3d-models/smiler-backrooms-ea10d7f4750341f0ada6a12a6530014a
+skinstealer.fbx  "The Backrooms - Skin Stealer w/ animations" by jake25916 - https://sketchfab.com/3d-models/the-backrooms-skin-stealer-w-animations-68d78f780d67410ead0b62fe6d069b33
+clark.fbx        "Captain Clark Rigged (Fixed)" by Sofrosx (@sushi4055) - https://sketchfab.com/3d-models/captain-clark-rigged-fixed-dfe9529c43d8479ea1c0b5adac7d3348
+partygoer.fbx    "Partygoer entity 67 remake [Backrooms]" by Fog (@fog_) - https://sketchfab.com/3d-models/partygoer-entity-67-remake-backrooms-2936f8e1045848b49203b51f060a243a
+growler.fbx      "Backrooms Entity 130 - Growlers" by bac (@AzertyDFS205) - https://sketchfab.com/3d-models/backrooms-entity-130-growlers-30ee18c65a38484083beaf6b873b9ff2
+needlelimbs.fbx  "Backrooms Entity 38 Needlelimbs" by Loco (@Loco420) - https://sketchfab.com/3d-models/backrooms-entity-38-needlelimbs-6e8ad10cbcbb49bda63a1b21a660533d
+scramby.fbx      "Backrooms Entity 60 - Scramby" by bac (@AzertyDFS205) - https://sketchfab.com/3d-models/backrooms-entity-60-scramby-e07cfc4f1d2447dcbb19e899b95c6d09

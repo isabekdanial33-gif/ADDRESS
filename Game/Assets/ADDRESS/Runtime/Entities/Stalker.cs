@@ -83,6 +83,10 @@ namespace Address.Entities
                 case EntityKind.Smiler: wanderSpeed = 0.35f; stalkSpeed = 1.9f; freezeWhenSeen = true; noticeRange = 12f; vocals = Sfx("eerie_", "deep_"); stepSet = "none"; break;
                 case EntityKind.Faceling: wanderSpeed = 0.8f; stalkSpeed = 0.8f; passive = true; vocals = Sfx("spirit_2"); break;
                 case EntityKind.Partygoer: wanderSpeed = 0.7f; stalkSpeed = 3.0f; freezeWhenSeen = false; noticeRange = 16f; vocals = Sfx("spirit_1", "spirit_2"); break;
+                case EntityKind.SkinStealer: wanderSpeed = 0.8f; stalkSpeed = 2.9f; freezeWhenSeen = false; catchRadius = 0.95f; noticeRange = 15f; vocals = Sfx("beast_", "demon_"); break;
+                case EntityKind.Clark: wanderSpeed = 0.5f; stalkSpeed = 1.6f; freezeWhenSeen = true; noticeRange = 20f; vocals = Sfx("eerie_", "spirit_"); break;
+                case EntityKind.Growler: wanderSpeed = 0.9f; stalkSpeed = 3.2f; freezeWhenSeen = false; noticeRange = 14f; vocals = Sfx("growl_"); stepSet = "step_hard_"; break;
+                case EntityKind.Needlelimbs: wanderSpeed = 0.6f; stalkSpeed = 2.2f; freezeWhenSeen = true; noticeRange = 18f; vocals = Sfx("eerie_", "deep_"); stepSet = "none"; break;
             }
             stalkSpeed *= 1f + 0.06f * generation;
             sting = Resources.Load<AudioClip>("EntitySfx/deep_1");

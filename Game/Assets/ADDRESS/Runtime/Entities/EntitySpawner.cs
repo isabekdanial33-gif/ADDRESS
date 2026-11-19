@@ -11,8 +11,9 @@ namespace Address.Entities
     /// starts, then builds its body from the hazmat model: stretched limbs, a darker soiled suit, black lenses with two
     /// dim points behind them. Light places rarely have one; Echo copies have them more often.
     /// </summary>
-    // Smiler, Faceling and Partygoer follow the community Backrooms wiki (CC BY-SA) archetypes; models and code are our own.
-    public enum EntityKind { Echo, Salesman, Crawler, Mannequin, Limper, Smiler, Faceling, Partygoer }
+    // Smiler, Skin Stealer, Partygoer, Growlers, Needlelimbs and the distorted Captain Clark are downloaded CC-BY Sketchfab
+    // models (Resources/Entities/Model_<Kind>, credits in ThirdParty/Sketchfab/CREDITS.txt).
+    public enum EntityKind { Echo, Salesman, Crawler, Mannequin, Limper, Smiler, Faceling, Partygoer, SkinStealer, Clark, Growler, Needlelimbs }
 
     public static class EntitySpawner
     {
@@ -20,10 +21,10 @@ namespace Address.Entities
         static EntityKind PickKind(LevelBuilder.Result level, Rng rng)
         {
             var opts = new List<EntityKind>();
-            if (level.aesthetic == "PG") { opts.AddRange(new[] { EntityKind.Crawler, EntityKind.Crawler, EntityKind.Limper, EntityKind.Echo, EntityKind.Smiler, EntityKind.Smiler }); return opts[rng.Range(0, opts.Count)]; }
-            if (level.aesthetic == "HT") { opts.AddRange(new[] { EntityKind.Mannequin, EntityKind.Salesman, EntityKind.Echo, EntityKind.Limper, EntityKind.Partygoer, EntityKind.Partygoer, EntityKind.Faceling, EntityKind.Faceling }); return opts[rng.Range(0, opts.Count)]; }
-            if (level.aesthetic == "PR") { opts.AddRange(new[] { EntityKind.Mannequin, EntityKind.Mannequin, EntityKind.Limper, EntityKind.Echo }); return opts[rng.Range(0, opts.Count)]; }
-            opts.AddRange(new[] { EntityKind.Echo, EntityKind.Echo, EntityKind.Limper, EntityKind.Mannequin, EntityKind.Faceling, EntityKind.Faceling, EntityKind.Partygoer });
+            if (level.aesthetic == "PG") { opts.AddRange(new[] { EntityKind.Crawler, EntityKind.Limper, EntityKind.Echo, EntityKind.Smiler, EntityKind.Smiler, EntityKind.Growler, EntityKind.Growler, EntityKind.SkinStealer }); return opts[rng.Range(0, opts.Count)]; }
+            if (level.aesthetic == "HT") { opts.AddRange(new[] { EntityKind.Mannequin, EntityKind.Salesman, EntityKind.Echo, EntityKind.Partygoer, EntityKind.Partygoer, EntityKind.Faceling, EntityKind.Needlelimbs, EntityKind.Needlelimbs, EntityKind.Clark }); return opts[rng.Range(0, opts.Count)]; }
+            if (level.aesthetic == "PR") { opts.AddRange(new[] { EntityKind.Mannequin, EntityKind.Mannequin, EntityKind.Limper, EntityKind.Echo, EntityKind.Needlelimbs }); return opts[rng.Range(0, opts.Count)]; }
+            opts.AddRange(new[] { EntityKind.Echo, EntityKind.Echo, EntityKind.Limper, EntityKind.Mannequin, EntityKind.Faceling, EntityKind.Partygoer, EntityKind.Partygoer, EntityKind.SkinStealer, EntityKind.SkinStealer, EntityKind.Clark });
             var rooms = level.layout?.rooms;
             if (rooms != null && rooms.Exists(r => r.kind == "showroom")) opts.AddRange(new[] { EntityKind.Salesman, EntityKind.Salesman, EntityKind.Salesman });
             if (rooms != null && rooms.Exists(r => r.dark)) opts.AddRange(new[] { EntityKind.Crawler, EntityKind.Crawler, EntityKind.Smiler, EntityKind.Smiler, EntityKind.Smiler });
@@ -38,7 +39,7 @@ namespace Address.Entities
                 var p = level.nav.Center(c.x, c.y, 0);
                 foreach (var r in rooms)
                 {
-                    bool home = kind == EntityKind.Salesman ? r.kind == "showroom" : kind == EntityKind.Crawler || kind == EntityKind.Smiler ? r.dark : false;
+                    bool home = kind == EntityKind.Salesman ? r.kind == "showroom" : kind == EntityKind.Crawler || kind == EntityKind.Smiler || kind == EntityKind.Growler ? r.dark : false;
                     if (home && r.World.Contains(new Vector2(p.x, p.z))) { res.Add(c); break; }
                 }
             }
@@ -105,6 +106,8 @@ namespace Address.Entities
         {
             var root = new GameObject($"Entity_{index}_{kind}"); root.transform.SetParent(level.root.transform, false);
             root.transform.SetPositionAndRotation(pos, rot);
+            var model = Resources.Load<GameObject>("Entities/Model_" + kind);
+            if (model) return BuildModel(root, model, level, kind);
             if (kind == EntityKind.Smiler)
             {
                 // no body at all: eyes and a grin hanging in the dark at head height, always turned to you
@@ -208,6 +211,33 @@ namespace Address.Entities
                     e.transform.position = head.position + root.transform.forward * 0.16f + root.transform.right * side * 0.034f + root.transform.up * 0.035f;
                     e.transform.localScale = Vector3.one * 0.016f / Mathf.Max(0.001f, head.lossyScale.x);
                     e.AddComponent<MeshFilter>().sharedMesh = mesh; var mr = e.AddComponent<MeshRenderer>(); mr.sharedMaterial = eyeMat; mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                }
+            }
+            return root.AddComponent<Stalker>();
+        }
+
+        /// <summary>A downloaded creature: prefab already scaled to height with feet at 0 and its controller assigned.</summary>
+        static Stalker BuildModel(GameObject root, GameObject model, LevelBuilder.Result level, EntityKind kind)
+        {
+            var body = Object.Instantiate(model, root.transform); body.name = "Body";
+            body.transform.localPosition = Vector3.zero; body.transform.localRotation = Quaternion.identity;
+            int gen = level.address.Generation;
+            body.transform.localScale = Vector3.one * (1f + gen * 0.03f);
+            foreach (var c in body.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
+            foreach (var t in body.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = 0;
+            var an = body.GetComponentInChildren<Animator>();
+            if (an)
+            {
+                an.applyRootMotion = false; an.cullingMode = AnimatorCullingMode.AlwaysAnimate; an.enabled = true;
+                if (an.isHuman) body.transform.localRotation = Quaternion.Euler(0, 180f, 0);   // UAL clips face -Z
+                if (kind == EntityKind.Clark && an.isHuman)
+                {
+                    // the distorted captain: arms and neck pulled too long, the head hangs (Stalker tilts it)
+                    void Stretch(HumanBodyBones b, float k) { var t = an.GetBoneTransform(b); if (t) t.localPosition *= k; }
+                    Stretch(HumanBodyBones.LeftHand, 1.45f); Stretch(HumanBodyBones.RightHand, 1.45f);
+                    Stretch(HumanBodyBones.LeftLowerArm, 1.2f); Stretch(HumanBodyBones.RightLowerArm, 1.2f);
+                    Stretch(HumanBodyBones.Head, 1.6f + gen * 0.1f);
+                    var hd = an.GetBoneTransform(HumanBodyBones.Head); if (hd) hd.name = "Head";
                 }
             }
             return root.AddComponent<Stalker>();

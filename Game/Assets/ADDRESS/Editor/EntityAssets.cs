@@ -114,8 +114,7 @@ namespace Address.EditorTools
                 else { m.SetFloat("_AlphaClip", 1); m.SetFloat("_Cutoff", 0.5f); m.EnableKeyword("_ALPHATEST_ON"); m.renderQueue = 2450; }
                 AssetDatabase.CreateAsset(m, path); return m;
             }
-            FaceMat("SmilerMat", "smiler.png", true);
-            FaceMat("PartyFaceMat", "party.png", false);
+            // (the self-drawn Smiler / Partygoer faces are gone: both are downloaded models now, see SketchfabEntities)
 
             // the mannequin body as a prefab under Resources
             var fbx = AssetDatabase.LoadAssetAtPath<GameObject>(Dir + "Mannequin_F.fbx");

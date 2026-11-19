@@ -1,0 +1,64 @@
+# blender -b --python clean_export.py -- <in> <out.fbx> [keep_unskinned=0]
+# Imports a downloaded creature, keeps only the armature(s) + meshes deformed by them, prints bone names, height,
+# actions, and exports FBX (all actions as takes, embedded textures).
+import bpy, sys, os
+args = sys.argv[sys.argv.index('--') + 1:]
+src, out = args[0], args[1]
+keep_unskinned = len(args) > 2 and args[2] == '1'
+low = src.lower()
+if low.endswith('.blend'):
+    bpy.ops.wm.open_mainfile(filepath=src)
+else:
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    for o in list(bpy.data.objects): bpy.data.objects.remove(o)
+    if low.endswith(('.glb', '.gltf')): bpy.ops.import_scene.gltf(filepath=src)
+    else: bpy.ops.import_scene.fbx(filepath=src)
+
+def skinned(o):
+    return o.type == 'MESH' and (any(m.type == 'ARMATURE' and m.object for m in o.modifiers) or (o.parent and o.parent.type == 'ARMATURE' and o.parent_type == 'ARMATURE'))
+arms = [o for o in bpy.data.objects if o.type == 'ARMATURE']
+keep = set(arms)
+for o in bpy.data.objects:
+    if skinned(o) or (keep_unskinned and o.type == 'MESH'): keep.add(o)
+# keep empties that are ancestors of kept objects (gltf/fbx roots carry transforms)
+for o in list(keep):
+    p = o.parent
+    while p: keep.add(p); p = p.parent
+for o in list(bpy.data.objects):
+    if o not in keep: bpy.data.objects.remove(o, do_unlink=True)
+for o in bpy.data.objects:
+    try: o.hide_set(False); o.hide_viewport = False; o.hide_render = False
+    except Exception: pass
+bpy.context.view_layer.update()
+import mathutils
+mn = mathutils.Vector((1e9,) * 3); mx = -mn
+tris = 0
+for o in bpy.data.objects:
+    if o.type == 'MESH':
+        tris += sum(len(p.vertices) - 2 for p in o.data.polygons)
+        for c in o.bound_box:
+            w = o.matrix_world @ mathutils.Vector(c); mn = mathutils.Vector(map(min, mn, w)); mx = mathutils.Vector(map(max, mx, w))
+print('BOUNDS', tuple(round(v, 2) for v in mn), tuple(round(v, 2) for v in mx), 'TRIS', tris)
+for a in arms: print('BONES', a.name, len(a.data.bones), [b.name for b in a.data.bones])
+for a in bpy.data.actions: print('ACT', a.name, tuple(round(x) for x in a.frame_range))
+# textures as real PNG files next to the fbx (Unity finds them by file name)
+odir = os.path.dirname(os.path.abspath(out))
+used = set()
+for o in bpy.data.objects:
+    if o.type != 'MESH': continue
+    for ms in o.material_slots:
+        if ms.material and ms.material.use_nodes:
+            for n in ms.material.node_tree.nodes:
+                if n.type == 'TEX_IMAGE' and n.image: used.add(n.image)
+stem = os.path.splitext(os.path.basename(out))[0]
+for i, img in enumerate(used):
+    try:
+        if img.size[0] == 0: print('NOIMG', img.name); continue
+        fn = os.path.join(odir, f'{stem}_{i}.png')
+        img.filepath_raw = fn; img.file_format = 'PNG'; img.save()
+        print('TEX', img.name, '->', os.path.basename(fn), img.size[:])
+    except Exception as e: print('TEXFAIL', img.name, e)
+bpy.ops.export_scene.fbx(filepath=out, use_selection=False, object_types={'ARMATURE', 'MESH', 'EMPTY'}, add_leaf_bones=False,
+                         bake_anim=True, bake_anim_use_all_actions=True, bake_anim_use_nla_strips=False,
+                         path_mode='RELATIVE', embed_textures=False, apply_unit_scale=True, apply_scale_options='FBX_SCALE_ALL')
+print('EXPORTED', out, os.path.getsize(out))
