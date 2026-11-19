@@ -302,6 +302,18 @@ namespace Address.World
                         for (int i = 0; i < racks; i++) sc.AgainstWallSingle(spec, r.Fork("rack", i), "rack");
                         if (r.Chance(0.5f)) sc.Stack(spec, r.Fork("stack", 0), r.Range(1, 3));
                         break;
+                    case "showroom":    // a furniture showroom: display sets spread out in rows, all facing the same way
+                        sc.Showroom(spec, r);
+                        break;
+                    case "dump":        // abandoned furniture and clothes piled and strewn about
+                        sc.Dump(spec, r);
+                        break;
+                    case "pillars":     // a hall of columns, nearly empty
+                        if (r.Chance(0.4f)) sc.FloorSingle(spec, r, r.Pick(new[] { "chair", "box", "sign" }), false);
+                        break;
+                    case "wrong":       // furnished, but placed wrong: a chair facing the wall
+                        sc.Wrong(spec, r);
+                        break;
                     case "lounge":
                         sc.Lounge(spec, r);
                         if (r.Chance(0.6f)) sc.FloorSingle(spec, r, "plant");
@@ -457,7 +469,20 @@ namespace Address.World
             bool openSky = glassWalls;   // Frutiger Aero: no ceiling at all, the sky is the light
             var ceil = openSky ? null : Slab(parent, "Ceiling", new Vector3(wb.center.x, H + 0.1f, wb.center.z), new Vector3(wb.size.x + 1, 0.2f, wb.size.z + 1), ceilM, 1.2f);
             if (openSky) goto Walls;
-            foreach (var room in L.rooms) spots.AddRange(TrofferSpots(room.World, H));
+            spotMode.Clear(); darkRects.Clear();
+            foreach (var room in L.rooms) if (room.dark) darkRects.Add(room.World);
+            var lr = rng.Fork("tubes");
+            foreach (var room in L.rooms)
+            {
+                foreach (var s in TrofferSpots(room.World, H))
+                {
+                    spots.Add(s);
+                    // 0 lit, 1 dead, 2 failing (flickers), 3 dim
+                    float v = lr.Value;
+                    int mode = room.dark ? (v < 0.72f ? 1 : v < 0.9f ? 2 : 3) : (v < 0.035f ? 2 : v < 0.05f ? 1 : 0);
+                    if (mode != 0) spotMode[SpotKey(s.Item1)] = mode;
+                }
+            }
             if (lights && kit.trofferPrefab)
             {
                 Object.DestroyImmediate(ceil.GetComponent<MeshRenderer>()); Object.DestroyImmediate(ceil.GetComponent<MeshFilter>());
@@ -540,8 +565,41 @@ namespace Address.World
                         col.size = new Vector3(1, TestLevelBuilder.BaseboardHeight, TestLevelBuilder.BaseboardDepth);
                         }
                     }
+            // columns: a grid of square pillars in big halls (kept off doors, exits and troffers)
+            foreach (var room in L.rooms)
+            {
+                if (room.kind != "pillars" || openSky) continue;
+                var b = room.spec.bounds; const float P = 3.0f, S = 0.5f;
+                int nx = Mathf.FloorToInt((b.size.x - 2.4f) / P) + 1, nz = Mathf.FloorToInt((b.size.z - 2.4f) / P) + 1;
+                if (nx < 2 || nz < 2) continue;
+                float x0 = b.center.x - (nx - 1) * P * 0.5f, z0 = b.center.z - (nz - 1) * P * 0.5f;
+                for (int ix = 0; ix < nx; ix++)
+                    for (int iz = 0; iz < nz; iz++)
+                    {
+                        var p = new Vector3(x0 + ix * P, 0, z0 + iz * P);
+                        if (room.spec.doors.Any(d => Vector2.Distance(new Vector2(d.x, d.z), new Vector2(p.x, p.z)) < 1.6f)) continue;
+                        if (exits.Any(e => Vector2.Distance(new Vector2(e.position.x, e.position.z), new Vector2(p.x, p.z)) < 2.4f)) continue;
+                        if (spots.Any(s => Mathf.Abs(s.pos.x - p.x) < 0.75f && Mathf.Abs(s.pos.z - p.z) < 0.75f)) continue;
+                        Slab(parent, "Pillar", new Vector3(p.x, H * 0.5f, p.z), new Vector3(S, H, S), wallM, 1.1f);
+                    }
+            }
             if (lights && !openSky) Lights(spots, parent);
         }
+
+        readonly Dictionary<Vector2Int, int> spotMode = new();
+        readonly List<Rect> darkRects = new();
+        Material deadTubeM;
+        float DistToDark(Vector3 p)
+        {
+            float best = 99f;
+            foreach (var r in darkRects)
+            {
+                float dx = Mathf.Max(r.xMin - p.x, 0, p.x - r.xMax), dz = Mathf.Max(r.yMin - p.z, 0, p.z - r.yMax);
+                best = Mathf.Min(best, Mathf.Sqrt(dx * dx + dz * dz));
+            }
+            return best;
+        }
+        static Vector2Int SpotKey(Vector3 p) => new(Mathf.RoundToInt(p.x * 20), Mathf.RoundToInt(p.z * 20));
 
         // ------------------------------------------------------------------ Poolrooms
 
@@ -857,6 +915,22 @@ namespace Address.World
                 var tr = Object.Instantiate(kit.trofferPrefab, parent);
                 tr.name = "Troffer"; tr.layer = ArchLayer;
                 tr.transform.SetPositionAndRotation(pos, Quaternion.Euler(0, rotated ? 90 : 0, 0));
+                spotMode.TryGetValue(SpotKey(pos), out int mode);
+                if (mode == 1)   // dead tube: the fixture stays, grey and cold
+                {
+                    if (!deadTubeM && kit.lightMat)
+                    {
+                        deadTubeM = new Material(kit.lightMat) { name = "troffer_dead" };
+                        deadTubeM.SetColor("_BaseColor", new Color(0.32f, 0.31f, 0.28f)); deadTubeM.SetColor("_EmissionColor", Color.black); deadTubeM.DisableKeyword("_EMISSION");
+                    }
+                    foreach (var r in tr.GetComponentsInChildren<Renderer>())
+                    {
+                        var mats = r.sharedMaterials;
+                        for (int mi = 0; mi < mats.Length; mi++) if (mats[mi] && mats[mi].name.StartsWith("troffer_diffuser") && deadTubeM) mats[mi] = deadTubeM;
+                        r.sharedMaterials = mats;
+                    }
+                    continue;
+                }
                 foreach (var r in tr.GetComponentsInChildren<Renderer>())
                 {
                     var mats = r.sharedMaterials;
@@ -872,6 +946,12 @@ namespace Address.World
                 l.color = tiles ? new Color(0.95f, 0.98f, 1f) : new Color(1f, 0.95f, 0.82f);
                 // shadows are expensive: only every 4th fixture casts them (enough for grounding furniture)
                 l.shadows = (k++ % 4 == 0) ? LightShadows.Soft : LightShadows.None; l.shadowStrength = 0.7f;
+                // lit tubes next to a dark zone reach less far: light must not leak through the walls into the dark
+                float dd = DistToDark(pos);
+                if (mode == 0 && dd < 6f) l.range = Mathf.Clamp(dd + 2.6f, 3.4f, 7.5f);
+                if (mode != 0) l.range = 4.2f;
+                if (mode == 3) { l.intensity *= 0.35f; l.color = new Color(1f, 0.86f, 0.62f); }
+                if (mode == 2) { l.intensity *= 0.7f; lg.AddComponent<Flicker>().seed = pos.x * 3.1f + pos.z * 7.7f; }
             }
         }
 

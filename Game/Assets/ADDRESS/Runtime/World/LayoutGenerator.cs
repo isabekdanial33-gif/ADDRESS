@@ -18,6 +18,7 @@ namespace Address.World
         public class Room
         {
             public int id; public RectInt cells; public string kind; public RoomSpec spec;
+            public bool dark;          // part of a dark zone: dead and failing lights
             public Rect World => new(cells.xMin * Cell, cells.yMin * Cell, cells.width * Cell, cells.height * Cell);
         }
 
@@ -48,6 +49,7 @@ namespace Address.World
             var L = new Layout { w = Mathf.RoundToInt(widthM / Cell), h = Mathf.RoundToInt(depthM / Cell) };
             L.cellRoom = new int[L.w, L.h];
             var leaves = new List<RectInt>();
+            halls.Clear(); hallsLeft = rng.Chance(0.75f) ? (rng.Chance(0.35f) ? 2 : 1) : 0;
             Split(new RectInt(0, 0, L.w, L.h), rng, leaves, 0);
             foreach (var r in leaves)
             {
@@ -103,11 +105,44 @@ namespace Address.World
             {
                 var wr = room.World;
                 if (Mathf.Min(wr.width, wr.height) < 3.2f) { room.kind = "corridor"; continue; }
-                float k = rng.Value;
-                room.kind = k < 0.40f ? "empty" : k < 0.60f ? "office" : k < 0.72f ? "storage" : k < 0.80f ? "lounge" : k < 0.88f ? "breakroom" : k < 0.94f ? "meeting" : "server";
+                if (halls.Contains(room.cells)) { room.kind = rng.Chance(0.55f) ? "showroom" : "pillars"; continue; }
+                float k = rng.Value, area = wr.width * wr.height;
+                room.kind = k < 0.32f ? "empty" : k < 0.47f ? "office" : k < 0.56f ? "storage" : k < 0.62f ? "lounge" : k < 0.68f ? "breakroom"
+                          : k < 0.73f ? "meeting" : k < 0.77f ? "server" : k < 0.85f ? "showroom" : k < 0.92f ? "dump" : k < 0.97f ? "pillars" : "wrong";
+                if (room.kind == "showroom" && area < 22f) room.kind = "lounge";
+                if (room.kind == "pillars" && (wr.width < 5.5f || wr.height < 5.5f)) room.kind = "empty";
             }
             L.startRoom = rng.Range(0, L.rooms.Count);
+            MarkDark(L, rng.Fork("dark"));
             return L;
+        }
+
+        /// <summary>
+        /// Dark zones: one or two clusters of connected rooms (grown through openings) where most tubes are dead.
+        /// The start room and its neighbours are always lit; a dark office turns into junk or nothing.
+        /// </summary>
+        static void MarkDark(Layout L, Rng rng)
+        {
+            if (L.rooms.Count < 6) return;
+            int clusters = rng.Chance(0.5f) ? 2 : 1;
+            int target = Mathf.Max(2, Mathf.RoundToInt(L.rooms.Count * rng.Range(0.14f, 0.26f)));
+            var adj = new List<int>[L.rooms.Count];
+            for (int i = 0; i < adj.Length; i++) adj[i] = new List<int>();
+            foreach (var o in L.openings) { adj[o.a].Add(o.b); adj[o.b].Add(o.a); }
+            int marked = 0;
+            for (int c = 0; c < clusters; c++)
+            {
+                int seed = rng.Range(0, L.rooms.Count);
+                var q = new Queue<int>(); q.Enqueue(seed);
+                while (q.Count > 0 && marked < target * (c + 1) / clusters)
+                {
+                    int r = q.Dequeue();
+                    if (L.rooms[r].dark || r == L.startRoom || adj[L.startRoom].Contains(r)) continue;
+                    L.rooms[r].dark = true; marked++;
+                    if (L.rooms[r].kind == "office" || L.rooms[r].kind == "meeting") L.rooms[r].kind = rng.Chance(0.5f) ? "dump" : "empty";
+                    foreach (var n in adj[r]) if (!L.rooms[n].dark && rng.Chance(0.8f)) q.Enqueue(n);
+                }
+            }
         }
 
         /// <summary>Frutiger Aero park: ONE open space (no rooms, no ceiling), walled only at its edge.</summary>
@@ -136,8 +171,13 @@ namespace Address.World
             return L;
         }
 
+        readonly List<RectInt> halls = new(); int hallsLeft;
+
         void Split(RectInt r, Rng rng, List<RectInt> leaves, int depth)
         {
+            // a big hall (showroom / columns) now and then: stop splitting a 9..15 m block
+            float wm = r.width * Cell, hm = r.height * Cell;
+            if (hallsLeft > 0 && depth >= 1 && wm >= 9f && hm >= 8f && wm <= 15f && hm <= 15f && rng.Chance(0.6f)) { hallsLeft--; halls.Add(r); leaves.Add(r); return; }
             int minCells = Mathf.RoundToInt(3.5f / Cell), maxCells = Mathf.RoundToInt(rng.Range(6.5f, 10f) / Cell);
             bool canX = r.width >= 2 * minCells, canZ = r.height >= 2 * minCells;
             bool big = r.width > maxCells || r.height > maxCells;

@@ -260,6 +260,74 @@ namespace Address.Placement
             Ceiling(room, rng, rng.Chance(0.5f) ? "fan" : "pendant");
         }
 
+        // ------------------------------------------------------------------ showroom / dump / wrong
+
+        /// <summary>Display sets on a loose grid, every piece turned to face the same aisle; lots of empty floor between.</summary>
+        public void Showroom(RoomSpec room, Rng rng)
+        {
+            if (System.Environment.GetCommandLineArgs().Contains("-roomsonly")) E.stats.rejections.Clear();
+            var b = Shrink(room.bounds, 0.9f); const float P = 2.3f;
+            int nx = Mathf.Max(1, Mathf.FloorToInt(b.size.x / P)), nz = Mathf.Max(1, Mathf.FloorToInt(b.size.z / P));
+            float yaw = rng.Range(0, 4) * 90f;
+            var groups = new[] { "sofa", "armchair", "armchair", "coffeetable", "smalltable", "sofa", "desk", "cabinet", "plant", "chair" };
+            for (int ix = 0; ix < nx; ix++)
+                for (int iz = 0; iz < nz; iz++)
+                {
+                    if (!rng.Chance(0.8f)) continue;
+                    var p = Pick(rng.Pick(groups), rng, "lounge"); if (p == null) continue;
+                    var c = new Vector3(b.min.x + (ix + 0.5f) * b.size.x / nx, room.bounds.min.y, b.min.z + (iz + 0.5f) * b.size.z / nz);
+                    var placed = Place(p, (r, k) => { float j = 0.2f + k * 0.12f; return new Pose(c + new Vector3(r.Range(-j, j), 0, r.Range(-j, j)), PlacementEngine.Yaw(yaw + (k > 8 ? 90f : 0f) + r.Range(-3f, 3f)), 1f); }, rng, "showroom/set", tries: 14);
+                    placed ??= Place(p, E.OnFloor(p, Shrink(room.bounds, 0.7f), PlacementEngine.Yaw(yaw)), rng, "showroom/loose", tries: 10);
+                    if (placed != null && p.group == "sofa")
+                    {
+                        var tp = Pick("coffeetable", rng) ?? Pick("smalltable", rng);
+                        if (tp != null)
+                        {
+                            float z0 = p.size.z * 0.5f + 0.35f + tp.size.z * 0.5f;
+                            Place(tp, E.RelativeTo(placed, new Vector3(-0.1f, 0, z0), new Vector3(0.1f, 0, z0 + 0.25f), 90, 3, false), rng, "showroom/table", anchor: placed);
+                        }
+                    }
+                    if (placed != null && rng.Chance(0.25f))
+                    {
+                        var s = Pick(rng.Chance(0.5f) ? "desklamp" : "clock", rng);
+                        if (s != null) Place(s, E.OnSurface(s, placed, q => q.kind == "top"), rng, "showroom/tag", placed, tries: 6);
+                    }
+                }
+            if (rng.Chance(0.6f)) FloorSingle(room, rng.Fork("sign", 0), "sign");
+            Ceiling(room, rng, "pendant");
+            if (System.Environment.GetCommandLineArgs().Contains("-roomsonly")) Debug.Log($"[ADDRESS] showroom {room.name} {E.stats}");
+        }
+
+        /// <summary>Junk: chairs and boxes piled up, clothes and boots strewn on the floor, a sofa shoved aside.</summary>
+        public void Dump(RoomSpec room, Rng rng)
+        {
+            float area = room.bounds.size.x * room.bounds.size.z;
+            for (int i = 0; i < rng.Range(2, 5); i++) Stack(room, rng.Fork("pile", i), rng.Range(2, 4));
+            int n = Mathf.Clamp(Mathf.RoundToInt(area / 4f), 4, 12);
+            var junk = new[] { "chair", "chair", "stool", "box", "trash", "boots", "boots", "lifejacket", "suitcase", "paper", "sign", "armchair", "toy", "crate" };
+            for (int i = 0; i < n; i++)
+            {
+                var p = Pick(rng.Pick(junk), rng); if (p == null) continue;
+                bool fall = p.fallenChance > 0 && rng.Chance(0.6f);
+                var area2 = rng.Chance(0.7f) ? WallBand(room, rng, 1.4f) : Shrink(room.bounds, 0.5f);
+                if (fall) Place(p, E.OnFloor(p, area2, Quaternion.Euler(p.fallenEuler)), rng, "dump/fallen", state: ObjectState.Fallen, tries: 8);
+                else Place(p, E.OnFloor(p, area2), rng, "dump/item", tries: 8);
+            }
+            if (rng.Chance(0.5f)) { var s = Pick("sofa", rng); if (s != null) Place(s, E.OnFloor(s, WallBand(room, rng, 1.6f)), rng, "dump/sofa", tries: 8); }
+        }
+
+        /// <summary>One chair (or armchair) right against a wall, facing it. Nothing else.</summary>
+        public void Wrong(RoomSpec room, Rng rng)
+        {
+            if (room.walls.Count == 0) return;
+            var w = room.walls[rng.Range(0, room.walls.Count)];
+            var p = Pick(rng.Chance(0.6f) ? "chair" : "armchair", rng); if (p == null) return;
+            var mid = (w.a + w.b) * 0.5f;
+            Place(p, (r, k) => new Pose(mid + w.normal * (p.size.z * 0.5f + 0.25f + k * 0.05f) + (w.b - w.a).normalized * r.Range(-0.4f, 0.4f),
+                Quaternion.LookRotation(-w.normal, Vector3.up), 1f), rng, "wrong/chair", tries: 8);
+            if (rng.Chance(0.4f)) { var t = Pick("tv", rng); if (t != null) Place(t, E.OnFloor(t, Shrink(room.bounds, 1f)), rng, "wrong/tv", tries: 6); }
+        }
+
         // ------------------------------------------------------------------ singles
 
         public void AgainstWallSingle(RoomSpec room, Rng rng, string group)

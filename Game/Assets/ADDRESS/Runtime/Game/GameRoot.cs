@@ -38,6 +38,14 @@ namespace Address.Game
         State state = State.Menu;
         float menuYaw;
 
+        void Awake()
+        {
+            // automated test runs (any "-xxxtest", shots, video, verify): silent from the very first frame
+            var a0 = System.Environment.GetCommandLineArgs();
+            if (Application.isBatchMode || a0.Any(x => x == "-shots" || x == "-playvideo" || x == "-verify" || x == "-roomsonly" || x.EndsWith("test")))
+            { AudioListener.volume = 0f; AudioListener.pause = true; }
+        }
+
         void Start()
         {
             if (System.Environment.GetCommandLineArgs().Contains("-touchui")) TouchInput.Force = true;
@@ -234,20 +242,24 @@ namespace Address.Game
             yield return new WaitForSeconds(0.5f); yield return new WaitUntil(() => !travelling); yield return new WaitForSeconds(1f);
             Shot(cam, "40_menu_again");
             // ---- the new room kinds
-            foreach (var addr in new[] { "rooms a", "rooms b", "rooms c" })
+            foreach (var addr in new[] { "rooms a", "rooms b", "rooms c", "rooms d", "rooms e" })
             {
                 StartCoroutine(Enter(new LevelAddress("BR", Hashing.Fnv64(addr)), null));
                 yield return new WaitForSeconds(0.5f); yield return new WaitUntil(() => !travelling); yield return new WaitForSeconds(0.5f);
-                foreach (var kind in new[] { "breakroom", "meeting", "server" })
+                foreach (var kind in new[] { "showroom", "dump", "pillars", "wrong", "dark" })
                 {
-                    var room = level.rooms.FirstOrDefault(rm => rm.kind == kind); if (room == null) continue;
+                    var lroom = level.layout.rooms.OrderByDescending(rm => rm.World.width * rm.World.height).FirstOrDefault(rm => kind == "dark" ? rm.dark && rm.World.width * rm.World.height > 20 : rm.kind == kind);
+                    var room = lroom?.spec; if (room == null) continue;
                     var cc4 = player.GetComponent<CharacterController>(); var b = room.bounds;
                     var corner = new Vector3(b.min.x + 0.6f, 0.02f, b.min.z + 0.6f);
                     cc4.enabled = false; player.transform.position = corner; cc4.enabled = true;
                     var lk = b.center - corner; fpc.SetLook(Mathf.Atan2(lk.x, lk.z) * Mathf.Rad2Deg, 8); yield return null; yield return null;
+                    yield return new WaitForSeconds(0.45f);
                     Shot(cam, $"80_{kind}_{addr.Replace(' ', '_')}");
+                    Debug.Log($"[ADDRESS] tour {kind} {addr}: {b.size.x:F1}x{b.size.z:F1} props {level.engine.placed.Count(o => o && b.Contains(new Vector3(o.transform.position.x, b.center.y, o.transform.position.z)))} pillars {level.root.GetComponentsInChildren<Transform>().Count(t => t.name == "Pillar" && b.Contains(new Vector3(t.position.x, b.center.y, t.position.z)))}");
                 }
             }
+            if (System.Environment.GetCommandLineArgs().Contains("-roomsonly")) { Application.Quit(); yield break; }
             // ---- Frutiger Aero park + the archway into the Poolrooms
             StartCoroutine(Enter(new LevelAddress("FA", Hashing.Fnv64("shots fa")), null));
             yield return new WaitForSeconds(0.5f); yield return new WaitUntil(() => !travelling); yield return new WaitForSeconds(1f);
