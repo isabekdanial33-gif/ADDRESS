@@ -163,3 +163,12 @@ Reference: Backrooms (A24, 2026, Kane Parsons) — failing furniture showroom (C
 - Downloads: Tools/itch_dl.sh <itch page> <dir> (free itch.io packs; empty key works). Test tour: shots/85_ent_<kind>_{idle,walk}.png.
 - New worlds (not yet seen in-game, user was in class): PG "Подземная парковка" (LayoutGenerator min 9 m sections, all open, kind "parking": pillar grid, painted stall lines + yellow kerb band, Asphalt031/Concrete034/Concrete047A, cold half-dead tubes, dust fog) and HT "Бесконечный отель" (LayoutGenerator.Hotel: 2 m corridor grid, Carpet015 + Wallpaper002B, wooden room doors as decor every 3-4 m, warm dim lights every other off, exits = lifts only via ExitPlanner.ForceForm). NextAesthetic: lifts -> garage, plain doors -> hotel. Test: shots/86_{PG,HT}{0,1}_look*.png.
 - Wiki-archetype entities (our own models): Smiler (billboard grin, additive Resources/Entities/SmilerMat, dark zones/garage, freezes when seen), Faceling (skin mannequin, passive wanderer), Partygoer (yellow mannequin with "=)" cutout face, Dance_Loop idle, sprints).
+
+## 2026-11-20 — v0.11
+- Downloaded CC-BY Sketchfab entities (Art_src/dl/sketchfab → Tools/blender/clean_export.py → Game/Assets/ThirdParty/Sketchfab, credits there):
+  Smiler, Skin Stealer, Captain Clark (Mixamo → Humanoid + UAL clips), Partygoer, Growlers, Needlelimbs (own clips, Generic).
+  Editor: `Address.EditorTools.SketchfabEntities.Build` → Resources/Entities/Model_<Kind>.prefab + override controllers.
+  Generic rigs are measured in a sampled pose (their clips move the root). Scramby downloaded but unused (ceiling entity, only Hide/Kill clips). Kitty rejected (960k tris, no rig).
+- New worlds OF (abandoned office) and LF (Level Fun) — kit materials recoloured, kindPool in LayoutGenerator.
+- Silent test builds: set `m_DisableAudio: 1` in ProjectSettings/AudioManager.asset for test runs, back to 0 before release builds.
+- Not verified: gameplay chase with new kinds, sounds, Android build.
