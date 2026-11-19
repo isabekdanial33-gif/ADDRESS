@@ -23,6 +23,8 @@ namespace Address.Entities
             var opts = new List<EntityKind>();
             if (level.aesthetic == "PG") { opts.AddRange(new[] { EntityKind.Crawler, EntityKind.Limper, EntityKind.Echo, EntityKind.Smiler, EntityKind.Smiler, EntityKind.Growler, EntityKind.Growler, EntityKind.SkinStealer }); return opts[rng.Range(0, opts.Count)]; }
             if (level.aesthetic == "HT") { opts.AddRange(new[] { EntityKind.Mannequin, EntityKind.Salesman, EntityKind.Echo, EntityKind.Partygoer, EntityKind.Partygoer, EntityKind.Faceling, EntityKind.Needlelimbs, EntityKind.Needlelimbs, EntityKind.Clark }); return opts[rng.Range(0, opts.Count)]; }
+            if (level.aesthetic == "OF") { opts.AddRange(new[] { EntityKind.Clark, EntityKind.Clark, EntityKind.Needlelimbs, EntityKind.Salesman, EntityKind.Echo, EntityKind.SkinStealer, EntityKind.Faceling }); return opts[rng.Range(0, opts.Count)]; }
+            if (level.aesthetic == "LF") { opts.AddRange(new[] { EntityKind.Partygoer, EntityKind.Partygoer, EntityKind.Partygoer, EntityKind.Partygoer, EntityKind.Smiler }); return opts[rng.Range(0, opts.Count)]; }
             if (level.aesthetic == "PR") { opts.AddRange(new[] { EntityKind.Mannequin, EntityKind.Mannequin, EntityKind.Limper, EntityKind.Echo, EntityKind.Needlelimbs }); return opts[rng.Range(0, opts.Count)]; }
             opts.AddRange(new[] { EntityKind.Echo, EntityKind.Echo, EntityKind.Limper, EntityKind.Mannequin, EntityKind.Faceling, EntityKind.Partygoer, EntityKind.Partygoer, EntityKind.SkinStealer, EntityKind.SkinStealer, EntityKind.Clark });
             var rooms = level.layout?.rooms;
@@ -47,7 +49,7 @@ namespace Address.Entities
         }
         public static float ChanceFor(string aesthetic, int generation)
         {
-            float c = aesthetic switch { "BR" => 0.45f, "PR" => 0.22f, "FA" => 0f, "PG" => 0.5f, "HT" => 0.5f, _ => 0.3f };
+            float c = aesthetic switch { "BR" => 0.45f, "PR" => 0.22f, "FA" => 0f, "PG" => 0.5f, "HT" => 0.5f, "OF" => 0.45f, "LF" => 0.65f, _ => 0.3f };
             return Mathf.Clamp01(c + generation * 0.15f);
         }
 

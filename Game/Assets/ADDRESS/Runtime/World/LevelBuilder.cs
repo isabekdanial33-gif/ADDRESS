@@ -21,6 +21,7 @@ namespace Address.World
         public Material poolTileMat, basinMat, waterMat;
         public Material aeroFloorMat, aeroWallMat, glassMat, aeroGrassMat;
         public Material pgFloorMat, pgWallMat, pgCeilMat, htFloorMat, htWallMat, htCeilMat;
+        public Material ofFloorMat, ofWallMat, ofCeilMat, lfFloorMat, lfWallMat;
         public Texture[] caustics;
     }
 
@@ -65,6 +66,16 @@ namespace Address.World
             return h.ToString("X16");
         }
 
+        static readonly Dictionary<string, Material> tintCache = new Dictionary<string, Material>();
+        static Material Tinted(Material src, Color c, string key)
+        {
+            if (!src) return src;
+            if (tintCache.TryGetValue(key, out var m) && m) return m;
+            m = new Material(src) { name = key };
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
+            tintCache[key] = m; return m;
+        }
+
         /// <summary>Global lighting/fog per aesthetic (procedural levels have no baked GI: ambient stands in for bounce light).</summary>
         public static void ApplyAtmosphere(string aesthetic)
         {
@@ -92,6 +103,20 @@ namespace Address.World
                 RenderSettings.ambientEquatorColor = new Color(0.16f, 0.09f, 0.06f);
                 RenderSettings.ambientGroundColor = new Color(0.3f, 0.14f, 0.1f);
                 RenderSettings.fogDensity = 0.03f; RenderSettings.fogColor = new Color(0.22f, 0.12f, 0.08f);
+            }
+            else if (aesthetic == "OF")
+            {
+                RenderSettings.ambientSkyColor = new Color(0.08f, 0.09f, 0.1f);
+                RenderSettings.ambientEquatorColor = new Color(0.14f, 0.15f, 0.16f);
+                RenderSettings.ambientGroundColor = new Color(0.24f, 0.25f, 0.26f);
+                RenderSettings.fogDensity = 0.03f; RenderSettings.fogColor = new Color(0.25f, 0.27f, 0.29f);
+            }
+            else if (aesthetic == "LF")
+            {
+                RenderSettings.ambientSkyColor = new Color(0.16f, 0.1f, 0.08f);
+                RenderSettings.ambientEquatorColor = new Color(0.24f, 0.14f, 0.1f);
+                RenderSettings.ambientGroundColor = new Color(0.46f, 0.24f, 0.2f);
+                RenderSettings.fogDensity = 0.024f; RenderSettings.fogColor = new Color(0.46f, 0.3f, 0.22f);
             }
             else if (aesthetic == "PR")
             {
@@ -157,8 +182,10 @@ namespace Address.World
             void Mark(string n) { times.Append($"{n} {sw.ElapsedMilliseconds}ms  "); sw.Restart(); }
             var rng = new Rng(attempt == 0 ? address.BaseSeed : Hashing.Combine(address.BaseSeed, (ulong)attempt * 0xA77E3UL));
             var a0 = address.Aesthetic;
-            var res = new Result { address = address, aesthetic = a0 == "PR" || a0 == "FA" || a0 == "PG" || a0 == "HT" ? a0 : "BR" };
+            var res = new Result { address = address, aesthetic = a0 == "PR" || a0 == "FA" || a0 == "PG" || a0 == "HT" || a0 == "OF" || a0 == "LF" ? a0 : "BR" };
             bool garage = res.aesthetic == "PG" && kit.pgFloorMat, hotel = res.aesthetic == "HT" && kit.htFloorMat;
+            bool office = res.aesthetic == "OF" && kit.ofFloorMat, fun = res.aesthetic == "LF" && kit.lfWallMat;
+            if (res.aesthetic == "OF" && !office || res.aesthetic == "LF" && !fun) res.aesthetic = "BR";
             world = garage ? "PG" : hotel ? "HT" : res.aesthetic;
             bool pool = res.aesthetic == "PR" && kit.poolTileMat;
             bool aero = res.aesthetic == "FA" && kit.aeroWallMat;
@@ -167,6 +194,13 @@ namespace Address.World
             ceilM = pool ? kit.poolTileMat : aero ? kit.aeroWallMat : kit.ceilingMat;
             if (garage) { floorM = kit.pgFloorMat; wallM = kit.pgWallMat ? kit.pgWallMat : kit.wallMat; ceilM = kit.pgCeilMat ? kit.pgCeilMat : kit.ceilingMat; }
             if (hotel) { floorM = kit.htFloorMat; wallM = kit.htWallMat ? kit.htWallMat : kit.wallMat; if (kit.htCeilMat) ceilM = kit.htCeilMat; }
+            if (office) { floorM = kit.ofFloorMat; wallM = kit.ofWallMat ? kit.ofWallMat : kit.wallMat; if (kit.ofCeilMat) ceilM = kit.ofCeilMat; }
+            if (fun)
+            {
+                // Level Fun: the same downloaded wallpaper and carpet, recoloured party-orange and candy red
+                wallM = Tinted(kit.lfWallMat, new Color(1f, 0.74f, 0.5f), "lf_wall");
+                floorM = Tinted(kit.lfFloorMat ? kit.lfFloorMat : kit.floorMat, new Color(0.95f, 0.42f, 0.45f), "lf_floor");
+            }
             glassWalls = aero;
             res.root = new GameObject("Level " + address);
             var arch = new GameObject("Architecture"); arch.transform.SetParent(res.root.transform);
@@ -176,11 +210,13 @@ namespace Address.World
             // rare places (~1 in 18): the exit is found differently; the guarantee still holds
             var rr = rng.Fork("rare"); float rv = rr.Value;
             res.rare = rv < 0.022f ? "silent" : rv < 0.044f ? "photo" : rv < 0.056f ? "vast" : "";
-            if (garage || hotel) res.rare = "";
+            if (garage || hotel || office || fun) res.rare = "";
             int size = sizeOverride > 0 ? sizeOverride : (rng.Fork("size").Chance(0.4f) ? 24 : 36);
             var L = aero ? LayoutGenerator.Park(rng.Fork("size").Range(34, 46))
                   : hotel ? LayoutGenerator.Hotel(rng.Fork("layout"), 44)
                   : garage ? new LayoutGenerator { minRoomM = 9f, maxRoomLo = 13f, maxRoomHi = 19f, doorShare = 0f, forceKind = "parking" }.Generate(rng.Fork("layout"), 44, 44)
+                  : office ? new LayoutGenerator { doorShare = 0.55f, kindPool = new[] { "office", "office", "office", "meeting", "breakroom", "server", "storage", "empty", "dump" } }.Generate(rng.Fork("layout"), 36, 36)
+                  : fun ? new LayoutGenerator { kindPool = new[] { "lounge", "lounge", "empty", "breakroom", "showroom", "wrong", "dump" } }.Generate(rng.Fork("layout"), size, size)
                   : res.rare == "vast" ? LayoutGenerator.Vast(40) : new LayoutGenerator().Generate(rng.Fork("layout"), size, size);
             if (aero) res.rare = "";
             res.layout = L;
@@ -523,6 +559,7 @@ namespace Address.World
                     int mode = room.dark ? (v < 0.72f ? 1 : v < 0.9f ? 2 : 3) : (v < 0.035f ? 2 : v < 0.05f ? 1 : 0);
                     if (world == "PG" && mode == 0) mode = v < 0.12f ? 1 : v < 0.2f ? 2 : 0;          // half the garage tubes are dead or dying
                     if (world == "HT" && mode == 0 && ((int)(s.Item1.x * 2 + s.Item1.z * 3) & 1) == 0) mode = 1;   // hotel: every other light off
+                    if (world == "OF" && mode == 0) mode = v < 0.2f ? 1 : v < 0.3f ? 2 : 0;           // the abandoned office: a fifth of the tubes dead
                     if (mode != 0) spotMode[SpotKey(s.Item1)] = mode;
                 }
             }
@@ -1055,6 +1092,8 @@ namespace Address.World
                 l.color = tiles ? new Color(0.95f, 0.98f, 1f) : new Color(1f, 0.95f, 0.82f);
                 if (world == "PG") { l.intensity = 2.4f; l.color = new Color(0.86f, 0.95f, 1f); }
                 if (world == "HT") { l.intensity = 1.7f; l.color = new Color(1f, 0.78f, 0.5f); l.range = 5.5f; }
+                if (world == "OF") { l.intensity = 1.6f; l.color = new Color(0.88f, 0.96f, 1f); }
+                if (world == "LF") { l.intensity = 2.6f; l.color = new Color(1f, 0.8f, 0.66f); }
                 // shadows are expensive: only every 4th fixture casts them (enough for grounding furniture)
                 l.shadows = (k++ % 4 == 0) ? LightShadows.Soft : LightShadows.None; l.shadowStrength = 0.7f;
                 // lit tubes next to a dark zone reach less far: light must not leak through the walls into the dark

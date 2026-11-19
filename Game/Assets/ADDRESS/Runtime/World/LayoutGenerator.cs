@@ -47,6 +47,7 @@ namespace Address.World
         // BSP room size and door share (the parking garage uses huge open sections)
         public float minRoomM = 3.5f, maxRoomLo = 6.5f, maxRoomHi = 10f, doorShare = 0.5f;
         public string forceKind;
+        public string[] kindPool;   // a world with its own furnishing mix (office floor, Level Fun)
 
         public Layout Generate(Rng rng, int widthM, int depthM)
         {
@@ -110,6 +111,7 @@ namespace Address.World
                 var wr = room.World;
                 if (forceKind != null) { room.kind = forceKind; continue; }
                 if (Mathf.Min(wr.width, wr.height) < 3.2f) { room.kind = "corridor"; continue; }
+                if (kindPool != null && kindPool.Length > 0) { room.kind = kindPool[rng.Range(0, kindPool.Length)]; if (room.kind == "showroom" && wr.width * wr.height < 22f) room.kind = "lounge"; continue; }
                 if (halls.Contains(room.cells)) { room.kind = rng.Chance(0.55f) ? "showroom" : "pillars"; continue; }
                 float k = rng.Value, area = wr.width * wr.height;
                 room.kind = k < 0.32f ? "empty" : k < 0.47f ? "office" : k < 0.56f ? "storage" : k < 0.62f ? "lounge" : k < 0.68f ? "breakroom"

@@ -49,6 +49,11 @@ namespace Address.EditorTools
                 htFloorMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Carpet015.mat"),
                 htWallMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Wallpaper002B.mat"),
                 htCeilMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Plaster001.mat"),
+                ofFloorMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Carpet006.mat"),
+                ofWallMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/PaintedPlaster017.mat"),
+                ofCeilMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/OfficeCeiling005.mat"),
+                lfFloorMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Carpet012.mat"),
+                lfWallMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Wallpaper001A.mat"),
                 glassMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Glass.mat"),
                 caustics = Enumerable.Range(0, 16).Select(i => (Texture)AssetDatabase.LoadAssetAtPath<Texture2D>($"Assets/ADDRESS/Art/Textures/caustic_{i:00}.png")).Where(t => t).ToArray()
             };
