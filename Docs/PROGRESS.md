@@ -172,3 +172,7 @@ Reference: Backrooms (A24, 2026, Kane Parsons) — failing furniture showroom (C
 - New worlds OF (abandoned office) and LF (Level Fun) — kit materials recoloured, kindPool in LayoutGenerator.
 - Silent test builds: set `m_DisableAudio: 1` in ProjectSettings/AudioManager.asset for test runs, back to 0 before release builds.
 - Not verified: gameplay chase with new kinds, sounds, Android build.
+
+## 2026-11-20 — v0.12
+- Entities: Howler (= "Backrooms Pitfalls Bacteria", BezPixelu) and Lifeform (bac). Tried and dropped: "Accurate Bacteria v2" (clips are film scenes with root travel — body leaves the frame), "Still Life improved" (CC rig mapped by SketchfabEntities.MapCC, but head is a bone-parented mesh dropped by clean_export and the arms stayed in T-pose — retry with keep_unskinned=1).
+- Worlds PD (Pipe Dreams: small concrete rooms, LevelBuilder.Pipes), WH (warehouse: storage/pillars, concrete), LO (Lights Out: 86% tubes dead, near-black ambient).
