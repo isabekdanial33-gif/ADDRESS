@@ -287,7 +287,7 @@ namespace Address.Game
                 }
             }
             // ---- the new worlds: garage and hotel, four looks each from the start
-            foreach (var w in new[] { "PG", "HT", "OF", "LF" })
+            foreach (var w in new[] { "PG", "HT", "OF", "LF", "PD", "WH", "LO" })
                 for (int v = 0; v < 2; v++)
                 {
                     StartCoroutine(Enter(new LevelAddress(w, Hashing.Fnv64("world " + w + v)), null));
@@ -345,7 +345,7 @@ namespace Address.Game
             var dir = level.root.GetComponent<Director>();
             if (dir) { dir.stage1 = 0.1f; dir.stage2 = 0.2f; dir.stage3 = 0.3f; }
             yield return new WaitForSeconds(0.6f);
-            foreach (var aest in new[] { "PR", "FA", "PG", "HT", "OF", "LF" })
+            foreach (var aest in new[] { "PR", "FA", "PG", "HT", "OF", "LF", "PD", "WH", "LO" })
             {
                 StartCoroutine(Enter(new LevelAddress(aest, 777UL), level.address));
                 yield return new WaitForSeconds(0.5f); yield return new WaitUntil(() => !travelling);
@@ -580,9 +580,11 @@ namespace Address.Game
             // handleless doors open onto office floors; vents drop you into Level Fun
             float of = form == ExitForm.HandlelessDoor ? 0.12f : 0.06f, lf = form == ExitForm.VentHatch ? 0.08f : 0.04f;
             if (current == "OF") of += 0.08f;
+            // vents lead down into the pipes, lifts to the warehouse; any door may open onto pitch black
+            float pd = form == ExitForm.VentHatch ? 0.1f : 0.04f, wh = form == ExitForm.Elevator ? 0.1f : 0.05f, lo = 0.05f;
             float x = (seed % 1000) / 1000f;
-            float a = pr, b = a + fa, c = b + pg, d = c + ht, e = d + of, f = e + lf;
-            return x < a ? "PR" : x < b ? "FA" : x < c ? "PG" : x < d ? "HT" : x < e ? "OF" : x < f ? "LF" : "BR";
+            float a = pr, b = a + fa, c = b + pg, d = c + ht, e = d + of, f = e + lf, g = f + pd, h = g + wh, i = h + lo;
+            return x < a ? "PR" : x < b ? "FA" : x < c ? "PG" : x < d ? "HT" : x < e ? "OF" : x < f ? "LF" : x < g ? "PD" : x < h ? "WH" : x < i ? "LO" : "BR";
         }
 
         void TakePhoto()
@@ -844,7 +846,7 @@ namespace Address.Game
 
         static string PlaceName(string aesthetic, int generation)
         {
-            string n = aesthetic switch { "BR" => "Жёлтые комнаты", "PR" => "Бассейны", "FA" => "Frutiger Aero", "PG" => "Подземная парковка", "HT" => "Бесконечный отель", "OF" => "Заброшенный офис", "LF" => "Уровень Веселья =)", _ => aesthetic };
+            string n = aesthetic switch { "BR" => "Жёлтые комнаты", "PR" => "Бассейны", "FA" => "Frutiger Aero", "PG" => "Подземная парковка", "HT" => "Бесконечный отель", "OF" => "Заброшенный офис", "LF" => "Уровень Веселья =)", "PD" => "Трубы", "WH" => "Склад", "LO" => "Без света", _ => aesthetic };
             return generation > 0 ? $"{n} · эхо {generation}" : n;
         }
 

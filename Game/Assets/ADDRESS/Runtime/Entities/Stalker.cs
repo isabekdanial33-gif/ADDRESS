@@ -86,6 +86,8 @@ namespace Address.Entities
                 case EntityKind.SkinStealer: wanderSpeed = 0.8f; stalkSpeed = 2.9f; freezeWhenSeen = false; catchRadius = 0.95f; noticeRange = 15f; vocals = Sfx("beast_", "demon_"); break;
                 case EntityKind.Clark: wanderSpeed = 0.5f; stalkSpeed = 1.6f; freezeWhenSeen = true; noticeRange = 20f; vocals = Sfx("eerie_", "spirit_"); break;
                 case EntityKind.Growler: wanderSpeed = 0.9f; stalkSpeed = 3.2f; freezeWhenSeen = false; noticeRange = 14f; vocals = Sfx("growl_"); stepSet = "step_hard_"; break;
+                case EntityKind.Howler: wanderSpeed = 0.8f; stalkSpeed = 2.6f; freezeWhenSeen = false; noticeRange = 15f; vocals = Sfx("growl_", "demon_"); break;
+                case EntityKind.Lifeform: wanderSpeed = 0.9f; stalkSpeed = 3.0f; freezeWhenSeen = false; noticeRange = 15f; vocals = Sfx("beast_"); break;
                 case EntityKind.Needlelimbs: wanderSpeed = 0.6f; stalkSpeed = 2.2f; freezeWhenSeen = true; noticeRange = 18f; vocals = Sfx("eerie_", "deep_"); stepSet = "none"; break;
             }
             stalkSpeed *= 1f + 0.06f * generation;

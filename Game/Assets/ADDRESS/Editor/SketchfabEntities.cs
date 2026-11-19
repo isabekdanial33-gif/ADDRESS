@@ -24,6 +24,8 @@ namespace Address.EditorTools
             ("partygoer.fbx",   "Partygoer",   false, 2.25f, 0f, "idle",              "walk",                 "run"),
             ("growler.fbx",     "Growler",     false, 2.6f,  0f, "Idle",              "Walk",                 "Walk"),
             ("needlelimbs.fbx", "Needlelimbs", false, 2.7f,  0f, "Layer0",            "Layer0",               "Layer0"),
+            ("howler.fbx",      "Howler",      false, 2.6f,  0f, "Idle",              "Walk",                 "Walk.001"),
+            ("lifeform.fbx",    "Lifeform",    false, 2.5f,  0f, "Idle.001",          "Walk.001",             "Run"),
         };
 
         public static void Build()
@@ -62,7 +64,12 @@ namespace Address.EditorTools
                 imp.SaveAndReimport();
                 var subs = AssetDatabase.LoadAllAssetsAtPath(p);
                 var av = subs.OfType<Avatar>().FirstOrDefault();
-                var own = subs.OfType<AnimationClip>().Where(a => !a.name.StartsWith("__preview")).ToList();
+                if (m.human && (!av || !av.isHuman) && MapCC(imp, p))
+                {
+                    subs = AssetDatabase.LoadAllAssetsAtPath(p);
+                    av = subs.OfType<Avatar>().FirstOrDefault();
+                }
+                var own = subs.OfType<AnimationClip>().Where(a => !a.name.StartsWith("__preview") && !a.name.StartsWith("Camera")).ToList();
                 Debug.Log($"[ADDRESS] {m.file}: avatar {(av ? (av.isHuman ? "human" : "generic") + (av.isValid ? "" : " INVALID") : "none")} clips {string.Join(", ", own.Select(a => $"{a.name}({a.length:F1}s)"))}");
 
                 // controller: override of the shared Speed blend
@@ -118,6 +125,33 @@ namespace Address.EditorTools
             }
             AssetDatabase.SaveAssets();
             Debug.Log("[ADDRESS] sketchfab entities built");
+        }
+
+        /// <summary>Reallusion Character Creator rigs (CC_Base_*): Unity's auto-mapper misses them, so map by hand.</summary>
+        static bool MapCC(ModelImporter imp, string p)
+        {
+            var go = AssetDatabase.LoadAssetAtPath<GameObject>(p);
+            var ts = go.GetComponentsInChildren<Transform>(true);
+            string Find(string key) => ts.Select(t => t.name).FirstOrDefault(n => System.Text.RegularExpressions.Regex.IsMatch(n, "^(" + key + @")(_\d+)?$"));
+            var map = new (HumanBodyBones h, string k)[]
+            {
+                (HumanBodyBones.Hips, "CC_Base_Hip"), (HumanBodyBones.Spine, "CC_Base_Waist"), (HumanBodyBones.Chest, "CC_Base_Spine01"), (HumanBodyBones.UpperChest, "CC_Base_Spine02"),
+                (HumanBodyBones.Neck, "CC_Base_NeckTwist01"), (HumanBodyBones.Head, "CC_Base_Head"),
+                (HumanBodyBones.LeftUpperLeg, "CC_Base_L_Thigh"), (HumanBodyBones.LeftLowerLeg, "CC_Base_L_Calf"), (HumanBodyBones.LeftFoot, "CC_Base_L_Foot"),
+                (HumanBodyBones.RightUpperLeg, "CC_Base_R_Thigh"), (HumanBodyBones.RightLowerLeg, "CC_Base_R_Calf"), (HumanBodyBones.RightFoot, "CC_Base_R_Foot"),
+                (HumanBodyBones.LeftShoulder, "CC_Base_L_Clavicle"), (HumanBodyBones.LeftUpperArm, "CC_Base_L_Upperarm"), (HumanBodyBones.LeftLowerArm, "CC_Base_L_Forearm"), (HumanBodyBones.LeftHand, @"CC_Base_L_Hand|CC_Base_L_ForearmTwist02\.002"),
+                (HumanBodyBones.RightShoulder, "CC_Base_R_Clavicle"), (HumanBodyBones.RightUpperArm, "CC_Base_R_Upperarm"), (HumanBodyBones.RightLowerArm, "CC_Base_R_Forearm"), (HumanBodyBones.RightHand, "CC_Base_R_Hand"),
+            };
+            var bones = map.Select(x => (x.h, n: Find(x.k))).Where(x => x.n != null).ToList();
+            Debug.Log($"[ADDRESS] CC map {p}: {bones.Count}/{map.Length} " + string.Join(",", map.Where(x => Find(x.k) == null).Select(x => x.k)));
+            if (bones.Count < 15) return false;
+            var hd = imp.humanDescription;
+            hd.human = bones.Select(x => new HumanBone { boneName = x.n, humanName = HumanTrait.BoneName[(int)x.h], limit = new HumanLimit { useDefaultValues = true } }).ToArray();
+            hd.skeleton = ts.Select(t => new SkeletonBone { name = t.name, position = t.localPosition, rotation = t.localRotation, scale = t.localScale }).ToArray();
+            imp.humanDescription = hd;
+            imp.animationType = ModelImporterAnimationType.Human; imp.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
+            imp.SaveAndReimport();
+            return true;
         }
 
         static Bounds Bounds(GameObject go)

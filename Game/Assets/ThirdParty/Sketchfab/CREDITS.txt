@@ -7,4 +7,5 @@ clark.fbx        "Captain Clark Rigged (Fixed)" by Sofrosx (@sushi4055) - https:
 partygoer.fbx    "Partygoer entity 67 remake [Backrooms]" by Fog (@fog_) - https://sketchfab.com/3d-models/partygoer-entity-67-remake-backrooms-2936f8e1045848b49203b51f060a243a
 growler.fbx      "Backrooms Entity 130 - Growlers" by bac (@AzertyDFS205) - https://sketchfab.com/3d-models/backrooms-entity-130-growlers-30ee18c65a38484083beaf6b873b9ff2
 needlelimbs.fbx  "Backrooms Entity 38 Needlelimbs" by Loco (@Loco420) - https://sketchfab.com/3d-models/backrooms-entity-38-needlelimbs-6e8ad10cbcbb49bda63a1b21a660533d
-scramby.fbx      "Backrooms Entity 60 - Scramby" by bac (@AzertyDFS205) - https://sketchfab.com/3d-models/backrooms-entity-60-scramby-e07cfc4f1d2447dcbb19e899b95c6d09
+howler.fbx       "Backrooms Pitfalls Bacteria" by BezPixelu - https://sketchfab.com/3d-models/backrooms-pitfalls-bacteria-a24a5b8aca714b53b753593e9b1239ad
+lifeform.fbx     "Complex Entity - Lifeform Fellow V2" by bac (@AzertyDFS205) - https://sketchfab.com/3d-models/complex-entity-lifeform-fellow-v2-d49e73ac203f4db0a7db12bfbba872ee

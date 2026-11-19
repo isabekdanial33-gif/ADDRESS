@@ -93,7 +93,7 @@ namespace Address.Game
 
         static string RandomAddress()
         {
-            var r = new System.Random(); string[] a = { "BR", "PR", "FA", "PG", "HT", "OF", "LF" }; const string hex = "0123456789ABCDEF";
+            var r = new System.Random(); string[] a = { "BR", "PR", "FA", "PG", "HT", "OF", "LF", "PD", "WH", "LO" }; const string hex = "0123456789ABCDEF";
             string G() { var c = new char[4]; for (int i = 0; i < 4; i++) c[i] = hex[r.Next(16)]; return new string(c); }
             return $"{a[r.Next(3)]}-{G()}-{G()}-{G()}-{G()}";
         }

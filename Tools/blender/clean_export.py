@@ -30,6 +30,15 @@ for o in bpy.data.objects:
     try: o.hide_set(False); o.hide_viewport = False; o.hide_render = False
     except Exception: pass
 bpy.context.view_layer.update()
+dec = float(os.environ.get('DECIMATE', '0') or 0)
+if dec > 0:
+    for o in bpy.data.objects:
+        if o.type == 'MESH':
+            m = o.modifiers.new('dec', 'DECIMATE'); m.ratio = dec
+            bpy.context.view_layer.objects.active = o
+            # decimate must run before the armature: move it to the top, then apply
+            while o.modifiers.find('dec') > 0: bpy.ops.object.modifier_move_up(modifier='dec')
+            bpy.ops.object.modifier_apply(modifier='dec')
 import mathutils
 mn = mathutils.Vector((1e9,) * 3); mx = -mn
 tris = 0
