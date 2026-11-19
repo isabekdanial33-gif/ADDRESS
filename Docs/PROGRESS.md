@@ -149,3 +149,11 @@ Testing: `Tools/run_build.ps1 -Mode -playvideo` -> Build/video_frames -> Docs/vi
 - Quality tier "Mobile" (index 3, Ultra -> 4; PlayerPrefs key now "quality2"): own renderer without SSAO / depth priming, scale 0.7 (governor down to 0.5), no MSAA, HDR R11G11B10, 1 cascade 512 sun shadow, no lamp shadows, half-res textures, no aniso, probe 32 px, far clip 60 + fog 0.03, LevelOptimizer lights 9 m / props 13 m, 3 hum voices, 14 clouds, Aero chunks 16x16. Phones default to this tier; 60 fps target.
 - RealBrowser compiled only on Windows (stub elsewhere).
 - GameSetup.BuildAndroid: IL2CPP ARM64, API 26+, Vulkan+GLES3, ASTC, landscape -> Build/Android/ADDRESS.apk. Android module install via Unity Hub CLI was slow/aborted - retry: "Unity Hub.exe" -- --headless install-modules --version 6000.4.6f1 -m android android-sdk-ndk-tools android-open-jdk --childModules
+
+## 2026-11-19 — room variety & dark zones (v0.9)
+Reference: Backrooms (A24, 2026, Kane Parsons) — failing furniture showroom (Cap'n Clark's), sickly-yellow offices, furniture & clothes piled about, shadowed zones; "wrong placement" liminal trick.
+- LayoutGenerator: 1–2 big halls (9–15 m) per level -> "showroom" (display sets on a grid, all facing one way, sofa+coffee table) or "pillars" (0.5 m columns on a 3 m grid, off doors/exits/troffers).
+- New kinds: dump (stacks, fallen chairs, boots/lifejackets/suitcases strewn, shoved sofa), wrong (one chair facing the wall).
+- Dark zones: 1–2 clusters (14–26% of rooms, never the start room or its neighbours). 72% dead tubes (grey "troffer_dead" diffuser, no light), 18% flicker, rest dim amber; lit tubes near a dark zone get a shorter range (no leak through walls). Normal rooms: 3.5% flicker, 1.5% dead.
+- Test: `ADDRESS.exe -batchmode -shots -roomsonly` -> shots/80_<kind>_rooms_<a..e>.png + "[ADDRESS] tour" lines.
+- Test runs mute audio in GameRoot.Awake (AudioListener.volume=0 + pause) — but the user still heard sound once: do NOT run builds while the user is in class.
