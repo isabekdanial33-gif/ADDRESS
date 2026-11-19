@@ -38,6 +38,19 @@ namespace Address.EditorTools
             }
         }
 
+        /// <summary>Inspect a downloaded creature: rig type, bones, clips, bounds.</summary>
+        public static void InspectPsx()
+        {
+            const string p = "Assets/ThirdParty/PSXEntity/scissors.fbx";
+            var imp = (ModelImporter)AssetImporter.GetAtPath(p);
+            Debug.Log($"[ADDRESS] psx importer anim {imp.animationType} clips {imp.defaultClipAnimations.Length}: {string.Join(", ", imp.defaultClipAnimations.Select(c => c.name))}");
+            var go = AssetDatabase.LoadAssetAtPath<GameObject>(p);
+            var b = new Bounds(); bool first = true;
+            foreach (var r in go.GetComponentsInChildren<Renderer>()) { if (first) { b = r.bounds; first = false; } else b.Encapsulate(r.bounds); }
+            var bones = go.GetComponentsInChildren<Transform>().Select(t => t.name).ToArray();
+            Debug.Log($"[ADDRESS] psx bounds {b.size} renderers {go.GetComponentsInChildren<Renderer>().Length} bones {bones.Length}: {string.Join(",", bones.Take(60))}");
+        }
+
         static AnimationClip Clip(string name)
         {
             foreach (var f in new[] { "UAL1_Standard.fbx", "UAL2_Standard.fbx" })

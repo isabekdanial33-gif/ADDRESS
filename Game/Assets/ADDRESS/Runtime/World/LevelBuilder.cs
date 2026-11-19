@@ -20,7 +20,7 @@ namespace Address.World
         public Material voidMat;
         public Material poolTileMat, basinMat, waterMat;
         public Material aeroFloorMat, aeroWallMat, glassMat, aeroGrassMat;
-        public Material pgFloorMat, pgWallMat, pgCeilMat, htFloorMat, htWallMat;
+        public Material pgFloorMat, pgWallMat, pgCeilMat, htFloorMat, htWallMat, htCeilMat;
         public Texture[] caustics;
     }
 
@@ -166,7 +166,7 @@ namespace Address.World
             wallM = pool ? kit.poolTileMat : aero ? kit.aeroWallMat : kit.wallMat;
             ceilM = pool ? kit.poolTileMat : aero ? kit.aeroWallMat : kit.ceilingMat;
             if (garage) { floorM = kit.pgFloorMat; wallM = kit.pgWallMat ? kit.pgWallMat : kit.wallMat; ceilM = kit.pgCeilMat ? kit.pgCeilMat : kit.ceilingMat; }
-            if (hotel) { floorM = kit.htFloorMat; wallM = kit.htWallMat ? kit.htWallMat : kit.wallMat; }
+            if (hotel) { floorM = kit.htFloorMat; wallM = kit.htWallMat ? kit.htWallMat : kit.wallMat; if (kit.htCeilMat) ceilM = kit.htCeilMat; }
             glassWalls = aero;
             res.root = new GameObject("Level " + address);
             var arch = new GameObject("Architecture"); arch.transform.SetParent(res.root.transform);
@@ -668,6 +668,7 @@ namespace Address.World
             int number = 100 + rng.Range(0, 800);
             var lit = Shader.Find("Universal Render Pipeline/Lit");
             var wood = new Material(lit) { name = "hotel_door" }; wood.SetColor("_BaseColor", new Color(0.26f, 0.15f, 0.09f)); wood.SetFloat("_Smoothness", 0.35f);
+            var placedDoors = new List<Vector3>();
             foreach (var room in L.rooms)
                 foreach (var w in room.spec.walls)
                 {
@@ -675,13 +676,21 @@ namespace Address.World
                     for (float t = 1.4f; t < len - 1.0f; t += rng.Range(3.0f, 4.2f))
                     {
                         var p = w.a + along * t;
-                        bool nearExit = false; foreach (var e in exits) if (Vector3.Distance(new Vector3(e.position.x, 0, e.position.z), new Vector3(p.x, 0, p.z)) < 2.2f) nearExit = true;
+                        bool nearExit = false; foreach (var e in exits) if (Vector3.Distance(new Vector3(e.position.x, 0, e.position.z), new Vector3(p.x, 0, p.z)) < 2.6f) nearExit = true;
                         if (nearExit) continue;
+                        bool crowded = false; foreach (var q in placedDoors) if ((q - p).sqrMagnitude < 2.1f * 2.1f) crowded = true;
+                        if (crowded) continue;
+                        placedDoors.Add(p);
                         var go = Object.Instantiate(kit.exitDoorPrefab, parent); go.name = "HotelDoor" + (number++);
-                        go.transform.SetPositionAndRotation(new Vector3(p.x, 0, p.z) - w.normal * 0.075f, Quaternion.LookRotation(w.normal, Vector3.up));
+                        go.transform.SetPositionAndRotation(new Vector3(p.x, 0, p.z), Quaternion.LookRotation(w.normal, Vector3.up));   // back on the wall face, like the exits
                         foreach (var t2 in go.GetComponentsInChildren<Transform>(true)) { t2.gameObject.layer = ArchLayer; t2.gameObject.isStatic = true; }
+                        Renderer leafR = null;
                         foreach (var r in go.GetComponentsInChildren<Renderer>())
-                            if (r.name == "leaf") { var m = r.sharedMaterials; for (int i = 0; i < m.Length; i++) m[i] = wood; r.sharedMaterials = m; }
+                            if (r.name == "leaf") { leafR = r; var m = r.sharedMaterials; for (int i = 0; i < m.Length; i++) m[i] = wood; r.sharedMaterials = m; }
+                        // the handle sits low in the model: lift it (only vertically) to 1 m
+                        foreach (var hr in go.GetComponentsInChildren<Renderer>(true))
+                            if (hr.transform.name == "door_handle" || (hr.transform.parent && hr.transform.parent.name == "door_handle"))
+                            { var ht = hr.transform.name == "door_handle" ? hr.transform : hr.transform.parent; ht.position += Vector3.up * (1.0f - hr.bounds.center.y); break; }
                     }
                 }
         }
