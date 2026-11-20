@@ -90,7 +90,7 @@ namespace Address.Game
             ToMenu();
             var args = System.Environment.GetCommandLineArgs();
             // automated test runs: silent, and they always end (even if a test throws)
-            if (args.Contains("-smoketest") || args.Contains("-shots") || args.Contains("-nethost") || args.Contains("-netclient") || args.Contains("-playvideo") || args.Contains("-computertest") || args.Contains("-opentest") || args.Contains("-verify"))
+            if (args.Contains("-smoketest") || args.Contains("-shots") || args.Contains("-nethost") || args.Contains("-netclient") || args.Contains("-playvideo") || args.Contains("-computertest") || args.Contains("-opentest") || args.Contains("-verify") || args.Contains("-gametest"))
             {
                 AudioListener.volume = 0f;
                 StartCoroutine(Watchdog(args.Contains("-playvideo") ? 600f : args.Contains("-shots") ? 480f : 240f));
@@ -101,6 +101,7 @@ namespace Address.Game
             if (args.Contains("-computertest")) StartCoroutine(ComputerTest());
             if (args.Contains("-opentest")) StartCoroutine(OpenTest());
             if (args.Contains("-verify")) StartCoroutine(Verify());
+            if (args.Contains("-gametest")) StartCoroutine(GameTest());
             if (args.Contains("-trailer")) { AudioListener.volume = 0f; StartCoroutine(Watchdog(900f)); StartCoroutine(Trailer()); }
             if (args.Contains("-nethost")) StartCoroutine(NetHostTest());
             if (args.Contains("-netclient")) StartCoroutine(NetClientTest());
@@ -297,6 +298,18 @@ namespace Address.Game
                     Debug.Log($"[ADDRESS] entity {kind}: animator {(an ? an.runtimeAnimatorController?.name : "none")} human {(an && an.isHuman)}");
                     Destroy(e.gameObject); yield return null;
                 }
+                // the Shy one: sits and weeps until looked at, then screams and runs at you
+                {
+                    var shy = Address.Entities.EntitySpawner.SpawnKind(level, config.bodyPrefab, Address.Entities.EntityKind.Shy, level.start + fwd * distE, Quaternion.LookRotation(-fwd), null);
+                    shy.wakeDelay = 0; shy.targets = EntityTargets; shy.isLookedAtBy = LooksAt(shy); shy.onCatch = _ => Debug.Log("[ADDRESS] shy: caught");
+                    fpc.SetLook(yawE + 180f, 0); yield return new WaitForSeconds(1.0f);
+                    Debug.Log($"[ADDRESS] shy unseen: enraged {shy.Enraged} mode {shy.mode}");
+                    fpc.SetLook(yawE, 0); yield return new WaitForSeconds(0.6f); Shot(cam, "85b_shy_seen");
+                    var d0 = Vector3.Distance(shy.transform.position, player.transform.position);
+                    yield return new WaitForSeconds(4.2f); Shot(cam, "85b_shy_rage");
+                    Debug.Log($"[ADDRESS] shy seen: enraged {shy.Enraged} mode {shy.mode} dist {d0:F2} -> {Vector3.Distance(shy.transform.position, player.transform.position):F2}");
+                    Destroy(shy.gameObject); yield return null;
+                }
                 // Verity and the fake one: hanging in front, then talking (the subtitle must show)
                 foreach (var fk in new[] { false, true })
                 {
@@ -336,7 +349,7 @@ namespace Address.Game
                 }
             }
             // ---- the new worlds: garage and hotel, four looks each from the start
-            foreach (var w in new[] { "RN", "MN", "R2", "AP", "HB", "SC", "HO", "RH", "SB" })
+            foreach (var w in new[] { "GR", "PK", "DM", "TE", "TH", "BS", "BK" })
                 for (int v = 0; v < 1; v++)
                 {
                     StartCoroutine(Enter(new LevelAddress(w, Hashing.Fnv64("world " + w + v)), null));

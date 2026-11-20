@@ -63,6 +63,8 @@ namespace Address.Entities
         Address.Player.ProceduralBody body;
         Animator anim; AudioSource voice, steps; AudioClip[] vocals; AudioClip sting; float voiceT = 4f, stingCd;
         public EntityKind kind; public bool freezeWhenSeen = true, passive;
+        // the Shy one sits and weeps; whoever looks at it is hunted down, wherever they run
+        public bool shy; public bool Enraged { get; private set; } float rageT;
         static AudioClip[] allSfx;
         static AudioClip[] Sfx(params string[] prefixes)
         {
@@ -129,6 +131,11 @@ namespace Address.Entities
                 case EntityKind.Rake: wanderSpeed = 0.7f; stalkSpeed = 3.3f; freezeWhenSeen = false; noticeRange = 16f; catchRadius = 0.95f; vocals = Sfx("demon_", "beast_"); break;
                 case EntityKind.Librarian: wanderSpeed = 0f; stalkSpeed = 3.2f; freezeWhenSeen = true; noticeRange = 24f; vocals = Sfx("deep_", "eerie_"); stepSet = "none"; break;
                 case EntityKind.Deathmoth: wanderSpeed = 1.2f; stalkSpeed = 3.0f; freezeWhenSeen = false; noticeRange = 18f; catchRadius = 1.1f; vocals = Sfx("spirit_"); stepSet = "none"; break;
+                case EntityKind.Spider: wanderSpeed = 1.1f; stalkSpeed = 3.4f; freezeWhenSeen = false; noticeRange = 14f; catchRadius = 1.3f; vocals = Sfx("beast_", "eerie_"); stepSet = "step_hard_"; break;
+                case EntityKind.Thinman: wanderSpeed = 0.55f; stalkSpeed = 2.4f; freezeWhenSeen = true; noticeRange = 26f; catchRadius = 1.0f; vocals = Sfx("deep_", "eerie_"); break;
+                case EntityKind.Grinner: wanderSpeed = 1.0f; stalkSpeed = 3.1f; freezeWhenSeen = false; noticeRange = 15f; catchRadius = 0.95f; vocals = Sfx("spirit_", "beast_"); break;
+                case EntityKind.Shy: wanderSpeed = 0f; stalkSpeed = 3.7f; freezeWhenSeen = false; noticeRange = 999f; catchRadius = 1.0f; shy = true; vocals = Sfx("spirit_", "eerie_"); stepSet = "step_hard_"; break;
+                case EntityKind.Ember: wanderSpeed = 1.0f; stalkSpeed = 3.5f; freezeWhenSeen = false; noticeRange = 16f; catchRadius = 1.0f; vocals = Sfx("growl_", "demon_"); stepSet = "step_hard_"; break;
             }
             if (k == EntityKind.Clark && anim && anim.isHuman)
             {
@@ -235,6 +242,31 @@ namespace Address.Entities
 
             if (passive) { mode = Mode.Wander; Wander(dt); return; }   // facelings just wander about their business
             bool los = HasLineOfSight(best.position);
+            if (shy)
+            {
+                if (!Enraged)
+                {
+                    Speed = 0; mode = Mode.Wander;
+                    if (SeenNow && los && bestD < 30f)
+                    {
+                        Enraged = true; rageT = 3.2f; mode = Mode.Stalk;
+                        if (voice) { if (sting) voice.PlayOneShot(sting, 1f); var sc = Resources.Load<AudioClip>("EntitySfx/scare_3"); if (sc) voice.PlayOneShot(sc, 0.8f); }
+                    }
+                    return;
+                }
+                if (rageT > 0)
+                {
+                    // the scream before the run: it stands up and turns to you
+                    rageT -= dt; Speed = 0; mode = Mode.Stalk;
+                    var to0 = Flat(best.position - transform.position);
+                    if (to0.sqrMagnitude > 0.01f) transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(to0), 180f * dt);
+                    return;
+                }
+                mode = Mode.Stalk; lostTimer = 0;
+                if (bestD < catchRadius) { onCatch?.Invoke(best); enabled = false; return; }
+                MoveAlongField(best.position, stalkSpeed * Mathf.Lerp(0.85f, 1.3f, Mathf.InverseLerp(3f, 20f, bestD)), dt);
+                return;
+            }
             if (mode == Mode.Dormant || mode == Mode.Wander)
             {
                 if ((los && bestD < noticeRange) || bestD < 4f)
@@ -392,7 +424,7 @@ namespace Address.Entities
             {
                 float want = mode == Mode.Dormant ? 0.15f : active ? 0.9f : 0.4f;
                 drone.volume = Mathf.MoveTowards(drone.volume, want, dt * 0.6f);
-                drone.pitch = SeenNow ? 0.82f : 1f + 0.04f * generation;
+                drone.pitch = Enraged ? 1.35f : SeenNow ? 0.82f : 1f + 0.04f * generation;
             }
         }
 
@@ -409,7 +441,7 @@ namespace Address.Entities
             if (head)
             {
                 float tilt = (SeenNow ? 8f : 28f) + generation * 6f;
-                if (kind == EntityKind.Mannequin) return;          // a mannequin never moves its head on its own
+                if (kind == EntityKind.Mannequin || shy) return;   // a mannequin never moves its head on its own
                 if (!anim) head.localRotation = head0;             // animated bodies: tilt on top of the animation
                 head.rotation = Quaternion.AngleAxis(tilt, transform.forward) * Quaternion.AngleAxis(SeenNow ? -12f : 6f, transform.right) * head.rotation;
             }

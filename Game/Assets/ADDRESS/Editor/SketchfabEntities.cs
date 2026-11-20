@@ -32,6 +32,12 @@ namespace Address.EditorTools
             ("librarian.fbx",   "Librarian",   false, 2.9f,  0f, "Idle",              "Idle",                 "Idle"),
             ("deathmoth.fbx",   "Deathmoth",   false, 0.6f,  0f, "fly",               "fly",                  "fly"),
             ("verity.fbx",      "Verity",      false, 0.7f,  0f, "root_10|idle",      "root_10|walk",         "root_10|talk"),
+            // v0.16
+            ("spider.fbx",       "Spider",  false, 1.15f, 180f, "Armature|Idle",   "Armature|Walking", "Armature|Walking"),
+            ("manthing.fbx",     "Thinman", false, 3.0f,  0f, "Walk",            "Walk",             "Walk"),
+            ("yellowape.fbx",    "Grinner", false, 1.45f, 0f, "Walk",            "Walk",             "Walk"),
+            ("shyguy.fbx",       "Shy",     false, 2.45f, 0f, "idle_floor",      "walk2",            "attackrun"),
+            ("magmahound.fbx",   "Ember",   false, 1.05f, 0f, "Idle",            "Walk",             "Walk"),
         };
 
         public static void Build()
@@ -105,7 +111,9 @@ namespace Address.EditorTools
                 var an = inst.GetComponent<Animator>() ?? inst.AddComponent<Animator>();
                 an.avatar = av; an.applyRootMotion = false; an.cullingMode = AnimatorCullingMode.AlwaysAnimate; an.runtimeAnimatorController = oc;
                 // generic rigs: measure the posed body (their clips can move the root far from the rest pose)
-                if (!m.human && picks[0]) picks[0].SampleAnimation(inst, Mathf.Min(0.3f, picks[0].length * 0.5f));
+                bool lowIdle = m.kind == "Shy";   // sits / kneels when idle: measure the walk
+                var measure = lowIdle ? picks[1] : picks[0];
+                if (!m.human && measure) measure.SampleAnimation(inst, Mathf.Min(0.3f, measure.length * 0.5f));
                 var b = Bounds(inst);
                 float s = m.height / Mathf.Max(0.01f, b.size.y);
                 inst.transform.localScale *= s;
@@ -129,7 +137,7 @@ namespace Address.EditorTools
                 }
                 b = Bounds(inst);
                 Debug.Log($"[ADDRESS] Model_{m.kind}: scale {s:F3} bounds {b.min} .. {b.max} renderers {inst.GetComponentsInChildren<Renderer>().Length} mats {string.Join(",", inst.GetComponentsInChildren<Renderer>().SelectMany(r => r.sharedMaterials).Where(x => x).Select(x => x.name + ":" + x.shader.name + ":" + (x.mainTexture ? x.mainTexture.name : "-")).Distinct())}");
-                if (m.kind != "Verity") root.AddComponent<Address.Entities.FitHeight>().height = m.height;   // re-measured in play (see FitHeight)
+                if (m.kind != "Verity" && !lowIdle) root.AddComponent<Address.Entities.FitHeight>().height = m.height;   // re-measured in play (see FitHeight)
                 PrefabUtility.SaveAsPrefabAsset(root, R + "Model_" + m.kind + ".prefab");
                 Object.DestroyImmediate(root);
             }

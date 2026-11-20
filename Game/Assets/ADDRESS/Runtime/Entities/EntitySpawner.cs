@@ -14,7 +14,7 @@ namespace Address.Entities
     /// </summary>
     // Smiler, Skin Stealer, Partygoer, Growlers, Needlelimbs and the distorted Captain Clark are downloaded CC-BY Sketchfab
     // models (Resources/Entities/Model_<Kind>, credits in ThirdParty/Sketchfab/CREDITS.txt).
-    public enum EntityKind { Echo, Salesman, Crawler, Mannequin, Limper, Smiler, Faceling, Partygoer, SkinStealer, Clark, Growler, Needlelimbs, Howler, Lifeform, Hazmat, Hound, Rake, Librarian, Deathmoth }
+    public enum EntityKind { Echo, Salesman, Crawler, Mannequin, Limper, Smiler, Faceling, Partygoer, SkinStealer, Clark, Growler, Needlelimbs, Howler, Lifeform, Hazmat, Hound, Rake, Librarian, Deathmoth, Spider, Thinman, Grinner, Shy, Ember }
 
     public static class EntitySpawner
     {
@@ -22,21 +22,21 @@ namespace Address.Entities
         static EntityKind PickKind(LevelBuilder.Result level, Rng rng)
         {
             var opts = new List<EntityKind>();
-            if (level.aesthetic == "PG") { opts.AddRange(new[] { EntityKind.Crawler, EntityKind.Limper, EntityKind.Echo, EntityKind.Smiler, EntityKind.Smiler, EntityKind.Growler, EntityKind.Growler, EntityKind.SkinStealer, EntityKind.Hound, EntityKind.Rake }); return opts[rng.Range(0, opts.Count)]; }
-            if (level.aesthetic == "HT") { opts.AddRange(new[] { EntityKind.Mannequin, EntityKind.Salesman, EntityKind.Echo, EntityKind.Partygoer, EntityKind.Partygoer, EntityKind.Faceling, EntityKind.Needlelimbs, EntityKind.Needlelimbs, EntityKind.Clark, EntityKind.Rake }); return opts[rng.Range(0, opts.Count)]; }
-            if (level.aesthetic == "PD") { opts.AddRange(new[] { EntityKind.Howler, EntityKind.Howler, EntityKind.Lifeform, EntityKind.Growler, EntityKind.Hazmat, EntityKind.Deathmoth }); return opts[rng.Range(0, opts.Count)]; }
-            if (level.aesthetic == "WH") { opts.AddRange(new[] { EntityKind.Lifeform, EntityKind.Lifeform, EntityKind.Howler, EntityKind.SkinStealer, EntityKind.Crawler, EntityKind.Hazmat, EntityKind.Hound, EntityKind.Deathmoth }); return opts[rng.Range(0, opts.Count)]; }
-            if (level.aesthetic == "LO") { opts.AddRange(new[] { EntityKind.Smiler, EntityKind.Smiler, EntityKind.Smiler, EntityKind.Crawler, EntityKind.Howler, EntityKind.Rake, EntityKind.Rake }); return opts[rng.Range(0, opts.Count)]; }
-            if (level.aesthetic == "EL") { opts.AddRange(new[] { EntityKind.Hazmat, EntityKind.Howler, EntityKind.Lifeform, EntityKind.Clark }); return opts[rng.Range(0, opts.Count)]; }
-            if (level.aesthetic == "CV") { opts.AddRange(new[] { EntityKind.Rake, EntityKind.Rake, EntityKind.Hound, EntityKind.Hound, EntityKind.Deathmoth, EntityKind.Crawler }); return opts[rng.Range(0, opts.Count)]; }
-            if (level.aesthetic == "RN") { opts.AddRange(new[] { EntityKind.Hound, EntityKind.Partygoer, EntityKind.Rake, EntityKind.Growler, EntityKind.SkinStealer }); return opts[rng.Range(0, opts.Count)]; }
+            if (level.aesthetic == "PG") { opts.AddRange(new[] { EntityKind.Crawler, EntityKind.Limper, EntityKind.Echo, EntityKind.Smiler, EntityKind.Smiler, EntityKind.Growler, EntityKind.Growler, EntityKind.SkinStealer, EntityKind.Hound, EntityKind.Rake, EntityKind.Spider, EntityKind.Grinner }); return opts[rng.Range(0, opts.Count)]; }
+            if (level.aesthetic == "HT") { opts.AddRange(new[] { EntityKind.Mannequin, EntityKind.Salesman, EntityKind.Echo, EntityKind.Partygoer, EntityKind.Partygoer, EntityKind.Faceling, EntityKind.Needlelimbs, EntityKind.Needlelimbs, EntityKind.Clark, EntityKind.Rake, EntityKind.Thinman }); return opts[rng.Range(0, opts.Count)]; }
+            if (level.aesthetic == "PD") { opts.AddRange(new[] { EntityKind.Howler, EntityKind.Howler, EntityKind.Lifeform, EntityKind.Growler, EntityKind.Hazmat, EntityKind.Deathmoth, EntityKind.Spider, EntityKind.Ember }); return opts[rng.Range(0, opts.Count)]; }
+            if (level.aesthetic == "WH") { opts.AddRange(new[] { EntityKind.Lifeform, EntityKind.Lifeform, EntityKind.Howler, EntityKind.SkinStealer, EntityKind.Crawler, EntityKind.Hazmat, EntityKind.Hound, EntityKind.Deathmoth, EntityKind.Spider, EntityKind.Grinner }); return opts[rng.Range(0, opts.Count)]; }
+            if (level.aesthetic == "LO") { opts.AddRange(new[] { EntityKind.Smiler, EntityKind.Smiler, EntityKind.Smiler, EntityKind.Crawler, EntityKind.Howler, EntityKind.Rake, EntityKind.Rake, EntityKind.Thinman }); return opts[rng.Range(0, opts.Count)]; }
+            if (level.aesthetic == "EL") { opts.AddRange(new[] { EntityKind.Hazmat, EntityKind.Howler, EntityKind.Lifeform, EntityKind.Clark, EntityKind.Ember, EntityKind.Ember }); return opts[rng.Range(0, opts.Count)]; }
+            if (level.aesthetic == "CV") { opts.AddRange(new[] { EntityKind.Rake, EntityKind.Rake, EntityKind.Hound, EntityKind.Hound, EntityKind.Deathmoth, EntityKind.Crawler, EntityKind.Spider, EntityKind.Spider, EntityKind.Ember }); return opts[rng.Range(0, opts.Count)]; }
+            if (level.aesthetic == "RN") { opts.AddRange(new[] { EntityKind.Hound, EntityKind.Partygoer, EntityKind.Rake, EntityKind.Growler, EntityKind.SkinStealer, EntityKind.Grinner, EntityKind.Ember }); return opts[rng.Range(0, opts.Count)]; }
             if (level.aesthetic == "FL") { opts.AddRange(new[] { EntityKind.Smiler, EntityKind.Deathmoth, EntityKind.Deathmoth, EntityKind.Lifeform, EntityKind.Echo }); return opts[rng.Range(0, opts.Count)]; }
-            if (level.aesthetic == "LB") { opts.AddRange(new[] { EntityKind.Librarian, EntityKind.Librarian, EntityKind.Librarian, EntityKind.Smiler }); return opts[rng.Range(0, opts.Count)]; }
+            if (level.aesthetic == "LB") { opts.AddRange(new[] { EntityKind.Librarian, EntityKind.Librarian, EntityKind.Librarian, EntityKind.Smiler, EntityKind.Thinman, EntityKind.Shy }); return opts[rng.Range(0, opts.Count)]; }
             if (level.aesthetic == "LA") { opts.AddRange(new[] { EntityKind.Hazmat, EntityKind.Hazmat, EntityKind.Hazmat, EntityKind.SkinStealer, EntityKind.Clark, EntityKind.Howler }); return opts[rng.Range(0, opts.Count)]; }
-            if (level.aesthetic == "OF") { opts.AddRange(new[] { EntityKind.Clark, EntityKind.Clark, EntityKind.Needlelimbs, EntityKind.Salesman, EntityKind.Echo, EntityKind.SkinStealer, EntityKind.Faceling, EntityKind.Hazmat }); return opts[rng.Range(0, opts.Count)]; }
+            if (level.aesthetic == "OF") { opts.AddRange(new[] { EntityKind.Clark, EntityKind.Clark, EntityKind.Needlelimbs, EntityKind.Salesman, EntityKind.Echo, EntityKind.SkinStealer, EntityKind.Faceling, EntityKind.Hazmat, EntityKind.Shy, EntityKind.Thinman }); return opts[rng.Range(0, opts.Count)]; }
             if (level.aesthetic == "LF") { opts.AddRange(new[] { EntityKind.Partygoer, EntityKind.Partygoer, EntityKind.Partygoer, EntityKind.Partygoer, EntityKind.Smiler }); return opts[rng.Range(0, opts.Count)]; }
-            if (level.aesthetic == "PR") { opts.AddRange(new[] { EntityKind.Mannequin, EntityKind.Mannequin, EntityKind.Limper, EntityKind.Echo, EntityKind.Needlelimbs }); return opts[rng.Range(0, opts.Count)]; }
-            opts.AddRange(new[] { EntityKind.Echo, EntityKind.Echo, EntityKind.Limper, EntityKind.Mannequin, EntityKind.Faceling, EntityKind.Partygoer, EntityKind.Partygoer, EntityKind.SkinStealer, EntityKind.SkinStealer, EntityKind.Clark, EntityKind.Howler, EntityKind.Lifeform, EntityKind.Hound, EntityKind.Hazmat, EntityKind.Deathmoth });
+            if (level.aesthetic == "PR") { opts.AddRange(new[] { EntityKind.Mannequin, EntityKind.Mannequin, EntityKind.Limper, EntityKind.Echo, EntityKind.Needlelimbs, EntityKind.Shy }); return opts[rng.Range(0, opts.Count)]; }
+            opts.AddRange(new[] { EntityKind.Echo, EntityKind.Echo, EntityKind.Limper, EntityKind.Mannequin, EntityKind.Faceling, EntityKind.Partygoer, EntityKind.Partygoer, EntityKind.SkinStealer, EntityKind.SkinStealer, EntityKind.Clark, EntityKind.Howler, EntityKind.Lifeform, EntityKind.Hound, EntityKind.Hazmat, EntityKind.Deathmoth, EntityKind.Shy, EntityKind.Grinner, EntityKind.Grinner, EntityKind.Thinman });
             var rooms = level.layout?.rooms;
             if (rooms != null && rooms.Exists(r => r.kind == "showroom")) opts.AddRange(new[] { EntityKind.Salesman, EntityKind.Salesman, EntityKind.Salesman });
             if (rooms != null && rooms.Exists(r => r.dark)) opts.AddRange(new[] { EntityKind.Crawler, EntityKind.Crawler, EntityKind.Smiler, EntityKind.Smiler, EntityKind.Smiler });
@@ -51,7 +51,7 @@ namespace Address.Entities
                 var p = level.nav.Center(c.x, c.y, 0);
                 foreach (var r in rooms)
                 {
-                    bool home = kind == EntityKind.Salesman ? r.kind == "showroom" : kind == EntityKind.Crawler || kind == EntityKind.Smiler || kind == EntityKind.Growler ? r.dark : false;
+                    bool home = kind == EntityKind.Salesman ? r.kind == "showroom" : kind == EntityKind.Crawler || kind == EntityKind.Smiler || kind == EntityKind.Growler || kind == EntityKind.Shy ? r.dark : false;
                     if (home && r.World.Contains(new Vector2(p.x, p.z))) { res.Add(c); break; }
                 }
             }

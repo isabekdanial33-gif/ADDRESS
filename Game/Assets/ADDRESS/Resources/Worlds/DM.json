@@ -1,0 +1,60 @@
+{
+  "id": "DM",
+  "title": "Мёртвый торговый центр",
+  "level": "Dead Mall",
+  "about": "Плиточный пол, пустые витрины и манекены. Музыка из колонок давно замолчала, а свет почему-то горит.",
+  "layout": "halls",
+  "doorShare": 0.2,
+  "kinds": [
+    "showroom",
+    "showroom",
+    "pillars",
+    "empty",
+    "lounge"
+  ],
+  "wall": "PaintedPlaster017",
+  "wallTint": [
+    0.95,
+    0.93,
+    0.9
+  ],
+  "floor": "Tiles074",
+  "ceiling": "OfficeCeiling005",
+  "lightColor": [
+    1,
+    0.96,
+    0.9
+  ],
+  "lightIntensity": 2.6,
+  "lightRange": 9,
+  "deadShare": 0.12,
+  "flickerShare": 0.05,
+  "ambient": [
+    0.14,
+    0.14,
+    0.15
+  ],
+  "fogColor": [
+    0.36,
+    0.36,
+    0.38
+  ],
+  "fogDensity": 0.016,
+  "gradeSaturation": -18,
+  "gradeContrast": 10,
+  "gradeTemperature": -2,
+  "entities": [
+    "Mannequin",
+    "Mannequin",
+    "Salesman",
+    "Thinman"
+  ],
+  "entityChance": 0.5,
+  "music": "calm",
+  "weight": 0.022,
+  "floorTint": [
+    0.98,
+    0.94,
+    0.86
+  ]
+}

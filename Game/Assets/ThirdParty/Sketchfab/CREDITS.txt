@@ -18,3 +18,11 @@ v0.13 (all from Sketchfab, licence as listed on the model page):
 - deathmoth.fbx   "Giant Peacock Moth" by eb78 (E.A.Cornell), CC BY 4.0 - https://sketchfab.com/3d-models/giant-peacock-moth-a4192a5a1c7746b6bf2695b043ada92f
 - hazmat.fbx      "Backrooms Rigged Hazmat" by Loco (Loco420), CC BY 4.0 - https://sketchfab.com/3d-models/backrooms-rigged-hazmat-64d0069ed0cc420d8b3158ab8a3e6405
 Verity voice blips: Kenney "Interface Sounds", CC0 (Resources/VeritySfx).
+
+v0.16 (all from Sketchfab, CC BY 4.0 as listed on the model page):
+- spider.fbx       "Hybrid_Spider_Animated" by R-LAB (@rakshaan) - https://sketchfab.com/3d-models/hybrid-spider-animated-505b631084cf498c978f6448705adb79
+- manthing.fbx     "ManThing" by Shedmon (@shedmon) - https://sketchfab.com/3d-models/manthing-afad51522f28489aa4ce7f50caf0cf66
+- yellowape.fbx    "backrooms monster 01" by Phil (@PhillWP) - https://sketchfab.com/3d-models/backrooms-monster-01-830e282b44ae4229aeb5bf314d2c1c71
+- shyguy.fbx       "SCP-096 Reanimated" by Sealife Fan 3 (@SealifeFan3) - https://sketchfab.com/3d-models/scp-096-reanimated-9e0b35c9485d4b51864a232e9653cc3a
+- magmahound.fbx   "Infernal Magma Hound - Free Lava Creature Asset" by Yury Misiyuk (@Tim0) - https://sketchfab.com/3d-models/infernal-magma-hound-free-lava-creature-asset-bd8290074df34eb99f174edb176fcc46
+Textures: ambientCG (CC0) Bricks075A, Marble006, WoodFloor051, Tiles040, Wallpaper001C.

@@ -192,3 +192,17 @@ Reference: Backrooms (A24, 2026, Kane Parsons) — failing furniture showroom (C
   physics settle), Лаборатория Async (LA).
 - Dropped: "Wooden Horror Stalker" (Tripo AI rig lies sideways: invisible in play), cooklittlelambs hazmat (mesh far
   from its skeleton). Not verified: live chases with the new kinds, their sounds, Android. Library takes ~13-16 s to build.
+
+## v0.16 (2026-11-20)
+- New creatures (Sketchfab CC BY, Tools/blender/inspect_anim.py renders every take before choosing):
+  Spider (rakshaan, yaw 180), Thinman (ManThing by Shedmon, 3 m, freezes when seen), Grinner (backrooms monster 01 by PhillWP),
+  Shy (SCP-096 Reanimated by SealifeFan3: sits and weeps; looked at -> 3.2 s scream -> hunts that player and never gives up),
+  Ember (Infernal Magma Hound by Tim0). Rejected: Finger Maiden (an unreadable lump in play), Wretch (one 754-frame take that
+  turns the body around), Maw/Flesh Blob/Black Monster (no walk), Phantom ghoul, Still Life FF3, Attic ghost, One-eyed (cute).
+  Sketchfab download: the API's archive URL only downloads via a real click on the dialog's GLB button (JS/iframe downloads are blocked).
+- New data worlds: GR Grassrooms, PK Pinkrooms, DM Dead Mall, TE Level 3999 (white, no entities, rare), TH Level 7
+  Thalassophobia, BS Level -1 basement (spiders), BK stone corridors. New ambientCG: Bricks075A, Marble006 (unused: too blue),
+  WoodFloor051, Tiles040, Wallpaper001C.
+- `-gametest` (silent): ritual (music + 2 servants -> survive -> other world), NOCLIP/GODMODE/MOTHERLODE, third strike ->
+  YOU CHEATED, a Spider catches you -> next Echo. All pass. Fixed: cheat effects did nothing without a keyboard (touch);
+  SKIPLEVEL + third strike could start two trips at once; ritual could "end" instantly when the music source never plays.

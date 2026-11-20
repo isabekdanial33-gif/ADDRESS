@@ -1,0 +1,63 @@
+{
+  "id": "PK",
+  "title": "Розовые комнаты",
+  "level": "Pinkrooms",
+  "about": "Те же бесконечные комнаты, только розовые и тусклые. Где-то плачут. Не ходи на звук.",
+  "layout": "rooms",
+  "doorShare": 0.5,
+  "kinds": [
+    "empty",
+    "empty",
+    "wrong",
+    "dump",
+    "corridor"
+  ],
+  "wall": "Wallpaper001C",
+  "wallTint": [
+    1.0,
+    0.72,
+    0.8
+  ],
+  "floor": "Carpet016",
+  "floorTint": [
+    0.85,
+    0.55,
+    0.62
+  ],
+  "ceiling": "OfficeCeiling001",
+  "ceilTint": [
+    1.0,
+    0.88,
+    0.9
+  ],
+  "lightColor": [
+    1,
+    0.78,
+    0.86
+  ],
+  "lightIntensity": 1.7,
+  "deadShare": 0.22,
+  "flickerShare": 0.12,
+  "ambient": [
+    0.09,
+    0.06,
+    0.07
+  ],
+  "fogColor": [
+    0.3,
+    0.2,
+    0.24
+  ],
+  "fogDensity": 0.03,
+  "gradeSaturation": -4,
+  "gradeContrast": 16,
+  "gradeTemperature": 4,
+  "entities": [
+    "Shy",
+    "Shy",
+    "Partygoer"
+  ],
+  "entityChance": 0.6,
+  "music": "dark",
+  "weight": 0.018
+}

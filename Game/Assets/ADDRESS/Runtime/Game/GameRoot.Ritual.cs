@@ -21,7 +21,7 @@ namespace Address.Game
         enum Rite { None, Clapping, Mock, Punch, Eyes, Music }
         Rite rite = Rite.None; int claps; float riteT; AudioSource riteMusic; int ritesDone; float lastRiteTime = -999f;
         public static int CheatStrikes;
-        float godUntil, speedUntil, noclipUntil; string typed = "";
+        float godUntil, speedUntil, noclipUntil; string typed = ""; bool sendingAway;
         static AudioClip clapClip, thudClip;
 
         void TickRitual()
@@ -69,7 +69,7 @@ namespace Address.Game
                         float k = Mathf.Clamp01(riteMusic.time / Mathf.Max(1f, riteMusic.clip.length));
                         riteMusic.pitch = Mathf.Lerp(1f, 1.45f, k * k);
                         Address.Entities.Stalker.GlobalSpeedMul = Mathf.Lerp(1f, 1.9f, k);
-                        if (!riteMusic.isPlaying || riteT > 160f) { EndRitual(true); }
+                        if ((!riteMusic.isPlaying && riteT > 5f) || riteT > 160f) { EndRitual(true); }
                     }
                     break;
             }
@@ -118,12 +118,25 @@ namespace Address.Game
 
         void TickCheats()
         {
-            var kb = Keyboard.current; if (kb == null || level == null) return;
-            for (var k = Key.A; k <= Key.Z; k++)
-                if (kb[k].wasPressedThisFrame) { typed += (char)('A' + (k - Key.A)); if (typed.Length > 12) typed = typed.Substring(typed.Length - 12); }
-            string Hit(params string[] codes) { foreach (var c in codes) if (typed.EndsWith(c)) { typed = ""; return c; } return null; }
-            var code = Hit("NOCLIP", "GODMODE", "SKIPLEVEL", "SPEEDY", "MOTHERLODE");
-            if (code != null)
+            if (level == null) return;
+            var kb = Keyboard.current;
+            if (kb != null)
+            {
+                for (var k = Key.A; k <= Key.Z; k++)
+                    if (kb[k].wasPressedThisFrame) { typed += (char)('A' + (k - Key.A)); if (typed.Length > 12) typed = typed.Substring(typed.Length - 12); }
+                string Hit(params string[] codes) { foreach (var c in codes) if (typed.EndsWith(c)) { typed = ""; return c; } return null; }
+                var code = Hit("NOCLIP", "GODMODE", "SKIPLEVEL", "SPEEDY", "MOTHERLODE");
+                if (code != null) Cheat(code);
+            }
+            // effects
+            bool noclip = Time.time < noclipUntil;
+            Physics.IgnoreLayerCollision(player.layer, LevelBuilder.ArchLayer, noclip);
+            fpc.gravity = noclip ? 0f : 18f;
+            fpc.speedMultiplier = Time.time < speedUntil ? 2f : grab.Pushing ? fpc.speedMultiplier : 1f;
+        }
+
+        void Cheat(string code)
+        {
             {
                 switch (code)
                 {
@@ -138,11 +151,6 @@ namespace Address.Game
                 }
                 Strike("чит " + code);
             }
-            // effects
-            bool noclip = Time.time < noclipUntil;
-            Physics.IgnoreLayerCollision(player.layer, LevelBuilder.ArchLayer, noclip);
-            fpc.gravity = noclip ? 0f : 18f;
-            fpc.speedMultiplier = Time.time < speedUntil ? 2f : grab.Pushing ? fpc.speedMultiplier : 1f;
         }
 
         bool GodMode => Time.time < godUntil;
@@ -152,20 +160,72 @@ namespace Address.Game
         {
             CheatStrikes++;
             Debug.Log($"[ADDRESS] cheat strike {CheatStrikes}: {why}");
-            if (CheatStrikes >= 3 && level != null && level.aesthetic != "YC") StartCoroutine(SentToCheated());
+            if (CheatStrikes >= 3 && level != null && level.aesthetic != "YC" && !sendingAway) { sendingAway = true; StartCoroutine(SentToCheated()); }
             else if (CheatStrikes == 2) hud.Say("???", "Мы видим, что ты делаешь.", 3f);
+        }
+
+        /// <summary>-gametest: the ritual, the cheats, YOU CHEATED and being caught, played through without a keyboard.</summary>
+        IEnumerator GameTest()
+        {
+            yield return new WaitUntil(() => !travelling && level != null);
+            Play(new LevelAddress("BR", Hashing.Fnv64("game test")));
+            yield return new WaitForSeconds(0.3f); yield return new WaitUntil(() => !travelling); yield return new WaitForSeconds(0.5f);
+            var a0 = level.address;
+            Debug.Log($"[ADDRESS] gametest: start {a0} state {state}");
+            // 1. the ritual: eyes closed -> the King's music -> his servants come -> survive -> another place
+            rite = Rite.Eyes; StartCoroutine(CloseEyes());
+            yield return new WaitForSeconds(3.8f);
+            Debug.Log($"[ADDRESS] gametest ritual: rite {rite} music {(riteMusic && riteMusic.clip ? riteMusic.clip.name : "none")} servants {entities.Count(e => e && (e.kind == Address.Entities.EntityKind.Hound || e.kind == Address.Entities.EntityKind.Rake))}");
+            if (rite == Rite.Music) EndRitual(true);
+            yield return new WaitForSeconds(0.3f); yield return new WaitUntil(() => !travelling); yield return new WaitForSeconds(0.3f);
+            Debug.Log($"[ADDRESS] gametest ritual survived: {a0} -> {level.address} speedMul {Address.Entities.Stalker.GlobalSpeedMul}");
+            // 2. cheats
+            int s0 = CheatStrikes;
+            Cheat("NOCLIP"); yield return null; yield return null;
+            Debug.Log($"[ADDRESS] gametest NOCLIP: walls ignored {Physics.GetIgnoreLayerCollision(player.layer, LevelBuilder.ArchLayer)} gravity {fpc.gravity} strikes {CheatStrikes}");
+            Cheat("GODMODE"); yield return null;
+            Debug.Log($"[ADDRESS] gametest GODMODE: {GodMode} strikes {CheatStrikes}");
+            int cab = pockets.cables; Cheat("MOTHERLODE"); yield return null;
+            Debug.Log($"[ADDRESS] gametest MOTHERLODE: cables {cab} -> {pockets.cables} strikes {CheatStrikes}");
+            // the third strike: off to YOU CHEATED
+            yield return new WaitForSeconds(0.9f); yield return new WaitUntil(() => !travelling); yield return new WaitForSeconds(0.5f);
+            Debug.Log($"[ADDRESS] gametest strikes {s0}->3: now in {level.address} ({level.aesthetic}) strikes reset {CheatStrikes} noclip {Physics.GetIgnoreLayerCollision(player.layer, LevelBuilder.ArchLayer)} entities {entities.Count}");
+            {
+                var dir = System.IO.Path.Combine(Application.dataPath, "..", "shots"); System.IO.Directory.CreateDirectory(dir);
+                var rt = new RenderTexture(1280, 720, 24); var tex = new Texture2D(1280, 720, TextureFormat.RGB24, false);
+                cam.targetTexture = rt; cam.Render(); cam.targetTexture = null;
+                RenderTexture.active = rt; tex.ReadPixels(new Rect(0, 0, 1280, 720), 0, 0); tex.Apply(); RenderTexture.active = null;
+                System.IO.File.WriteAllBytes(System.IO.Path.Combine(dir, "95_you_cheated.png"), tex.EncodeToPNG());
+            }
+            // 3. caught: a creature right next to you -> wake in the next Echo of the place
+            godUntil = 0;
+            StartCoroutine(Enter(new LevelAddress("BS", Hashing.Fnv64("game test catch")), null));
+            yield return new WaitForSeconds(0.3f); yield return new WaitUntil(() => !travelling); yield return new WaitForSeconds(0.5f);
+            foreach (var e0 in entities) if (e0) Destroy(e0.gameObject);
+            entities.Clear();
+            var before = level.address;
+            var fwd = Quaternion.Euler(0, fpc.transform.eulerAngles.y, 0) * Vector3.forward;
+            var sp = Address.Entities.EntitySpawner.SpawnKind(level, config.bodyPrefab, Address.Entities.EntityKind.Spider, player.transform.position + fwd * 3f, Quaternion.LookRotation(-fwd), null);
+            sp.wakeDelay = 0; sp.targets = EntityTargets; sp.isLookedAtBy = LooksAt(sp); sp.onCatch = _ => Caught(sp); entities.Add(sp);
+            float tw = 0; while (level.address.Equals(before) && tw < 15f) { tw += Time.deltaTime; yield return null; }
+            yield return new WaitUntil(() => !travelling); yield return new WaitForSeconds(0.4f);
+            Debug.Log($"[ADDRESS] gametest caught after {tw:F1}s: {before} -> {level.address} (generation {before.Generation} -> {level.address.Generation})");
+            Debug.Log("[ADDRESS] gametest done");
+            Application.Quit();
         }
 
         IEnumerator SentToCheated()
         {
-            travelling = true;
             yield return new WaitForSeconds(0.8f);
+            yield return new WaitUntil(() => !travelling);
+            travelling = true;
             noclipUntil = 0; godUntil = 0; speedUntil = 0;
             Physics.IgnoreLayerCollision(player.layer, LevelBuilder.ArchLayer, false); fpc.gravity = 18f;
             if (riteMusic) riteMusic.Stop(); rite = Rite.None; Address.Entities.Stalker.GlobalSpeedMul = 1f;
+            travelling = false;
             yield return Enter(new LevelAddress("YC", Hashing.Combine(Hashing.Fnv64("you cheated"), (ulong)System.DateTime.Now.Ticks)), level?.address);
             hud.Toast("ТЫ СЧИТЕРИЛ", "кто-то идёт");
-            CheatStrikes = 0;
+            CheatStrikes = 0; sendingAway = false;
         }
     }
 }

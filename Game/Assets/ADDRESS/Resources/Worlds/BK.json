@@ -1,0 +1,57 @@
+{
+  "id": "BK",
+  "title": "Каменные коридоры",
+  "level": "Stonerooms",
+  "about": "Узкие коридоры из старой каменной кладки и скрипучий паркет. Потолок низкий, повороты всё чаще.",
+  "layout": "rooms",
+  "roomMin": 2.4,
+  "roomMax": 7,
+  "doorShare": 0.7,
+  "kinds": [
+    "corridor",
+    "corridor",
+    "empty",
+    "wrong",
+    "storage"
+  ],
+  "height": 2.6,
+  "wall": "Bricks075A",
+  "floor": "WoodFloor051",
+  "ceiling": "Plaster001",
+  "ceilTint": [
+    0.8,
+    0.76,
+    0.7
+  ],
+  "lightColor": [
+    1,
+    0.82,
+    0.6
+  ],
+  "lightIntensity": 1.9,
+  "lightRange": 7,
+  "deadShare": 0.15,
+  "flickerShare": 0.1,
+  "ambient": [
+    0.07,
+    0.05,
+    0.04
+  ],
+  "fogColor": [
+    0.2,
+    0.14,
+    0.1
+  ],
+  "fogDensity": 0.03,
+  "gradeSaturation": -6,
+  "gradeContrast": 14,
+  "gradeTemperature": 10,
+  "entities": [
+    "Thinman",
+    "Grinner",
+    "Clark"
+  ],
+  "entityChance": 0.5,
+  "music": "dark",
+  "weight": 0.02
+}

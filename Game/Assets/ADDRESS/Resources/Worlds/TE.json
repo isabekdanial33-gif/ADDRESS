@@ -1,0 +1,48 @@
+{
+  "id": "TE",
+  "title": "Истинный конец",
+  "level": "Level 3999",
+  "about": "Огромный белый зал, мягкий свет и тишина. Говорят, отсюда можно проснуться. Или это только кажется.",
+  "layout": "vast",
+  "size": 44,
+  "wall": "Plaster001",
+  "wallTint": [
+    1,
+    1,
+    1
+  ],
+  "floor": "Plaster001",
+  "floorTint": [
+    0.96,
+    0.96,
+    0.97
+  ],
+  "ceiling": "Plaster001",
+  "lightColor": [
+    1,
+    1,
+    1
+  ],
+  "lightIntensity": 3.2,
+  "lightRange": 12,
+  "deadShare": 0,
+  "flickerShare": 0,
+  "ambient": [
+    0.45,
+    0.45,
+    0.46
+  ],
+  "fogColor": [
+    0.95,
+    0.95,
+    0.96
+  ],
+  "fogDensity": 0.02,
+  "gradeSaturation": -30,
+  "gradeContrast": -6,
+  "gradeExposure": 0.3,
+  "entities": [],
+  "entityChance": 0,
+  "music": "calm",
+  "weight": 0.006
+}
