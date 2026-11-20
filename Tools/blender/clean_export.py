@@ -1,7 +1,7 @@
 # blender -b --python clean_export.py -- <in> <out.fbx> [keep_unskinned=0]
 # Imports a downloaded creature, keeps only the armature(s) + meshes deformed by them, prints bone names, height,
 # actions, and exports FBX (all actions as takes, embedded textures).
-import bpy, sys, os
+import bpy, sys, os, mathutils
 args = sys.argv[sys.argv.index('--') + 1:]
 src, out = args[0], args[1]
 keep_unskinned = len(args) > 2 and args[2] == '1'
@@ -30,6 +30,19 @@ for o in bpy.data.objects:
     try: o.hide_set(False); o.hide_viewport = False; o.hide_render = False
     except Exception: pass
 bpy.context.view_layer.update()
+for o in list(bpy.data.objects):
+    if o.type == 'MESH' and o.name.startswith('Icosphere'): bpy.data.objects.remove(o, do_unlink=True)
+# ATTACH=1: rigid parts (a head on an empty) ride on the nearest bone, so they follow the animation
+if os.environ.get('ATTACH') == '1' and arms:
+    a = arms[0]
+    for o in list(bpy.data.objects):
+        if o.type != 'MESH' or skinned(o): continue
+        c = o.matrix_world @ (sum((mathutils.Vector(v) for v in o.bound_box), mathutils.Vector()) / 8)
+        named = [b for b in a.data.bones if 'head' in b.name.lower() and 'end' not in b.name.lower()] or [b for b in a.data.bones if 'neck' in b.name.lower()]
+        best = min(named or list(a.data.bones), key=lambda b: ((a.matrix_world @ b.head_local) - c).length)
+        mw = o.matrix_world.copy(); o.parent = a; o.parent_type = 'BONE'; o.parent_bone = best.name
+        bpy.context.view_layer.update(); o.matrix_world = mw
+        print('ATTACHED', o.name, '->', best.name)
 dec = float(os.environ.get('DECIMATE', '0') or 0)
 if dec > 0:
     for o in bpy.data.objects:

@@ -175,8 +175,10 @@ namespace Address.EditorTools
                 var u = rs[0].bounds; foreach (var r in rs) u.Encapsulate(r.bounds); return u;
             }
             Renderer best = rs[0]; int bv = -1;
+            bool anySkinned = rs.Any(r => r is SkinnedMeshRenderer);
             foreach (var r in rs)
             {
+                if (anySkinned && !(r is SkinnedMeshRenderer)) continue;   // a rigid head must not set the size
                 int v = r is SkinnedMeshRenderer s ? (s.sharedMesh ? s.sharedMesh.vertexCount : 0) : r.GetComponent<MeshFilter>() is MeshFilter f && f.sharedMesh ? f.sharedMesh.vertexCount : 0;
                 if (v > bv) { bv = v; best = r; }
             }

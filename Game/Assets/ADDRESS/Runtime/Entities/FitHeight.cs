@@ -36,9 +36,10 @@ namespace Address.Entities
         {
             b = default;
             Renderer best = null; int bv = -1;
+            bool anySkinned = GetComponentInChildren<SkinnedMeshRenderer>();
             foreach (var r in GetComponentsInChildren<Renderer>())
             {
-                if (!r.enabled) continue;
+                if (!r.enabled || anySkinned && !(r is SkinnedMeshRenderer)) continue;
                 int v = r is SkinnedMeshRenderer s ? (s.sharedMesh ? s.sharedMesh.vertexCount : 0) : r.GetComponent<MeshFilter>() is MeshFilter f && f.sharedMesh ? f.sharedMesh.vertexCount : 0;
                 if (v > bv) { bv = v; best = r; }
             }
