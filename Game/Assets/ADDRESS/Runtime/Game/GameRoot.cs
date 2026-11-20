@@ -599,9 +599,10 @@ namespace Address.Game
             float of = form == ExitForm.HandlelessDoor ? 0.12f : 0.06f, lf = form == ExitForm.VentHatch ? 0.08f : 0.04f;
             if (current == "OF") of += 0.08f;
             // vents lead down into the pipes, lifts to the warehouse; any door may open onto pitch black
-            float pd = form == ExitForm.VentHatch ? 0.1f : 0.04f, wh = form == ExitForm.Elevator ? 0.1f : 0.05f, lo = 0.05f;
+            float pd = form == ExitForm.VentHatch ? 0.1f : 0.04f, wh = form == ExitForm.Elevator ? 0.1f : 0.05f, lo = 0.02f;
             // vents into the power station and the caves, lifts to the Async lab, plain doors into the library; Level Run can open anywhere
-            float el = form == ExitForm.VentHatch ? 0.06f : 0.03f, cv = form == ExitForm.VentHatch ? 0.05f : 0.02f, rn = 0.035f;
+            // the frightening ones are rare finds
+            float el = form == ExitForm.VentHatch ? 0.03f : 0.015f, cv = form == ExitForm.VentHatch ? 0.02f : 0.008f, rn = 0.008f;
             float fl = current == "PR" ? 0.08f : 0.04f, lb = form == ExitForm.HandlelessDoor ? 0.06f : 0.03f, la = form == ExitForm.Elevator ? 0.08f : 0.03f;
             if (current == "LA") la += 0.06f; if (current == "LB") lb += 0.06f;
             // the older odds already fill most of the range: scale them so the new worlds fit and plain yellow rooms stay common
