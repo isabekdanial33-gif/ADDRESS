@@ -176,3 +176,19 @@ Reference: Backrooms (A24, 2026, Kane Parsons) — failing furniture showroom (C
 ## 2026-11-20 — v0.12
 - Entities: Howler (= "Backrooms Pitfalls Bacteria", BezPixelu) and Lifeform (bac). Tried and dropped: "Accurate Bacteria v2" (clips are film scenes with root travel — body leaves the frame), "Still Life improved" (CC rig mapped by SketchfabEntities.MapCC, but head is a bone-parented mesh dropped by clean_export and the arms stayed in T-pose — retry with keep_unskinned=1).
 - Worlds PD (Pipe Dreams: small concrete rooms, LevelBuilder.Pipes), WH (warehouse: storage/pillars, concrete), LO (Lights Out: 86% tubes dead, near-black ambient).
+
+## v0.13 (2026-11-20)
+- Verity (downloaded Blockbench model): flies through walls, comes to the explorer, E = talk. Tells the real way out
+  (form, distance, direction, how to open it), warns about false/loop exits and the entity here, then leads along the
+  real corridors (BFS on the nav grid). Five faces switched by scale: the mouth flaps while it talks; Kenney CC0 blips.
+- Fake Verity: dimmer, greyer, flickering glow, "sus" face; same cheerful talk, but leads to the monster (or a door
+  to nowhere) and goes out with a giggle.
+- Index (menu -> Индекс): creatures actually seen and worlds entered, kept in PlayerPrefs; toast on new entries.
+- Captain Clark limps on the right leg (stiff knee, hip drop and lean, slows on the bad step) on top of the UAL walk.
+- New entities: Hound, Rake, Librarian (moves only unseen), Deathmoth (flies), Hazmat (lost explorer).
+  FitHeight: bodies are re-measured in play and scaled/feet-planted if a rig shows a different size than in the editor.
+- New worlds: Электростанция (EL), Пещеры (CV, ambientCG Rock030/Ground054, glows instead of lamps), Беги! (RN, red,
+  entity wakes after 5 s), Затопленные комнаты (FL), Библиотека (LB, bookshelves + Poly Haven encyclopedia sets, no
+  physics settle), Лаборатория Async (LA).
+- Dropped: "Wooden Horror Stalker" (Tripo AI rig lies sideways: invisible in play), cooklittlelambs hazmat (mesh far
+  from its skeleton). Not verified: live chases with the new kinds, their sounds, Android. Library takes ~13-16 s to build.

@@ -50,6 +50,13 @@ MonoBehaviour:
     whFloorMat: {fileID: 2100000, guid: 7ef72c87a20415b498ce7f2d65192e9f, type: 2}
     whWallMat: {fileID: 2100000, guid: f029cd390b1e0db4eb0224f01e1e1581, type: 2}
     pipeMat: {fileID: 2100000, guid: 9ecc47ac4e7f10c4fae24b7ae4a88d60, type: 2}
+    elWallMat: {fileID: 2100000, guid: a1e101c9290fa9945a361d1bb9e89500, type: 2}
+    cvWallMat: {fileID: 2100000, guid: 0ef52f03452f8a440aced31094769c38, type: 2}
+    cvFloorMat: {fileID: 2100000, guid: 44fbe1aa2c3e0134cb7c6d2d5861c834, type: 2}
+    lbFloorMat: {fileID: 2100000, guid: 9024d5806ab1dd3418d2e0b9a8f86939, type: 2}
+    laFloorMat: {fileID: 2100000, guid: 9d1a27a0fbc2b5643ae0b6398f1f92ea, type: 2}
+    laWallMat: {fileID: 2100000, guid: 73c6f413228b164499e7a11765a713fa, type: 2}
+    laCeilMat: {fileID: 2100000, guid: f97dc18fcdbb59d4c95c6e94db3c2d53, type: 2}
     caustics:
     - {fileID: 2800000, guid: b6c5578ceaeaa834e98060445e71f2eb, type: 3}
     - {fileID: 2800000, guid: 9a8be477262742844a94fe46803ad66c, type: 3}

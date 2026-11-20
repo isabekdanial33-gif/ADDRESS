@@ -1592,6 +1592,32 @@
    "moods": [
     "neutral"
    ]
+  },
+  {
+   "id": "book_encyclopedia_set_01",
+   "group": "book",
+   "mass": 3,
+   "styles": [
+    "backrooms",
+    "hotel",
+    "school",
+    "mall",
+    "oldweb",
+    "dreamcore"
+   ],
+   "rooms": [
+    "library",
+    "office",
+    "lounge"
+   ],
+   "support": "Surface",
+   "rotation": "Step90",
+   "massClass": "Small",
+   "moods": [
+    "neutral",
+    "dark",
+    "light"
+   ]
   }
  ]
 }

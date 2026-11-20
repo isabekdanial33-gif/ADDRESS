@@ -35,6 +35,7 @@ namespace Address.Entities
         readonly List<(Light l, float i0)> lights = new();
         float flickerT; Transform currentTarget;
         public bool SeenNow { get; private set; }
+        public float testSpeed = -1;                 // test tour: walk in place at this speed (animation, limp, flight) without moving
         public float Speed { get; private set; }
 
         public void Init(LevelBuilder.Result level, int gen, AudioClip droneClip)
@@ -89,13 +90,50 @@ namespace Address.Entities
                 case EntityKind.Howler: wanderSpeed = 0.8f; stalkSpeed = 2.6f; freezeWhenSeen = false; noticeRange = 15f; vocals = Sfx("growl_", "demon_"); break;
                 case EntityKind.Lifeform: wanderSpeed = 0.9f; stalkSpeed = 3.0f; freezeWhenSeen = false; noticeRange = 15f; vocals = Sfx("beast_"); break;
                 case EntityKind.Needlelimbs: wanderSpeed = 0.6f; stalkSpeed = 2.2f; freezeWhenSeen = true; noticeRange = 18f; vocals = Sfx("eerie_", "deep_"); stepSet = "none"; break;
+                case EntityKind.Hazmat: wanderSpeed = 0.8f; stalkSpeed = 2.5f; freezeWhenSeen = false; noticeRange = 16f; vocals = Sfx("spirit_", "demon_"); stepSet = "step_hard_"; break;
+                case EntityKind.Hound: wanderSpeed = 1.0f; stalkSpeed = 3.7f; freezeWhenSeen = false; noticeRange = 18f; catchRadius = 1.0f; vocals = Sfx("growl_"); break;
+                case EntityKind.Rake: wanderSpeed = 0.7f; stalkSpeed = 3.3f; freezeWhenSeen = false; noticeRange = 16f; catchRadius = 0.95f; vocals = Sfx("demon_", "beast_"); break;
+                case EntityKind.Librarian: wanderSpeed = 0f; stalkSpeed = 3.2f; freezeWhenSeen = true; noticeRange = 24f; vocals = Sfx("deep_", "eerie_"); stepSet = "none"; break;
+                case EntityKind.Deathmoth: wanderSpeed = 1.2f; stalkSpeed = 3.0f; freezeWhenSeen = false; noticeRange = 18f; catchRadius = 1.1f; vocals = Sfx("spirit_"); stepSet = "none"; break;
             }
+            if (k == EntityKind.Clark && anim && anim.isHuman)
+            {
+                // the captain limps on his right leg (no limp clip in the library: the walk is bent on top of the animation)
+                rKnee = anim.GetBoneTransform(HumanBodyBones.RightLowerLeg); rThigh = anim.GetBoneTransform(HumanBodyBones.RightUpperLeg);
+                lFoot = anim.GetBoneTransform(HumanBodyBones.LeftFoot); rFoot = anim.GetBoneTransform(HumanBodyBones.RightFoot);
+                hips = anim.GetBoneTransform(HumanBodyBones.Hips); spine = anim.GetBoneTransform(HumanBodyBones.Spine);
+                if (rKnee) kneeRest = rKnee.localRotation;
+            }
+            if (k == EntityKind.Deathmoth) flyer = transform.Find("Body");
             stalkSpeed *= 1f + 0.06f * generation;
             sting = Resources.Load<AudioClip>("EntitySfx/deep_1");
             AudioSource Src(float max) { var s = gameObject.AddComponent<AudioSource>(); s.spatialBlend = 1; s.rolloffMode = AudioRolloffMode.Linear; s.minDistance = 1.5f; s.maxDistance = max; s.dopplerLevel = 0; return s; }
             voice = Src(26f);
             var sc = Sfx(stepSet);
             if (sc.Length > 0) { steps = Src(16f); steps.clip = sc[Random.Range(0, sc.Length)]; steps.loop = true; steps.volume = 0; steps.Play(); }
+        }
+
+        // Clark's limp
+        Transform rKnee, rThigh, lFoot, rFoot, hips, spine; Quaternion kneeRest; float limpLoad;
+        Transform flyer;
+        /// <summary>Clark slows down while his weight is on the bad leg and hurries the good step.</summary>
+        float LimpMul => rKnee ? Mathf.Lerp(1.2f, 0.45f, Mathf.Clamp01(limpLoad)) : 1f;
+
+        void Limp()
+        {
+            if (!rKnee || !lFoot || !rFoot || !hips) return;
+            float w = Mathf.Clamp01(Speed / 0.6f);
+            // which leg carries the body: the lower foot
+            float load = Mathf.Clamp((lFoot.position.y - rFoot.position.y) * 12f, -1f, 1f);
+            limpLoad = Mathf.Lerp(limpLoad, Mathf.Max(0, load), 0.5f);
+            if (w <= 0.01f) return;
+            // a stiff right knee that hardly bends
+            rKnee.localRotation = Quaternion.Slerp(rKnee.localRotation, kneeRest, 0.8f * w);
+            // the stiff leg swings out to the side instead of bending
+            if (rThigh && load < 0) rThigh.rotation = Quaternion.AngleAxis(-10f * -load * w, transform.forward) * rThigh.rotation;
+            // the body sinks and leans over the bad leg each time it has to carry him
+            hips.position += Vector3.down * 0.075f * limpLoad * w;
+            if (spine) spine.rotation = Quaternion.AngleAxis(-(6f + 10f * limpLoad) * w, transform.forward) * spine.rotation;
         }
 
         void Voices(float dt)
@@ -127,6 +165,7 @@ namespace Address.Entities
         void Update()
         {
             float dt = Time.deltaTime; if (dt <= 0 || nav == null) return;
+            if (testSpeed >= 0) { Speed = testSpeed; Voices(dt); return; }
             UpdateAtmosphere(dt);
             Voices(dt);
             if (body) body.freeze = mode == Mode.Frozen;
@@ -182,7 +221,7 @@ namespace Address.Entities
                 // close in: faster when far, careful when near
                 float sp = stalkSpeed * Mathf.Lerp(0.75f, 1.25f, Mathf.InverseLerp(3f, 14f, bestD));
                 if (SeenNow) sp *= 0.6f;   // the ones that do not freeze still slow down under your gaze
-                MoveAlongField(best.position, sp, dt);
+                MoveAlongField(best.position, sp * LimpMul, dt);
             }
             else Wander(dt);
         }
@@ -199,7 +238,7 @@ namespace Address.Entities
                     if (nav.InGrid(c.x, c.y) && roomy[c.x + c.y * nav.w]) { wanderGoal = nav.Center(c.x, c.y, floorY); break; }
                 }
             }
-            MoveAlongField(wanderGoal, wanderSpeed, dt);
+            MoveAlongField(wanderGoal, wanderSpeed * LimpMul, dt);
         }
 
         // ------------------------------------------------------------------ navigation
@@ -318,6 +357,13 @@ namespace Address.Entities
 
         void LateUpdate()
         {
+            Limp();
+            // the moth flies: up near the ceiling while wandering, down to head height when it hunts
+            if (flyer)
+            {
+                float h = (mode == Mode.Stalk ? 1.25f : 1.9f) + Mathf.Sin(Time.time * 2.3f) * 0.18f;
+                flyer.localPosition = new Vector3(0, Mathf.Lerp(flyer.localPosition.y, h, 1 - Mathf.Exp(-2f * Time.deltaTime)), 0);
+            }
             // wrong posture: the head hangs to one side, more with every Echo; snaps upright when looked at
             if (head)
             {

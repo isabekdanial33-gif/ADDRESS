@@ -124,6 +124,34 @@ namespace Address.Game
 
         public void Toast(string big, string small) { toast.text = big; toastSub.text = small; toastT = 0; }
 
+        Text subSpeaker, subLine; Image subPlate; float subT = 99f, subLen; string subFull = "";
+        /// <summary>Someone talks: a subtitle at the bottom, typed out (Verity).</summary>
+        public void Say(string speaker, string line, float seconds)
+        {
+            if (!subLine)
+            {
+                subPlate = UiKit.Image(root.transform, "subPlate", new Color(0, 0, 0, 0.55f));
+                Anchor(subPlate.rectTransform, new Vector2(0.5f, 0), new Vector2(0, 92), new Vector2(1240, 96), new Vector2(0.5f, 0));
+                subSpeaker = UiKit.Text(root.transform, "subSpeaker", UiKit.MonoBold, 22, UiKit.Accent, TextAnchor.UpperCenter);
+                Anchor(subSpeaker.rectTransform, new Vector2(0.5f, 0), new Vector2(0, 156), new Vector2(1200, 28), new Vector2(0.5f, 0));
+                subLine = UiKit.Text(root.transform, "subLine", UiKit.Mono, 26, UiKit.Ink, TextAnchor.UpperCenter);
+                subLine.horizontalOverflow = HorizontalWrapMode.Wrap;
+                Anchor(subLine.rectTransform, new Vector2(0.5f, 0), new Vector2(0, 96), new Vector2(1180, 62), new Vector2(0.5f, 0));
+                foreach (var t in new[] { subSpeaker, subLine }) { var s = t.gameObject.AddComponent<Shadow>(); s.effectColor = new Color(0, 0, 0, 0.8f); s.effectDistance = new Vector2(1, -1); }
+            }
+            subSpeaker.text = speaker; subFull = line ?? ""; subLen = seconds; subT = 0;
+        }
+
+        void TickSay(float dt)
+        {
+            if (!subLine) return;
+            subT += dt;
+            float a = subT < 0.15f ? subT / 0.15f : Mathf.Clamp01(1 - (subT - subLen) / 0.4f);
+            int n = Mathf.Clamp((int)(subT * 45f), 0, subFull.Length);
+            subLine.text = subFull.Substring(0, n);
+            subLine.color = new Color(1, 1, 1, 0.95f * a); subSpeaker.color = new Color(UiKit.Accent.r, UiKit.Accent.g, UiKit.Accent.b, a); subPlate.color = new Color(0, 0, 0, 0.55f * a);
+        }
+
         bool Tick(float dt)
         {
             // crosshair
@@ -160,6 +188,7 @@ namespace Address.Game
             cardLine.rectTransform.sizeDelta = new Vector2(lineW, 2); cardLine.color = new Color(UiKit.Accent.r, UiKit.Accent.g, UiKit.Accent.b, 0.8f * cardA);
             if (cardT > 5.2f && corner.text == "" && cardFull != "") corner.text = cardFull;
 
+            TickSay(dt);
             // toast: pops, rises a little, fades
             toastT += dt;
             float ta = toastT < 0.12f ? toastT / 0.12f : Mathf.Clamp01(1 - (toastT - 1.4f) / 0.6f);

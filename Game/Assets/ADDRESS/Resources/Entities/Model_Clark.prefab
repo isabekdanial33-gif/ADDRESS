@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1803909711361730854}
+  - component: {fileID: 6054981580969658826}
   m_Layer: 0
   m_Name: Model_Clark
   m_TagString: Untagged
@@ -32,6 +33,20 @@ Transform:
   - {fileID: 7026101397695318137}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6054981580969658826
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5805227604806216933}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7659c6542a825f64b8aeedfab8be3071, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Address.Runtime::Address.Entities.FitHeight
+  height: 1.86
+  extra: 1
 --- !u!1001 &7352971382260248466
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -93,7 +93,7 @@ namespace Address.Game
 
         static string RandomAddress()
         {
-            var r = new System.Random(); string[] a = { "BR", "PR", "FA", "PG", "HT", "OF", "LF", "PD", "WH", "LO" }; const string hex = "0123456789ABCDEF";
+            var r = new System.Random(); string[] a = { "BR", "PR", "FA", "PG", "HT", "OF", "LF", "PD", "WH", "LO", "EL", "CV", "RN", "FL", "LB", "LA" }; const string hex = "0123456789ABCDEF";
             string G() { var c = new char[4]; for (int i = 0; i < 4; i++) c[i] = hex[r.Next(16)]; return new string(c); }
             return $"{a[r.Next(3)]}-{G()}-{G()}-{G()}-{G()}";
         }
@@ -134,6 +134,7 @@ namespace Address.Game
             Button("Ввести адрес или фразу", AddressPage);
             Button("Кооператив", CoopPage);
             Button("Архив", ArchivePage);
+            Button("Индекс", IndexPage);
             Button("Настройки", SettingsPage);
             if (paused) Button("Главное меню", () => onMainMenu?.Invoke());
             Button("Выход", () => onQuit?.Invoke());
@@ -171,6 +172,32 @@ namespace Address.Game
                 float d = i * 0.04f, a = 0; ticker.Add(dt => { if (!l) return false; d -= dt; if (d > 0) return true; a = Mathf.MoveTowards(a, 1, dt * 4); l.color = new Color(1, 1, 1, 0.8f * a); return a < 1; });
             }
             Button("Назад", Main);
+        }
+
+        // the explorer's index: creatures seen and worlds visited (unseen ones stay "???")
+        void IndexPage()
+        {
+            NewPage("индекс", Main);
+            var B = Address.Entities.Bestiary.Creatures; var W = Address.Entities.Bestiary.Worlds;
+            Label("Всё, что вы видели своими глазами. Остальное ещё ждёт.", 20, UiKit.InkDim, 34);
+            Button("Существа", () => IndexList("существа", B, 0), $"{Address.Entities.Bestiary.Count(B)} / {B.Length}");
+            Button("Миры", () => IndexList("миры", W, 0), $"{Address.Entities.Bestiary.Count(W)} / {W.Length}");
+            Button("Назад", Main);
+        }
+
+        void IndexList(string title, Address.Entities.Bestiary.Entry[] list, int from)
+        {
+            const int per = 5;
+            NewPage("индекс / " + title, IndexPage);
+            for (int i = from; i < Mathf.Min(list.Length, from + per); i++)
+            {
+                var e = list[i]; bool known = Address.Entities.Bestiary.Known(e.key);
+                Label(known ? e.name : "???", 24, known ? UiKit.Accent : UiKit.InkDim, 30);
+                Label(known ? e.about : "Ещё не встречено.", 17, known ? UiKit.Ink : UiKit.InkDim, known ? 50 : 26);
+            }
+            if (from + per < list.Length) Button($"Дальше  ({from + per + 1}-{Mathf.Min(list.Length, from + per * 2)} из {list.Length})", () => IndexList(title, list, from + per));
+            if (from > 0) Button("Раньше", () => IndexList(title, list, Mathf.Max(0, from - per)));
+            Button("Назад", IndexPage);
         }
 
         void SettingsPage()

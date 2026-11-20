@@ -9,3 +9,12 @@ growler.fbx      "Backrooms Entity 130 - Growlers" by bac (@AzertyDFS205) - http
 needlelimbs.fbx  "Backrooms Entity 38 Needlelimbs" by Loco (@Loco420) - https://sketchfab.com/3d-models/backrooms-entity-38-needlelimbs-6e8ad10cbcbb49bda63a1b21a660533d
 howler.fbx       "Backrooms Pitfalls Bacteria" by BezPixelu - https://sketchfab.com/3d-models/backrooms-pitfalls-bacteria-a24a5b8aca714b53b753593e9b1239ad
 lifeform.fbx     "Complex Entity - Lifeform Fellow V2" by bac (@AzertyDFS205) - https://sketchfab.com/3d-models/complex-entity-lifeform-fellow-v2-d49e73ac203f4db0a7db12bfbba872ee
+
+v0.13 (all from Sketchfab, licence as listed on the model page):
+- verity.fbx      "Verity Full Model" by ChocoChip67, CC BY 4.0 - https://sketchfab.com/3d-models/verity-full-model-696156ec15c248098b87e6fc32dd34e7
+- hound.fbx       "My attempt at a Backrooms Hound" by SeaDragon1, CC BY-SA 4.0 - https://sketchfab.com/3d-models/my-attempt-at-a-backrooms-hound-f09f8115579e444285b7f5fc77414462
+- rake.fbx        "Dover Demon (The Rake) - v1" by W.Prigs, CC BY 4.0 - https://sketchfab.com/3d-models/dover-demon-the-rake-v1-5a64c259a5a8410da7e39eb9e2acff75
+- librarian.fbx   "Backrooms liblary entity" by wilderberry5150, CC BY 4.0 - https://sketchfab.com/3d-models/backrooms-liblary-entity-17d29261e2ee47e78c8aab819c874e85
+- deathmoth.fbx   "Giant Peacock Moth" by eb78 (E.A.Cornell), CC BY 4.0 - https://sketchfab.com/3d-models/giant-peacock-moth-a4192a5a1c7746b6bf2695b043ada92f
+- hazmat.fbx      "Backrooms Rigged Hazmat" by Loco (Loco420), CC BY 4.0 - https://sketchfab.com/3d-models/backrooms-rigged-hazmat-64d0069ed0cc420d8b3158ab8a3e6405
+Verity voice blips: Kenney "Interface Sounds", CC0 (Resources/VeritySfx).

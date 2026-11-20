@@ -26,6 +26,12 @@ namespace Address.EditorTools
             ("needlelimbs.fbx", "Needlelimbs", false, 2.7f,  0f, "Layer0",            "Layer0",               "Layer0"),
             ("howler.fbx",      "Howler",      false, 2.6f,  0f, "Idle",              "Walk",                 "Walk.001"),
             ("lifeform.fbx",    "Lifeform",    false, 2.5f,  0f, "Idle.001",          "Walk.001",             "Run"),
+            ("hazmat.fbx",      "Hazmat",      false, 1.8f,  0f, "Layer0",            "Layer0",               "Layer0"),
+            ("hound.fbx",       "Hound",       false, 1.0f,  90f, "idle smell air",    "walk fwd_BLODHUND",    "run fwd_BLODHUND"),
+            ("rake.fbx",        "Rake",        false, 1.9f,  0f, "Idle",              "Walk",                 "Run"),
+            ("librarian.fbx",   "Librarian",   false, 2.9f,  0f, "Idle",              "Idle",                 "Idle"),
+            ("deathmoth.fbx",   "Deathmoth",   false, 0.6f,  0f, "fly",               "fly",                  "fly"),
+            ("verity.fbx",      "Verity",      false, 0.7f,  0f, "root_10|idle",      "root_10|walk",         "root_10|talk"),
         };
 
         public static void Build()
@@ -38,7 +44,10 @@ namespace Address.EditorTools
             foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { Dir.TrimEnd('/') }))
             {
                 var ti = (TextureImporter)AssetImporter.GetAtPath(AssetDatabase.GUIDToAssetPath(guid));
-                if (ti && ti.maxTextureSize != 2048) { ti.maxTextureSize = 2048; ti.SaveAndReimport(); }
+                if (!ti) continue;
+                // Verity is a Blockbench (pixel-art) model: point filtering keeps its face crisp
+                var fm = System.IO.Path.GetFileName(ti.assetPath).StartsWith("verity") ? FilterMode.Point : ti.filterMode;
+                if (ti.maxTextureSize != 2048 || ti.filterMode != fm) { ti.maxTextureSize = 2048; ti.filterMode = fm; ti.SaveAndReimport(); }
             }
             foreach (var m in Models)
             {
@@ -120,6 +129,7 @@ namespace Address.EditorTools
                 }
                 b = Bounds(inst);
                 Debug.Log($"[ADDRESS] Model_{m.kind}: scale {s:F3} bounds {b.min} .. {b.max} renderers {inst.GetComponentsInChildren<Renderer>().Length} mats {string.Join(",", inst.GetComponentsInChildren<Renderer>().SelectMany(r => r.sharedMaterials).Where(x => x).Select(x => x.name + ":" + x.shader.name + ":" + (x.mainTexture ? x.mainTexture.name : "-")).Distinct())}");
+                if (m.kind != "Verity") root.AddComponent<Address.Entities.FitHeight>().height = m.height;   // re-measured in play (see FitHeight)
                 PrefabUtility.SaveAsPrefabAsset(root, R + "Model_" + m.kind + ".prefab");
                 Object.DestroyImmediate(root);
             }
@@ -159,6 +169,11 @@ namespace Address.EditorTools
             // the body = the renderer with the most vertices (balloons, strings and props must not set the height)
             var rs = go.GetComponentsInChildren<Renderer>(true);
             if (rs.Length == 0) return new Bounds(go.transform.position, Vector3.one);
+            if (!rs.Any(r => r is SkinnedMeshRenderer))
+            {
+                // rigid multi-part models (Blockbench): the union of all parts
+                var u = rs[0].bounds; foreach (var r in rs) u.Encapsulate(r.bounds); return u;
+            }
             Renderer best = rs[0]; int bv = -1;
             foreach (var r in rs)
             {

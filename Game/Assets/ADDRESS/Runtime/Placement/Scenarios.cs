@@ -158,9 +158,9 @@ namespace Address.Placement
 
         // ------------------------------------------------------------------ storage
 
-        public PlacedObject ShelfUnit(RoomSpec room, Rng rng, float fill = 0.6f)
+        public PlacedObject ShelfUnit(RoomSpec room, Rng rng, float fill = 0.6f, string preferId = null, string fillGroup = null)
         {
-            var sp = Pick("shelf", rng, room.kind) ?? Pick("cabinet", rng, room.kind);
+            var sp = (preferId != null ? db.Group("shelf").FirstOrDefault(p => p.id == preferId) : null) ?? Pick("shelf", rng, room.kind) ?? Pick("cabinet", rng, room.kind);
             if (sp == null) return null;
             var shelf = Place(sp, E.AgainstWall(sp, room.walls), rng, "storage/shelf");
             if (shelf == null) return null;
@@ -176,7 +176,7 @@ namespace Address.Placement
                 for (int i = 0; i < n; i++)
                 {
                     var p = (run != null && rng.Chance(0.6f)) ? run : db.PickAny(rng, Style, Mood, q =>
-                        shelfGroups.Contains(q.group) && q.support != SupportType.Wall && q.support != SupportType.Ceiling &&
+                        (fillGroup != null ? q.group == fillGroup : shelfGroups.Contains(q.group)) && q.support != SupportType.Wall && q.support != SupportType.Ceiling &&
                         q.size.y < regCopy.clearance - 0.01f && q.size.x * q.size.z < regCopy.area * 0.7f && q.massClass != MassClass.Heavy);
                     if (p == null) break;
                     run ??= p;

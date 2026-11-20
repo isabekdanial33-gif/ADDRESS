@@ -39,6 +39,61 @@ if dec > 0:
             # decimate must run before the armature: move it to the top, then apply
             while o.modifiers.find('dec') > 0: bpy.ops.object.modifier_move_up(modifier='dec')
             bpy.ops.object.modifier_apply(modifier='dec')
+import re
+# STRIP=1: glTF importer appends _<n> to bone names (mixamorig:Hips_64) -> strip so Unity's humanoid auto-map works
+if os.environ.get('STRIP') == '1':
+    for a in arms:
+        for b in a.data.bones:
+            n = re.sub(r'(_end)?(_\d+)+$', '', b.name)
+            if n != b.name and n not in a.data.bones: b.name = n
+# KEEP_ACTIONS=<regex>: drop all other actions (keeps the fbx small)
+ka = os.environ.get('KEEP_ACTIONS')
+if ka:
+    for act in list(bpy.data.actions):
+        if not re.search(ka, act.name): bpy.data.actions.remove(act)
+# APPLY=1: bake every parent/scale into the armature and meshes (rigs that come at 0.002 scale under cm-scaled empties)
+if os.environ.get('APPLY') == '2':
+    # meshes whose rest data sits far from the skeleton: bake the rest-pose deformation, then re-bind (vertex groups keep the weights)
+    # the pose the model is displayed in (on Sketchfab) becomes the new rest pose
+    bpy.context.view_layer.update()
+    meshes = [o for o in bpy.data.objects if o.type == 'MESH']
+    for m in meshes:
+        arm = next((md.object for md in m.modifiers if md.type == 'ARMATURE' and md.object), None)
+        bpy.ops.object.select_all(action='DESELECT'); m.select_set(True); bpy.context.view_layer.objects.active = m
+        for md in list(m.modifiers):
+            if md.type == 'ARMATURE': bpy.ops.object.modifier_apply(modifier=md.name)
+        mw = m.matrix_world.copy(); m.parent = None; m.matrix_world = mw
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        m['_arm'] = arm.name if arm else ''
+    for a in arms:
+        mw = a.matrix_world.copy(); a.parent = None; a.matrix_world = mw
+        bpy.ops.object.select_all(action='DESELECT'); a.select_set(True); bpy.context.view_layer.objects.active = a
+        bpy.ops.object.mode_set(mode='POSE'); bpy.ops.pose.select_all(action='SELECT'); bpy.ops.pose.armature_apply(selected=False); bpy.ops.object.mode_set(mode='OBJECT')
+        a.animation_data_clear()
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    for m in meshes:
+        arm = bpy.data.objects.get(m.get('_arm', ''))
+        if not arm: continue
+        md = m.modifiers.new('Armature', 'ARMATURE'); md.object = arm
+        m.parent = arm; m.matrix_parent_inverse = arm.matrix_world.inverted()
+    for o in list(bpy.data.objects):
+        if o.type == 'EMPTY' and not o.children: bpy.data.objects.remove(o, do_unlink=True)
+    bpy.context.view_layer.update()
+    for a in arms:
+        hb = [b for b in a.data.bones if 'Hips' in b.name]; hd = [b for b in a.data.bones if b.name.endswith('Head')]
+        if hb and hd: print('APPLIED hips', tuple(round(v, 2) for v in a.matrix_world @ hb[0].head_local), 'head', tuple(round(v, 2) for v in a.matrix_world @ hd[0].head_local))
+if os.environ.get('APPLY') == '1':
+    for o in list(bpy.data.objects):
+        if o.type in ('ARMATURE', 'MESH') and o.parent and o.parent.type == 'EMPTY':
+            mw = o.matrix_world.copy(); o.parent = None; o.matrix_world = mw
+    for o in bpy.data.objects: o.select_set(o.type in ('ARMATURE', 'MESH'))
+    if arms: bpy.context.view_layer.objects.active = arms[0]
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    for o in list(bpy.data.objects):
+        if o.type == 'EMPTY' and not o.children: bpy.data.objects.remove(o, do_unlink=True)
+    for a in arms:
+        hb = [b for b in a.data.bones if 'Hips' in b.name]; hd = [b for b in a.data.bones if b.name.endswith('Head')]
+        if hb and hd: print('APPLIED hips', tuple(round(v, 2) for v in a.matrix_world @ hb[0].head_local), 'head', tuple(round(v, 2) for v in a.matrix_world @ hd[0].head_local))
 import mathutils
 mn = mathutils.Vector((1e9,) * 3); mx = -mn
 tris = 0

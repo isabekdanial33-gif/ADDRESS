@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Address.Core;
 using Address.Placement;
@@ -23,6 +23,7 @@ namespace Address.World
         public Material pgFloorMat, pgWallMat, pgCeilMat, htFloorMat, htWallMat, htCeilMat;
         public Material ofFloorMat, ofWallMat, ofCeilMat, lfFloorMat, lfWallMat;
         public Material pdWallMat, pdFloorMat, whFloorMat, whWallMat, pipeMat;
+        public Material elWallMat, cvWallMat, cvFloorMat, lbFloorMat, laFloorMat, laWallMat, laCeilMat;
         public Texture[] caustics;
     }
 
@@ -133,6 +134,48 @@ namespace Address.World
                 RenderSettings.ambientGroundColor = new Color(0.03f, 0.028f, 0.02f);
                 RenderSettings.fogDensity = 0.08f; RenderSettings.fogColor = new Color(0.01f, 0.01f, 0.01f);
             }
+            else if (aesthetic == "EL")
+            {
+                RenderSettings.ambientSkyColor = new Color(0.05f, 0.02f, 0.02f);
+                RenderSettings.ambientEquatorColor = new Color(0.09f, 0.04f, 0.03f);
+                RenderSettings.ambientGroundColor = new Color(0.14f, 0.06f, 0.04f);
+                RenderSettings.fogDensity = 0.045f; RenderSettings.fogColor = new Color(0.12f, 0.04f, 0.03f);
+            }
+            else if (aesthetic == "CV")
+            {
+                RenderSettings.ambientSkyColor = new Color(0.01f, 0.01f, 0.012f);
+                RenderSettings.ambientEquatorColor = new Color(0.02f, 0.018f, 0.016f);
+                RenderSettings.ambientGroundColor = new Color(0.04f, 0.035f, 0.03f);
+                RenderSettings.fogDensity = 0.07f; RenderSettings.fogColor = new Color(0.015f, 0.013f, 0.012f);
+            }
+            else if (aesthetic == "RN")
+            {
+                RenderSettings.ambientSkyColor = new Color(0.12f, 0.01f, 0.01f);
+                RenderSettings.ambientEquatorColor = new Color(0.2f, 0.02f, 0.02f);
+                RenderSettings.ambientGroundColor = new Color(0.3f, 0.04f, 0.03f);
+                RenderSettings.fogDensity = 0.04f; RenderSettings.fogColor = new Color(0.25f, 0.02f, 0.02f);
+            }
+            else if (aesthetic == "FL")
+            {
+                RenderSettings.ambientSkyColor = new Color(0.09f, 0.12f, 0.1f);
+                RenderSettings.ambientEquatorColor = new Color(0.14f, 0.18f, 0.14f);
+                RenderSettings.ambientGroundColor = new Color(0.2f, 0.26f, 0.2f);
+                RenderSettings.fogDensity = 0.035f; RenderSettings.fogColor = new Color(0.22f, 0.3f, 0.26f);
+            }
+            else if (aesthetic == "LB")
+            {
+                RenderSettings.ambientSkyColor = new Color(0.07f, 0.05f, 0.03f);
+                RenderSettings.ambientEquatorColor = new Color(0.12f, 0.08f, 0.05f);
+                RenderSettings.ambientGroundColor = new Color(0.2f, 0.13f, 0.08f);
+                RenderSettings.fogDensity = 0.03f; RenderSettings.fogColor = new Color(0.16f, 0.11f, 0.07f);
+            }
+            else if (aesthetic == "LA")
+            {
+                RenderSettings.ambientSkyColor = new Color(0.2f, 0.22f, 0.24f);
+                RenderSettings.ambientEquatorColor = new Color(0.3f, 0.32f, 0.34f);
+                RenderSettings.ambientGroundColor = new Color(0.42f, 0.44f, 0.46f);
+                RenderSettings.fogDensity = 0.012f; RenderSettings.fogColor = new Color(0.6f, 0.64f, 0.68f);
+            }
             else if (aesthetic == "LF")
             {
                 RenderSettings.ambientSkyColor = new Color(0.16f, 0.1f, 0.08f);
@@ -204,11 +247,15 @@ namespace Address.World
             void Mark(string n) { times.Append($"{n} {sw.ElapsedMilliseconds}ms  "); sw.Restart(); }
             var rng = new Rng(attempt == 0 ? address.BaseSeed : Hashing.Combine(address.BaseSeed, (ulong)attempt * 0xA77E3UL));
             var a0 = address.Aesthetic;
-            var res = new Result { address = address, aesthetic = a0 == "PR" || a0 == "FA" || a0 == "PG" || a0 == "HT" || a0 == "OF" || a0 == "LF" || a0 == "PD" || a0 == "WH" || a0 == "LO" ? a0 : "BR" };
+            var res = new Result { address = address, aesthetic = a0 == "PR" || a0 == "FA" || a0 == "PG" || a0 == "HT" || a0 == "OF" || a0 == "LF" || a0 == "PD" || a0 == "WH" || a0 == "LO"
+                || a0 == "EL" || a0 == "CV" || a0 == "RN" || a0 == "FL" || a0 == "LB" || a0 == "LA" ? a0 : "BR" };
             bool garage = res.aesthetic == "PG" && kit.pgFloorMat, hotel = res.aesthetic == "HT" && kit.htFloorMat;
             bool office = res.aesthetic == "OF" && kit.ofFloorMat, fun = res.aesthetic == "LF" && kit.lfWallMat;
             bool pipes = res.aesthetic == "PD" && kit.pdWallMat, wareh = res.aesthetic == "WH" && kit.whFloorMat, dark = res.aesthetic == "LO";
-            if (res.aesthetic == "OF" && !office || res.aesthetic == "LF" && !fun || res.aesthetic == "PD" && !pipes || res.aesthetic == "WH" && !wareh) res.aesthetic = "BR";
+            bool power = res.aesthetic == "EL" && kit.elWallMat, caves = res.aesthetic == "CV" && kit.cvWallMat, run = res.aesthetic == "RN";
+            bool flood = res.aesthetic == "FL" && kit.waterMat, lib = res.aesthetic == "LB" && kit.lbFloorMat, lab = res.aesthetic == "LA" && kit.laWallMat;
+            if (res.aesthetic == "OF" && !office || res.aesthetic == "LF" && !fun || res.aesthetic == "PD" && !pipes || res.aesthetic == "WH" && !wareh
+                || res.aesthetic == "EL" && !power || res.aesthetic == "CV" && !caves || res.aesthetic == "FL" && !flood || res.aesthetic == "LB" && !lib || res.aesthetic == "LA" && !lab) res.aesthetic = "BR";
             world = garage ? "PG" : hotel ? "HT" : res.aesthetic;
             bool pool = res.aesthetic == "PR" && kit.poolTileMat;
             bool aero = res.aesthetic == "FA" && kit.aeroWallMat;
@@ -220,6 +267,21 @@ namespace Address.World
             if (office) { floorM = kit.ofFloorMat; wallM = kit.ofWallMat ? kit.ofWallMat : kit.wallMat; if (kit.ofCeilMat) ceilM = kit.ofCeilMat; }
             if (pipes) { wallM = kit.pdWallMat; floorM = kit.pdFloorMat ? kit.pdFloorMat : kit.pgFloorMat; ceilM = kit.pdWallMat; }
             if (wareh) { floorM = kit.whFloorMat; wallM = kit.whWallMat ? kit.whWallMat : kit.wallMat; if (kit.pgCeilMat) ceilM = kit.pgCeilMat; }
+            if (power) { wallM = Tinted(kit.elWallMat, new Color(0.62f, 0.66f, 0.6f), "el_wall"); floorM = kit.pdFloorMat ? kit.pdFloorMat : floorM; ceilM = kit.elWallMat; }
+            if (caves) { wallM = kit.cvWallMat; floorM = kit.cvFloorMat ? kit.cvFloorMat : kit.cvWallMat; ceilM = kit.cvWallMat; }
+            if (run)
+            {
+                // Level Run: the same yellow rooms, washed in alarm red
+                wallM = Tinted(kit.wallMat, new Color(1f, 0.62f, 0.56f), "rn_wall");
+                floorM = Tinted(kit.floorMat, new Color(0.7f, 0.36f, 0.32f), "rn_floor");
+            }
+            if (lib)
+            {
+                floorM = kit.lbFloorMat;
+                wallM = Tinted(kit.htWallMat ? kit.htWallMat : kit.wallMat, new Color(0.72f, 0.58f, 0.44f), "lb_wall");
+                if (kit.htCeilMat) ceilM = Tinted(kit.htCeilMat, new Color(0.86f, 0.8f, 0.7f), "lb_ceil");
+            }
+            if (lab) { floorM = kit.laFloorMat ? kit.laFloorMat : floorM; wallM = kit.laWallMat; if (kit.laCeilMat) ceilM = kit.laCeilMat; }
             if (fun)
             {
                 // Level Fun: the same downloaded wallpaper and carpet, recoloured party-orange and candy red
@@ -235,7 +297,7 @@ namespace Address.World
             // rare places (~1 in 18): the exit is found differently; the guarantee still holds
             var rr = rng.Fork("rare"); float rv = rr.Value;
             res.rare = rv < 0.022f ? "silent" : rv < 0.044f ? "photo" : rv < 0.056f ? "vast" : "";
-            if (garage || hotel || office || fun || pipes || wareh || dark) res.rare = "";
+            if (garage || hotel || office || fun || pipes || wareh || dark || power || caves || run || flood || lib || lab) res.rare = "";
             int size = sizeOverride > 0 ? sizeOverride : (rng.Fork("size").Chance(0.4f) ? 24 : 36);
             var L = aero ? LayoutGenerator.Park(rng.Fork("size").Range(34, 46))
                   : hotel ? LayoutGenerator.Hotel(rng.Fork("layout"), 44)
@@ -243,6 +305,12 @@ namespace Address.World
                   : office ? new LayoutGenerator { doorShare = 0.55f, kindPool = new[] { "office", "office", "office", "meeting", "breakroom", "server", "storage", "empty", "dump" } }.Generate(rng.Fork("layout"), 36, 36)
                   : pipes ? new LayoutGenerator { minRoomM = 2.5f, maxRoomLo = 3.5f, maxRoomHi = 6f, doorShare = 0f, kindPool = new[] { "corridor", "corridor", "empty", "storage", "dump" } }.Generate(rng.Fork("layout"), 32, 32)
                   : wareh ? new LayoutGenerator { minRoomM = 8f, maxRoomLo = 12f, maxRoomHi = 18f, doorShare = 0.1f, kindPool = new[] { "storage", "storage", "storage", "pillars", "empty", "dump" } }.Generate(rng.Fork("layout"), 44, 44)
+                  : power ? new LayoutGenerator { minRoomM = 3f, maxRoomLo = 4.5f, maxRoomHi = 8f, doorShare = 0.2f, kindPool = new[] { "server", "server", "corridor", "storage", "empty", "dump" } }.Generate(rng.Fork("layout"), 34, 34)
+                  : caves ? new LayoutGenerator { minRoomM = 3.5f, maxRoomLo = 6f, maxRoomHi = 11f, doorShare = 0f, kindPool = new[] { "empty", "empty", "empty", "corridor", "dump" } }.Generate(rng.Fork("layout"), 38, 38)
+                  : run ? new LayoutGenerator { minRoomM = 2.4f, maxRoomLo = 3f, maxRoomHi = 4.5f, doorShare = 0f, kindPool = new[] { "corridor", "corridor", "corridor", "empty" } }.Generate(rng.Fork("layout"), 40, 40)
+                  : flood ? new LayoutGenerator { kindPool = new[] { "empty", "empty", "corridor", "wrong", "dump" } }.Generate(rng.Fork("layout"), size, size)
+                  : lib ? new LayoutGenerator { minRoomM = 4f, maxRoomLo = 7f, maxRoomHi = 12f, doorShare = 0.3f, kindPool = new[] { "library", "library", "library", "library", "lounge", "empty" } }.Generate(rng.Fork("layout"), 36, 36)
+                  : lab ? new LayoutGenerator { doorShare = 0.6f, kindPool = new[] { "office", "meeting", "server", "server", "storage", "empty", "corridor" } }.Generate(rng.Fork("layout"), 36, 36)
                   : fun ? new LayoutGenerator { kindPool = new[] { "lounge", "lounge", "empty", "breakroom", "showroom", "wrong", "dump" } }.Generate(rng.Fork("layout"), size, size)
                   : res.rare == "vast" ? LayoutGenerator.Vast(40) : new LayoutGenerator().Generate(rng.Fork("layout"), size, size);
             if (aero) res.rare = "";
@@ -317,7 +385,7 @@ namespace Address.World
 
             Mark("nav");
             // furnishing
-            var eng = new PlacementEngine(ArchLayer, PropsLayer, props.transform) { style = pool ? "poolrooms" : aero ? "frutiger" : "backrooms", mood = pool || aero ? "light" : "neutral", nav = res.nav, navStart = res.start, settleOnCommit = SettleOnCommit };
+            var eng = new PlacementEngine(ArchLayer, PropsLayer, props.transform) { style = pool ? "poolrooms" : aero ? "frutiger" : "backrooms", mood = pool || aero ? "light" : "neutral", nav = res.nav, navStart = res.start, settleOnCommit = SettleOnCommit && !lib };   // library: thousands of books stand on their boards, no physics pass
             res.engine = eng;
             var sc = new Scenarios(eng, kit.db);
             foreach (var room in L.rooms)
@@ -417,6 +485,13 @@ namespace Address.World
                         break;
                     case "wrong":       // furnished, but placed wrong: a chair facing the wall
                         sc.Wrong(spec, r);
+                        break;
+                    case "library":     // bookshelves along every wall, a reading chair or two
+                        int bs = Mathf.Clamp(Mathf.RoundToInt(areaM2 / 7f), 1, 5);
+                        for (int i = 0; i < bs; i++) sc.ShelfUnit(spec, r.Fork("book", i), r.Range(0.35f, 0.5f), "wooden_bookshelf_worn", "book");
+                        if (r.Chance(0.5f)) sc.FloorSingle(spec, r, "armchair");
+                        if (r.Chance(0.4f)) sc.FloorSingle(spec, r.Fork("tbl", 0), "smalltable");
+                        if (r.Chance(0.3f)) sc.WallDecor(spec, r, "wallclock");
                         break;
                     case "lounge":
                         sc.Lounge(spec, r);
@@ -580,6 +655,7 @@ namespace Address.World
             {
                 foreach (var s in TrofferSpots(room.World, H))
                 {
+                    if (world == "CV") continue;   // caves: no fixtures in the rock, a few glows instead (CaveLights)
                     spots.Add(s);
                     // 0 lit, 1 dead, 2 failing (flickers), 3 dim
                     float v = lr.Value;
@@ -589,6 +665,10 @@ namespace Address.World
                     if (world == "OF" && mode == 0) mode = v < 0.2f ? 1 : v < 0.3f ? 2 : 0;           // the abandoned office: a fifth of the tubes dead
                     if (world == "LO") mode = v < 0.86f ? 1 : 2;                                          // lights out: only a few tubes still flicker
                     if (world == "WH" && mode == 0) mode = v < 0.25f ? 1 : 0;
+                    if (world == "EL" && mode == 0) mode = v < 0.3f ? 1 : v < 0.45f ? 2 : 0;          // power station: emergency lighting only, half of it failing
+                    if (world == "RN" && mode == 0) mode = v < 0.3f ? 2 : 0;                          // Level Run: the alarm lights pulse
+                    if (world == "LB" && mode == 0) mode = v < 0.18f ? 1 : v < 0.4f ? 3 : 0;
+                    if (world == "FL" && mode == 0) mode = v < 0.1f ? 1 : v < 0.18f ? 2 : 0;
                     if (mode != 0) spotMode[SpotKey(s.Item1)] = mode;
                 }
             }
@@ -694,7 +774,9 @@ namespace Address.World
             }
             if (world == "PG") ParkingLines(L, parent, rng.Fork("lines"));
             if (world == "HT") HotelDoors(L, parent, rng.Fork("doors"), exits);
-            if (world == "PD") Pipes(L, parent, rng.Fork("pipes"));
+            if (world == "PD" || world == "EL") Pipes(L, parent, rng.Fork("pipes"));
+            if (world == "CV") CaveLights(L, parent, rng.Fork("glow"));
+            if (world == "FL") FloodWater(L, parent);
             if (lights && !openSky) Lights(spots, parent);
         }
 
@@ -722,6 +804,33 @@ namespace Address.World
                         mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                     }
                 }
+        }
+
+        /// <summary>Level 8: no lamps in the rock. Here and there a warm glow low over the floor (a dropped flare, a lantern).</summary>
+        void CaveLights(LayoutGenerator.Layout L, Transform parent, Rng rng)
+        {
+            foreach (var room in L.rooms)
+            {
+                if (!rng.Chance(room.id == L.startRoom ? 1f : 0.45f)) continue;
+                var w = room.World;
+                var lg = new GameObject("CaveGlow"); lg.transform.SetParent(parent);
+                lg.transform.position = new Vector3(rng.Range(w.xMin + 0.6f, w.xMax - 0.6f), 0.5f, rng.Range(w.yMin + 0.6f, w.yMax - 0.6f));
+                var l = lg.AddComponent<Light>(); l.type = LightType.Point; l.range = rng.Range(4.5f, 7f); l.intensity = rng.Range(1.4f, 2.4f);
+                l.color = rng.Chance(0.75f) ? new Color(1f, 0.52f, 0.22f) : new Color(0.55f, 1f, 0.6f);   // flares and glow sticks
+                l.shadows = LightShadows.None;
+                if (rng.Chance(0.5f)) lg.AddComponent<Flicker>().seed = lg.transform.position.x * 3.1f;
+            }
+        }
+
+        /// <summary>Flooded rooms: still water a hand deep over every floor.</summary>
+        void FloodWater(LayoutGenerator.Layout L, Transform parent)
+        {
+            var b = L.WorldBounds;
+            var w = GameObject.CreatePrimitive(PrimitiveType.Quad); Object.DestroyImmediate(w.GetComponent<Collider>());
+            w.name = "FloodWater"; w.transform.SetParent(parent);
+            w.transform.position = new Vector3(b.center.x, 0.14f, b.center.z); w.transform.rotation = Quaternion.Euler(90, 0, 0);
+            w.transform.localScale = new Vector3(b.size.x + 2, b.size.z + 2, 1);
+            var r = w.GetComponent<Renderer>(); r.sharedMaterial = kit.waterMat; r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
 
         void ParkingLines(LayoutGenerator.Layout L, Transform parent, Rng rng)
@@ -1150,6 +1259,11 @@ namespace Address.World
                 if (world == "WH") { l.intensity = 2.6f; l.color = new Color(0.9f, 0.95f, 1f); l.range = 9f; }
                 if (world == "LO") { l.intensity = 1.4f; }
                 if (world == "LF") { l.intensity = 2.6f; l.color = new Color(1f, 0.8f, 0.66f); }
+                if (world == "EL") { l.intensity = 2.0f; l.color = new Color(1f, 0.28f, 0.16f); l.range = 6f; }
+                if (world == "RN") { l.intensity = 2.8f; l.color = new Color(1f, 0.1f, 0.08f); }
+                if (world == "FL") { l.intensity = 2.4f; l.color = new Color(0.85f, 1f, 0.92f); }
+                if (world == "LB") { l.intensity = 1.7f; l.color = new Color(1f, 0.78f, 0.52f); l.range = 6f; }
+                if (world == "LA") { l.intensity = 1.9f; l.color = new Color(0.93f, 0.97f, 1f); }
                 // shadows are expensive: only every 4th fixture casts them (enough for grounding furniture)
                 l.shadows = (k++ % 4 == 0) ? LightShadows.Soft : LightShadows.None; l.shadowStrength = 0.7f;
                 // lit tubes next to a dark zone reach less far: light must not leak through the walls into the dark

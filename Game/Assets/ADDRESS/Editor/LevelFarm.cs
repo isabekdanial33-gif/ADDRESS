@@ -59,6 +59,13 @@ namespace Address.EditorTools
                 whFloorMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Concrete031.mat"),
                 whWallMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Concrete034.mat"),
                 pipeMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Metal032.mat"),
+                elWallMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/MetalPlates006.mat"),
+                cvWallMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Rock030.mat"),
+                cvFloorMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Ground054.mat"),
+                lbFloorMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/WoodFloor041.mat"),
+                laFloorMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Tiles101.mat"),
+                laWallMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Plaster001.mat"),
+                laCeilMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/OfficeCeiling001.mat"),
                 glassMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Glass.mat"),
                 caustics = Enumerable.Range(0, 16).Select(i => (Texture)AssetDatabase.LoadAssetAtPath<Texture2D>($"Assets/ADDRESS/Art/Textures/caustic_{i:00}.png")).Where(t => t).ToArray()
             };
