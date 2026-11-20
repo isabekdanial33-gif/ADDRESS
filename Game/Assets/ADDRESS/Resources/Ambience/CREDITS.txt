@@ -1,2 +1,3 @@
 amb_calm.wav, amb_dark.wav: "Horror Sound Pack" by Phlegmlee (itch.io), CC0 (Music/Less Dark Ambient - Loopable, Dark Ambient Music - Loopable)
 heartbeat_slow.wav, heartbeat_fast.wav: "Heartbeat sounds" by bart (OpenGameArt), CC0 - https://opengameart.org/content/heartbeat-sounds
+mountain_king.ogg: Grieg "In the Hall of the Mountain King", Musopen Symphony Orchestra, public domain (Wikimedia Commons: File:Musopen - In the Hall Of The Mountain King.ogg)

@@ -90,7 +90,7 @@ namespace Address.Entities
                 }
             }
             // Level Run: they are already behind you, at the start of the corridor
-            if (level.aesthetic == "RN")
+            if (level.aesthetic == "RN" || level.aesthetic == "YC")
             {
                 var behind = new List<Vector2Int>();
                 for (int z = 0; z < nav.h; z++) for (int x = 0; x < nav.w; x++)

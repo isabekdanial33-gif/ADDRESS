@@ -1,0 +1,50 @@
+{
+  "id": "YC",
+  "title": "ТЫ СЧИТЕРИЛ",
+  "level": "You Cheated",
+  "about": "Сюда попадают те, кто нарушил правила: читы, злоупотребление ритуалом, выпадение из мира. Белая чистая комната, тёмный коридор и тот, кто идёт следом.",
+  "layout": "corridor",
+  "size": 50,
+  "wall": "Plaster001",
+  "wallTint": [
+    1,
+    1,
+    1
+  ],
+  "floor": "Tiles101",
+  "floorTint": [
+    0.95,
+    0.95,
+    0.95
+  ],
+  "ceiling": "OfficeCeiling001",
+  "lightColor": [
+    1,
+    1,
+    1
+  ],
+  "lightIntensity": 2.8,
+  "deadShare": 0.45,
+  "flickerShare": 0.25,
+  "ambient": [
+    0.15,
+    0.15,
+    0.15
+  ],
+  "fogColor": [
+    0.02,
+    0.02,
+    0.02
+  ],
+  "fogDensity": 0.05,
+  "gradeSaturation": -80,
+  "gradeContrast": 35,
+  "gradeExposure": 0.1,
+  "entities": [
+    "Clark",
+    "Echo"
+  ],
+  "entityChance": 1,
+  "music": "dark",
+  "weight": 0
+}

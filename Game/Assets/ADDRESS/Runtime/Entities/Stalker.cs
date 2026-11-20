@@ -35,6 +35,7 @@ namespace Address.Entities
         readonly List<(Light l, float i0)> lights = new();
         float flickerT; Transform currentTarget;
         public bool SeenNow { get; private set; }
+        public static float GlobalSpeedMul = 1f;     // the Mountain King's music speeds everything up
         public float testSpeed = -1;                 // test tour: walk in place at this speed (animation, limp, flight) without moving
         public float Speed { get; private set; }
 
@@ -280,6 +281,7 @@ namespace Address.Entities
 
         void MoveAlongField(Vector3 goal, float speed, float dt)
         {
+            speed *= GlobalSpeedMul;
             var gc = nav.CellOf(goal);
             fieldTimer -= dt;
             if ((gc - fieldTarget).sqrMagnitude > 4 && fieldTimer <= 0) { BuildField(gc); fieldTimer = 0.35f; }
