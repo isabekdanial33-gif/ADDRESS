@@ -1,0 +1,21 @@
+{
+  "id": "Minion",
+  "name": "Демонёнок",
+  "about": "Фиолетовый бес. Существо из мода.",
+  "model": "models/minion.glb",
+  "height": 1.5,
+  "walkSpeed": 0.9,
+  "chaseSpeed": 3.4,
+  "noticeRange": 14,
+  "freezeWhenSeen": false,
+  "idle": "idle",
+  "walk": "walk",
+  "run": "run",
+  "worlds": [
+    "PD",
+    "EL",
+    "CV",
+    "DK"
+  ],
+  "weight": 3
+}

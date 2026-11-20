@@ -24,6 +24,7 @@ namespace Address.World
         public Material ofFloorMat, ofWallMat, ofCeilMat, lfFloorMat, lfWallMat;
         public Material pdWallMat, pdFloorMat, whFloorMat, whWallMat, pipeMat;
         public Material elWallMat, cvWallMat, cvFloorMat, lbFloorMat, laFloorMat, laWallMat, laCeilMat;
+        public Material[] library;   // every built-in surface, for worlds described as data (Resources/Worlds, mods)
         public Texture[] caustics;
     }
 
@@ -81,6 +82,18 @@ namespace Address.World
         /// <summary>Global lighting/fog per aesthetic (procedural levels have no baked GI: ambient stands in for bounce light).</summary>
         public static void ApplyAtmosphere(string aesthetic)
         {
+            var wd = Address.Mods.ModSystem.World(aesthetic);
+            if (wd != null)
+            {
+                var skyD = Resources.Load<Material>("SkyDim"); if (skyD) RenderSettings.skybox = skyD;
+                RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+                var a = Address.Mods.ModSystem.C(wd.ambient, new Color(0.13f, 0.12f, 0.08f));
+                RenderSettings.ambientSkyColor = a; RenderSettings.ambientEquatorColor = a * 1.5f; RenderSettings.ambientGroundColor = a * 2.6f;
+                RenderSettings.fog = true; RenderSettings.fogMode = FogMode.ExponentialSquared;
+                RenderSettings.fogDensity = wd.fogDensity >= 0 ? wd.fogDensity : 0.025f;
+                RenderSettings.fogColor = Address.Mods.ModSystem.C(wd.fogColor, a * 2f);
+                return;
+            }
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
             RenderSettings.fog = true; RenderSettings.fogMode = FogMode.ExponentialSquared;
             var sky = Resources.Load<Material>(aesthetic == "FA" ? "SkyAero" : "SkyDim");
@@ -248,7 +261,8 @@ namespace Address.World
             var rng = new Rng(attempt == 0 ? address.BaseSeed : Hashing.Combine(address.BaseSeed, (ulong)attempt * 0xA77E3UL));
             var a0 = address.Aesthetic;
             var res = new Result { address = address, aesthetic = a0 == "PR" || a0 == "FA" || a0 == "PG" || a0 == "HT" || a0 == "OF" || a0 == "LF" || a0 == "PD" || a0 == "WH" || a0 == "LO"
-                || a0 == "EL" || a0 == "CV" || a0 == "RN" || a0 == "FL" || a0 == "LB" || a0 == "LA" ? a0 : "BR" };
+                || a0 == "EL" || a0 == "CV" || a0 == "RN" || a0 == "FL" || a0 == "LB" || a0 == "LA" || Address.Mods.ModSystem.World(a0) != null ? a0 : "BR" };
+            wdef = Address.Mods.ModSystem.World(res.aesthetic);
             bool garage = res.aesthetic == "PG" && kit.pgFloorMat, hotel = res.aesthetic == "HT" && kit.htFloorMat;
             bool office = res.aesthetic == "OF" && kit.ofFloorMat, fun = res.aesthetic == "LF" && kit.lfWallMat;
             bool pipes = res.aesthetic == "PD" && kit.pdWallMat, wareh = res.aesthetic == "WH" && kit.whFloorMat, dark = res.aesthetic == "LO";
@@ -271,9 +285,10 @@ namespace Address.World
             if (caves) { wallM = kit.cvWallMat; floorM = kit.cvFloorMat ? kit.cvFloorMat : kit.cvWallMat; ceilM = kit.cvWallMat; }
             if (run)
             {
-                // Level Run: the same yellow rooms, washed in alarm red
-                wallM = Tinted(kit.wallMat, new Color(1f, 0.62f, 0.56f), "rn_wall");
-                floorM = Tinted(kit.floorMat, new Color(0.7f, 0.36f, 0.32f), "rn_floor");
+                // Level Run: a school corridor - painted walls, linoleum tiles, ceiling panels; the red comes from the alarm lights
+                wallM = kit.ofWallMat ? Tinted(kit.ofWallMat, new Color(0.86f, 0.88f, 0.8f), "rn_wall") : kit.wallMat;
+                floorM = kit.laFloorMat ? kit.laFloorMat : kit.floorMat;
+                if (kit.ofCeilMat) ceilM = kit.ofCeilMat;
             }
             if (lib)
             {
@@ -282,6 +297,12 @@ namespace Address.World
                 if (kit.htCeilMat) ceilM = Tinted(kit.htCeilMat, new Color(0.86f, 0.8f, 0.7f), "lb_ceil");
             }
             if (lab) { floorM = kit.laFloorMat ? kit.laFloorMat : floorM; wallM = kit.laWallMat; if (kit.laCeilMat) ceilM = kit.laCeilMat; }
+            if (wdef != null)
+            {
+                wallM = Address.Mods.ModSystem.Surface(wdef.wall, wdef.wallTint, kit.library, kit.wallMat, wdef.modDir);
+                floorM = Address.Mods.ModSystem.Surface(wdef.floor, wdef.floorTint, kit.library, kit.floorMat, wdef.modDir);
+                ceilM = Address.Mods.ModSystem.Surface(wdef.ceiling, wdef.ceilTint, kit.library, kit.ceilingMat, wdef.modDir);
+            }
             if (fun)
             {
                 // Level Fun: the same downloaded wallpaper and carpet, recoloured party-orange and candy red
@@ -297,9 +318,9 @@ namespace Address.World
             // rare places (~1 in 18): the exit is found differently; the guarantee still holds
             var rr = rng.Fork("rare"); float rv = rr.Value;
             res.rare = rv < 0.022f ? "silent" : rv < 0.044f ? "photo" : rv < 0.056f ? "vast" : "";
-            if (garage || hotel || office || fun || pipes || wareh || dark || power || caves || run || flood || lib || lab) res.rare = "";
+            if (garage || hotel || office || fun || pipes || wareh || dark || power || caves || run || flood || lib || lab || wdef != null) res.rare = "";
             int size = sizeOverride > 0 ? sizeOverride : (rng.Fork("size").Chance(0.4f) ? 24 : 36);
-            var L = aero ? LayoutGenerator.Park(rng.Fork("size").Range(34, 46))
+            var L = wdef != null ? DefLayout(wdef, rng, size) : aero ? LayoutGenerator.Park(rng.Fork("size").Range(34, 46))
                   : hotel ? LayoutGenerator.Hotel(rng.Fork("layout"), 44)
                   : garage ? new LayoutGenerator { minRoomM = 9f, maxRoomLo = 13f, maxRoomHi = 19f, doorShare = 0f, forceKind = "parking" }.Generate(rng.Fork("layout"), 44, 44)
                   : office ? new LayoutGenerator { doorShare = 0.55f, kindPool = new[] { "office", "office", "office", "meeting", "breakroom", "server", "storage", "empty", "dump" } }.Generate(rng.Fork("layout"), 36, 36)
@@ -307,7 +328,7 @@ namespace Address.World
                   : wareh ? new LayoutGenerator { minRoomM = 8f, maxRoomLo = 12f, maxRoomHi = 18f, doorShare = 0.1f, kindPool = new[] { "storage", "storage", "storage", "pillars", "empty", "dump" } }.Generate(rng.Fork("layout"), 44, 44)
                   : power ? new LayoutGenerator { minRoomM = 3f, maxRoomLo = 4.5f, maxRoomHi = 8f, doorShare = 0.2f, kindPool = new[] { "server", "server", "corridor", "storage", "empty", "dump" } }.Generate(rng.Fork("layout"), 34, 34)
                   : caves ? new LayoutGenerator { minRoomM = 3.5f, maxRoomLo = 6f, maxRoomHi = 11f, doorShare = 0f, kindPool = new[] { "empty", "empty", "empty", "corridor", "dump" } }.Generate(rng.Fork("layout"), 38, 38)
-                  : run ? new LayoutGenerator { minRoomM = 2.4f, maxRoomLo = 3f, maxRoomHi = 4.5f, doorShare = 0f, kindPool = new[] { "corridor", "corridor", "corridor", "empty" } }.Generate(rng.Fork("layout"), 40, 40)
+                  : run ? LayoutGenerator.Corridor(120)
                   : flood ? new LayoutGenerator { kindPool = new[] { "empty", "empty", "corridor", "wrong", "dump" } }.Generate(rng.Fork("layout"), size, size)
                   : lib ? new LayoutGenerator { minRoomM = 4f, maxRoomLo = 7f, maxRoomHi = 12f, doorShare = 0.3f, kindPool = new[] { "library", "library", "library", "library", "lounge", "empty" } }.Generate(rng.Fork("layout"), 36, 36)
                   : lab ? new LayoutGenerator { doorShare = 0.6f, kindPool = new[] { "office", "meeting", "server", "server", "storage", "empty", "corridor" } }.Generate(rng.Fork("layout"), 36, 36)
@@ -334,7 +355,7 @@ namespace Address.World
             else
             {
                 ExitPlanner.ForceForm = hotel ? ExitForm.Elevator : (ExitForm?)null;
-                res.exits = ExitPlanner.Plan(L, rng.Fork("exits"));
+                res.exits = (run || wdef?.layout == "corridor" ? ExitPlanner.PlanEnd(L) : null) ?? ExitPlanner.Plan(L, rng.Fork("exits"));
                 ExitPlanner.ForceForm = null;
             }
             if (pool) PlanBasins(L, res, rng.Fork("basins"), new HashSet<int>(res.exits.Select(e => e.roomId)));
@@ -365,6 +386,7 @@ namespace Address.World
             res.start = startRoom.bounds.center; res.start.y = 0;
             if (aero) { var c = L.WorldBounds.center; res.start = new Vector3(c.x + rng.Fork("st").Range(-6f, 6f), 0, c.z + rng.Fork("st2").Range(-6f, 6f)); }
             res.startYaw = rng.Fork("yaw").Range(0, 4) * 90f;
+            if (run || wdef?.layout == "corridor") res.startYaw = 0f;   // facing down the corridor, towards the far door
             foreach (var r in res.rooms)
             {
                 var pts = new List<Vector3>(r.doors);
@@ -387,6 +409,11 @@ namespace Address.World
             // furnishing
             var eng = new PlacementEngine(ArchLayer, PropsLayer, props.transform) { style = pool ? "poolrooms" : aero ? "frutiger" : "backrooms", mood = pool || aero ? "light" : "neutral", nav = res.nav, navStart = res.start, settleOnCommit = SettleOnCommit && !lib };   // library: thousands of books stand on their boards, no physics pass
             res.engine = eng;
+            // nothing hangs on the wall over an exit or a hotel door
+            foreach (var e in res.exits)
+                eng.wallKeepOut.Add(new Bounds(e.position + Vector3.up * 1.3f, new Vector3(Mathf.Abs(e.normal.z) * (e.width + 0.5f) + Mathf.Abs(e.normal.x) * 0.8f, 2.8f, Mathf.Abs(e.normal.x) * (e.width + 0.5f) + Mathf.Abs(e.normal.z) * 0.8f)));
+            foreach (var t in arch.GetComponentsInChildren<Transform>())
+                if (t.name.StartsWith("HotelDoor")) eng.wallKeepOut.Add(new Bounds(t.position + Vector3.up * 1.3f, new Vector3(1.6f, 2.8f, 1.6f)));
             var sc = new Scenarios(eng, kit.db);
             foreach (var room in L.rooms)
             {
@@ -655,20 +682,21 @@ namespace Address.World
             {
                 foreach (var s in TrofferSpots(room.World, H))
                 {
-                    if (world == "CV") continue;   // caves: no fixtures in the rock, a few glows instead (CaveLights)
+                    if (world == "CV" || wdef != null && wdef.noLamps) continue;   // caves: no fixtures in the rock, a few glows instead (CaveLights)
                     spots.Add(s);
                     // 0 lit, 1 dead, 2 failing (flickers), 3 dim
                     float v = lr.Value;
-                    int mode = room.dark ? (v < 0.72f ? 1 : v < 0.9f ? 2 : 3) : (v < 0.035f ? 2 : v < 0.05f ? 1 : 0);
+                    int mode = room.dark ? (v < 0.72f ? 1 : v < 0.9f ? 2 : 3) : (v < 0.08f ? 2 : v < 0.1f ? 1 : 0);   // a few tubes fail everywhere
                     if (world == "PG" && mode == 0) mode = v < 0.12f ? 1 : v < 0.2f ? 2 : 0;          // half the garage tubes are dead or dying
                     if (world == "HT" && mode == 0 && ((int)(s.Item1.x * 2 + s.Item1.z * 3) & 1) == 0) mode = 1;   // hotel: every other light off
                     if (world == "OF" && mode == 0) mode = v < 0.2f ? 1 : v < 0.3f ? 2 : 0;           // the abandoned office: a fifth of the tubes dead
                     if (world == "LO") mode = v < 0.86f ? 1 : 2;                                          // lights out: only a few tubes still flicker
                     if (world == "WH" && mode == 0) mode = v < 0.25f ? 1 : 0;
                     if (world == "EL" && mode == 0) mode = v < 0.3f ? 1 : v < 0.45f ? 2 : 0;          // power station: emergency lighting only, half of it failing
-                    if (world == "RN" && mode == 0) mode = v < 0.3f ? 2 : 0;                          // Level Run: the alarm lights pulse
+                    if (world == "RN") mode = v < 0.55f ? 2 : v < 0.75f ? 1 : 0;                       // Level Run: alarm lights, most of them strobing
                     if (world == "LB" && mode == 0) mode = v < 0.18f ? 1 : v < 0.4f ? 3 : 0;
                     if (world == "FL" && mode == 0) mode = v < 0.1f ? 1 : v < 0.18f ? 2 : 0;
+                    if (wdef != null && mode == 0) { float dd = Mathf.Max(0, wdef.deadShare), ff = Mathf.Max(0, wdef.flickerShare); mode = v < dd ? 1 : v < dd + ff ? 2 : 0; }
                     if (mode != 0) spotMode[SpotKey(s.Item1)] = mode;
                 }
             }
@@ -773,14 +801,43 @@ namespace Address.World
                     }
             }
             if (world == "PG") ParkingLines(L, parent, rng.Fork("lines"));
-            if (world == "HT") HotelDoors(L, parent, rng.Fork("doors"), exits);
-            if (world == "PD" || world == "EL") Pipes(L, parent, rng.Fork("pipes"));
+            if (world == "HT" || world == "RN") HotelDoors(L, parent, rng.Fork("doors"), exits);
+            if (world == "RN") SchoolCorridor(L, parent, rng.Fork("school"), exits);
+            if (world == "PD" || world == "EL" || wdef != null && wdef.pipes) Pipes(L, parent, rng.Fork("pipes"));
+            if (wdef != null && wdef.noLamps) CaveLights(L, parent, rng.Fork("glow"));
+            if (wdef != null && wdef.water) FloodWater(L, parent);
+            if (wdef != null && (wdef.doors || wdef.lockers)) HotelDoors(L, parent, rng.Fork("doors"), exits);
+            if (wdef != null && wdef.lockers) SchoolCorridor(L, parent, rng.Fork("school"), exits);
             if (world == "CV") CaveLights(L, parent, rng.Fork("glow"));
             if (world == "FL") FloodWater(L, parent);
             if (lights && !openSky) Lights(spots, parent);
         }
 
         string world = "BR";
+        Address.Mods.WorldDef wdef;
+
+        /// <summary>The layout preset a data world asks for.</summary>
+        static LayoutGenerator.Layout DefLayout(Address.Mods.WorldDef d, Rng rng, int size)
+        {
+            int sz = d.size > 0 ? d.size : size;
+            LayoutGenerator.Layout L;
+            switch (d.layout)
+            {
+                case "corridor": L = LayoutGenerator.Corridor(d.size > 0 ? d.size : 120); break;
+                case "hotel": L = LayoutGenerator.Hotel(rng.Fork("layout"), d.size > 0 ? d.size : 44); break;
+                case "vast": L = LayoutGenerator.Vast(d.size > 0 ? d.size : 40); break;
+                case "halls":
+                    L = new LayoutGenerator { minRoomM = 8f, maxRoomLo = 12f, maxRoomHi = 18f, doorShare = d.doorShare >= 0 ? d.doorShare : 0.1f, kindPool = d.kinds }.Generate(rng.Fork("layout"), d.size > 0 ? d.size : 44, d.size > 0 ? d.size : 44); break;
+                default:
+                    var g = new LayoutGenerator { kindPool = d.kinds };
+                    if (d.roomMin > 0) g.minRoomM = d.roomMin;
+                    if (d.roomMax > 0) { g.maxRoomLo = Mathf.Max(g.minRoomM, d.roomMax * 0.6f); g.maxRoomHi = d.roomMax; }
+                    if (d.doorShare >= 0) g.doorShare = d.doorShare;
+                    L = g.Generate(rng.Fork("layout"), sz, sz); break;
+            }
+            if (d.height > 0) L.height = d.height;
+            return L;
+        }
 
         /// <summary>Painted parking stalls along the walls of every section: white lines, a yellow kerb band, a few numbers worn off.</summary>
         /// <summary>Level 2: bundles of pipes run along every wall under the ceiling.</summary>
@@ -804,6 +861,65 @@ namespace Address.World
                         mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                     }
                 }
+        }
+
+        /// <summary>Level Run: school lockers between the classroom doors and green EXIT signs under the ceiling.</summary>
+        void SchoolCorridor(LayoutGenerator.Layout L, Transform parent, Rng rng, List<ExitPlan> exits)
+        {
+            var lockers = Resources.Load<GameObject>("Props/Lockers");
+            var doors = new List<Vector3>();
+            foreach (var t in parent.GetComponentsInChildren<Transform>()) if (t.name.StartsWith("HotelDoor")) doors.Add(t.position);
+            // measure the model once: its scale for 1.9 m, which horizontal axis is its width
+            float lockW = 0.4f, lockScale = 1f, yawFix = 0f;
+            if (lockers)
+            {
+                var probe = Object.Instantiate(lockers); var rs = probe.GetComponentsInChildren<Renderer>();
+                if (rs.Length > 0)
+                {
+                    var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds);
+                    lockScale = 1.9f / Mathf.Max(0.01f, b.size.y);
+                    if (b.size.x < b.size.z * 0.8f) yawFix = 90f;   // depth runs along the model's x
+                    lockW = Mathf.Max(0.25f, (yawFix == 0 ? b.size.x : b.size.z) * lockScale);
+                }
+                Object.DestroyImmediate(probe);
+            }
+            var sign = new Material(Shader.Find("Universal Render Pipeline/Unlit")) { name = "exit_sign" }; sign.SetColor("_BaseColor", new Color(0.15f, 1f, 0.35f));
+            foreach (var room in L.rooms)
+            {
+                foreach (var w in room.spec.walls)
+                {
+                    if (Mathf.Abs(w.normal.x) < 0.9f) continue;   // only the long side walls
+                    var along = (w.b - w.a); float len = along.magnitude; along /= len;
+                    for (float t = lockW * 0.5f + 0.1f; t < len - lockW * 0.5f && lockers; t += lockW)
+                    {
+                        var p = w.a + along * t;
+                        bool clash = false;
+                        foreach (var d in doors) if (Vector2.Distance(new Vector2(d.x, d.z), new Vector2(p.x, p.z)) < 0.85f + lockW * 0.5f) clash = true;
+                        foreach (var e in exits) if (Vector3.Distance(e.position, p) < 1.6f) clash = true;
+                        if (clash) continue;
+                        var go = Object.Instantiate(lockers, parent); go.name = "Locker";
+                        go.transform.localScale = Vector3.one * lockScale;
+                        go.transform.SetPositionAndRotation(new Vector3(p.x, 0, p.z), Quaternion.LookRotation(w.normal, Vector3.up) * Quaternion.Euler(0, yawFix, 0));
+                        // stand it on the floor, back against the wall, centred on its slot
+                        var gr = go.GetComponentsInChildren<Renderer>(); if (gr.Length == 0) { Object.DestroyImmediate(go); continue; }
+                        var bb = gr[0].bounds; foreach (var r in gr) bb.Encapsulate(r.bounds);
+                        float back = Vector3.Dot(bb.center - p, w.normal) - Mathf.Abs(Vector3.Dot(bb.extents, new Vector3(Mathf.Abs(w.normal.x), 0, Mathf.Abs(w.normal.z))));
+                        var shift = -bb.min.y * Vector3.up + w.normal * (0.01f - back) - along * Vector3.Dot(bb.center - p, along);
+                        go.transform.position += shift; bb.center += shift;
+                        foreach (var tr in go.GetComponentsInChildren<Transform>(true)) { tr.gameObject.layer = ArchLayer; tr.gameObject.isStatic = true; }
+                        foreach (var c0 in go.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(c0);
+                        var colGo = new GameObject("LockerCol") { layer = ArchLayer }; colGo.transform.SetParent(parent); colGo.transform.position = bb.center;
+                        colGo.AddComponent<BoxCollider>().size = bb.size;
+                    }
+                }
+                // an EXIT sign hanging from the ceiling in the middle of every segment
+                var c = room.spec.bounds.center;
+                var s = GameObject.CreatePrimitive(PrimitiveType.Cube); Object.DestroyImmediate(s.GetComponent<Collider>()); s.name = "ExitSign";
+                s.transform.SetParent(parent); s.transform.position = new Vector3(c.x, L.height - 0.28f, c.z); s.transform.localScale = new Vector3(0.6f, 0.2f, 0.06f);
+                s.GetComponent<Renderer>().sharedMaterial = sign;
+                var lg = new GameObject("ExitGlow"); lg.transform.SetParent(s.transform, false);
+                var l = lg.AddComponent<Light>(); l.type = LightType.Point; l.color = new Color(0.2f, 1f, 0.4f); l.intensity = 0.6f; l.range = 2.5f; l.shadows = LightShadows.None;
+            }
         }
 
         /// <summary>Level 8: no lamps in the rock. Here and there a warm glow low over the floor (a dropped flare, a lantern).</summary>
@@ -830,7 +946,16 @@ namespace Address.World
             w.name = "FloodWater"; w.transform.SetParent(parent);
             w.transform.position = new Vector3(b.center.x, 0.14f, b.center.z); w.transform.rotation = Quaternion.Euler(90, 0, 0);
             w.transform.localScale = new Vector3(b.size.x + 2, b.size.z + 2, 1);
-            var r = w.GetComponent<Renderer>(); r.sharedMaterial = kit.waterMat; r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            var r = w.GetComponent<Renderer>(); r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            // still, dark, glassy water you can see the floor through (made from the glass material, so the transparent shader is in the build)
+            if (kit.glassMat)
+            {
+                var m = new Material(kit.glassMat) { name = "flood_water" };
+                if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", new Color(0.09f, 0.13f, 0.1f, 0.62f));
+                if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.97f);
+                r.sharedMaterial = m;
+            }
+            else r.sharedMaterial = kit.waterMat;
         }
 
         void ParkingLines(LayoutGenerator.Layout L, Transform parent, Rng rng)
@@ -1264,6 +1389,12 @@ namespace Address.World
                 if (world == "FL") { l.intensity = 2.4f; l.color = new Color(0.85f, 1f, 0.92f); }
                 if (world == "LB") { l.intensity = 1.7f; l.color = new Color(1f, 0.78f, 0.52f); l.range = 6f; }
                 if (world == "LA") { l.intensity = 1.9f; l.color = new Color(0.93f, 0.97f, 1f); }
+                if (wdef != null)
+                {
+                    if (wdef.lightColor != null) l.color = Address.Mods.ModSystem.C(wdef.lightColor, l.color);
+                    if (wdef.lightIntensity > 0) l.intensity = wdef.lightIntensity;
+                    if (wdef.lightRange > 0) l.range = wdef.lightRange;
+                }
                 // shadows are expensive: only every 4th fixture casts them (enough for grounding furniture)
                 l.shadows = (k++ % 4 == 0) ? LightShadows.Soft : LightShadows.None; l.shadowStrength = 0.7f;
                 // lit tubes next to a dark zone reach less far: light must not leak through the walls into the dark

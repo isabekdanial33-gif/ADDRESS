@@ -28,7 +28,7 @@ namespace Address.EditorTools
                 string id = Path.GetFileName(dir);
                 var files = Directory.GetFiles(dir, "*.jpg").Select(f => f.Replace('\\', '/')).ToArray();
                 string F(string key) => files.FirstOrDefault(f => Path.GetFileName(f).ToLowerInvariant().Contains(key));
-                string color = F("_color"), normal = F("normalgl"), rough = F("roughness"), metal = F("metalness"), ao = F("ambientocclusion");
+                string color = F("_color"), normal = F("normalgl"), rough = F("roughness"), metal = F("metalness"), ao = F("ambientocclusion"), disp = F("displacement");
                 foreach (var f in files)
                 {
                     var ti = (TextureImporter)AssetImporter.GetAtPath(f);
@@ -64,6 +64,14 @@ namespace Address.EditorTools
                 if (normal != null) { mat.SetTexture("_BumpMap", AssetDatabase.LoadAssetAtPath<Texture2D>(normal)); mat.EnableKeyword("_NORMALMAP"); mat.SetFloat("_BumpScale", 1f); }
                 if (rough != null) { mat.SetTexture("_MetallicGlossMap", AssetDatabase.LoadAssetAtPath<Texture2D>(packedPath)); mat.EnableKeyword("_METALLICSPECGLOSSMAP"); mat.SetFloat("_Smoothness", 1f); mat.SetFloat("_GlossMapScale", 1f); }
                 if (ao != null) { mat.SetTexture("_OcclusionMap", AssetDatabase.LoadAssetAtPath<Texture2D>(ao)); mat.EnableKeyword("_OCCLUSIONMAP"); }
+                if (disp != null)
+                {
+                    // real relief: rock and concrete deep, tiles and plaster a little, carpet and wallpaper barely
+                    string l = id.ToLowerInvariant();
+                    float depth = l.StartsWith("rock") || l.StartsWith("ground") ? 0.045f : l.StartsWith("concrete") || l.StartsWith("asphalt") || l.StartsWith("metalplates") ? 0.025f
+                                : l.StartsWith("tiles") || l.StartsWith("woodfloor") || l.Contains("plaster") ? 0.012f : 0.006f;
+                    mat.SetTexture("_ParallaxMap", AssetDatabase.LoadAssetAtPath<Texture2D>(disp)); mat.EnableKeyword("_PARALLAXMAP"); mat.SetFloat("_Parallax", depth);
+                }
                 mat.enableInstancing = true;
                 EditorUtility.SetDirty(mat);
             }

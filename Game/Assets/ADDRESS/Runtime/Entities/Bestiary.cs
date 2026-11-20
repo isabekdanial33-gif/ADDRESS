@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Address.Entities
@@ -13,7 +14,7 @@ namespace Address.Entities
 
         public static readonly Entry[] Creatures =
         {
-            E("Verity", "Verity", "Жёлтый смайлик-помощник. Летает сквозь стены, подлетает к путникам и рассказывает, где выход. Подойди и нажми E."),
+            E("Verity", "Verity", "Жёлтый смайлик-помощник. Летает по коридорам, подлетает к путникам и рассказывает, где выход. Подойди и нажми E."),
             E("FakeVerity", "Фальшивый Verity", "Тусклее настоящего и говорит так же уверенно. Только ведёт он не к выходу, а к тому, кто там ждёт."),
             E("Echo", "Отголосок", "Растянутая тёмная копия исследователя. Идёт за тобой, только пока ты не смотришь."),
             E("Salesman", "Продавец", "Высокая фигура из шоурумов. Под взглядом замирает, но быстро догоняет, если отвернуться."),
@@ -76,6 +77,10 @@ namespace Address.Entities
         public static bool Known(string key) => Seen.Contains(key);
         public static int Count(Entry[] list) { int n = 0; foreach (var e in list) if (Known(e.key)) n++; return n; }
 
+        /// <summary>Built-in worlds plus the data worlds (Resources/Worlds and mods).</summary>
+        public static Entry[] AllWorlds() => Worlds.Concat(Address.Mods.ModSystem.Worlds.Select(w => E(w.id, w.title + (string.IsNullOrEmpty(w.level) ? "" : "  (" + w.level + ")"), w.about ?? ""))).ToArray();
+        public static Entry[] AllCreatures() => Creatures.Concat(Address.Mods.ModSystem.Entities.Select(e => E(e.id, e.name ?? e.id, e.about ?? ""))).ToArray();
+
         static void Mark(string key, Entry[] list, string section)
         {
             if (string.IsNullOrEmpty(key) || Seen.Contains(key)) return;
@@ -85,8 +90,8 @@ namespace Address.Entities
             Debug.Log($"[ADDRESS] index: new {section} {key}");
         }
 
-        public static void SeeCreature(string key) => Mark(key, Creatures, "существо");
-        public static void VisitWorld(string key) => Mark(key, Worlds, "мир");
+        public static void SeeCreature(string key) => Mark(key, AllCreatures(), "существо");
+        public static void VisitWorld(string key) => Mark(key, AllWorlds(), "мир");
 
         public static string Name(EntityKind k) { foreach (var e in Creatures) if (e.key == k.ToString()) return e.name; return k.ToString(); }
         public static string WorldName(string key) { foreach (var e in Worlds) if (e.key == key) return e.name; return key; }

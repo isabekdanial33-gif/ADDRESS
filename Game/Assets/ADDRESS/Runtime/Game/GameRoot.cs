@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Address.Core;
@@ -55,12 +55,17 @@ namespace Address.Game
             if (PlayerPrefs.HasKey("quality2")) QualitySettings.SetQualityLevel(PlayerPrefs.GetInt("quality2"), true);   // new key: tier list changed
             else if (Application.isMobilePlatform) QualitySettings.SetQualityLevel(System.Array.IndexOf(QualitySettings.names, "Mobile") is int mq && mq >= 0 ? mq : 0, true);
             gameObject.AddComponent<Address.Rendering.FrameGovernor>();
+            Address.Mods.ModSystem.Load();
+            if (!Application.isBatchMode) Address.Mods.ModSystem.LoadModels();
             book = AddressBook.Load();
             album = PhotoAlbum.Load();
             SetupLighting();
             BuildHud();
             BuildPlayer();
-            Address.Entities.Bestiary.onNew = (section, name) => { if (state == State.Playing) hud.Toast("+ в индекс", section + ": " + name); };
+            Address.Net.SteamService.ensureManager = () => NetLauncher.Ensure(config.netAvatarPrefab, config.netSessionPrefab);
+            Address.Net.SteamService.onJoined = () => StartCoroutine(WaitSession());
+            Address.Net.SteamService.Init();
+            Address.Entities.Bestiary.onNew = (section, name) => { if (state == State.Playing) hud.Toast("+ РІ РёРЅРґРµРєСЃ", section + ": " + name); };
             menu = new MenuUI
             {
                 onContinue = Continue,
@@ -69,13 +74,15 @@ namespace Address.Game
                 onQuit = () => { Application.Quit(); },
                 onMainMenu = ToMenu,
                 onHost = StartHosting,
+                onSteamHost = StartSteamHosting,
+                onSteamInvite = Address.Net.SteamService.Invite,
                 onJoin = ip => JoinSession(ip),
-                netStatus = () => NetLauncher.Manager && NetLauncher.Manager.IsServer ? $"Вы хост. Ваш IP: {NetLauncher.LocalIp()} - игроков: {NetLauncher.Manager.ConnectedClientsIds.Count}/2"
-                                 : NetLauncher.Manager && NetLauncher.Manager.IsClient ? "Подключено." : "",
-                footer = () => $"мест посещено: {book.visited.Count}    фото: {album.photos.Count}    лучший снимок: {(album.photos.Count > 0 ? album.photos.Max(p => p.score) : 0)}",
+                netStatus = () => NetLauncher.Manager && NetLauncher.Manager.IsServer ? $"Р’С‹ С…РѕСЃС‚. Р’Р°С€ IP: {NetLauncher.LocalIp()} - РёРіСЂРѕРєРѕРІ: {NetLauncher.Manager.ConnectedClientsIds.Count}/2"
+                                 : NetLauncher.Manager && NetLauncher.Manager.IsClient ? "РџРѕРґРєР»СЋС‡РµРЅРѕ." : "",
+                footer = () => $"РјРµСЃС‚ РїРѕСЃРµС‰РµРЅРѕ: {book.visited.Count}    С„РѕС‚Рѕ: {album.photos.Count}    Р»СѓС‡С€РёР№ СЃРЅРёРјРѕРє: {(album.photos.Count > 0 ? album.photos.Max(p => p.score) : 0)}",
                 here = () => level != null && state != State.Menu ? level.address.ToString() : "",
                 archive = () => album.photos.OrderByDescending(p => p.score).Take(8).Select(p => $"{p.score,5}  {p.address}  {string.Join(", ", p.subjects.Take(3))}")
-                                    .Concat(book.visited.Select(v => "место: " + v)).Concat(book.echoLinks.Select(e => "эхо: " + e)).ToList()
+                                    .Concat(book.visited.Select(v => "РјРµСЃС‚Рѕ: " + v)).Concat(book.echoLinks.Select(e => "СЌС…Рѕ: " + e)).ToList()
             };
             // the menu stands inside a real place of the Library: a calm room, slowly looked around
             var bg = RequestedAddress ?? new LevelAddress("BR", Hashing.Combine(Hashing.Fnv64("menu"), (ulong)System.DateTime.Now.DayOfYear));
@@ -120,7 +127,7 @@ namespace Address.Game
             typeof(MenuUI).GetMethod("SettingsPage", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(menu, null);
             yield return new WaitForSeconds(1f); Shot(cam, "01_settings");
             Address.Entities.Bestiary.SeeCreature("Verity"); Address.Entities.Bestiary.SeeCreature("Clark"); Address.Entities.Bestiary.VisitWorld("BR");
-            typeof(MenuUI).GetMethod("IndexList", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(menu, new object[] { "существа", Address.Entities.Bestiary.Creatures, 0 });
+            typeof(MenuUI).GetMethod("IndexList", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(menu, new object[] { "СЃСѓС‰РµСЃС‚РІР°", Address.Entities.Bestiary.Creatures, 0 });
             yield return new WaitForSeconds(1f); Shot(cam, "02_index");
             typeof(MenuUI).GetMethod("AddressPage", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(menu, null);
             yield return new WaitForSeconds(1f); Shot(cam, "02_address");
@@ -303,15 +310,38 @@ namespace Address.Game
                     Destroy(v.gameObject); verities.Clear(); yield return null;
                     state = State.Menu; hud.SetVisible(false);
                 }
+                // first person: legs when looking down, arms at rest; crawling seen from the side; the vent duct from inside
+                {
+                    var cc6 = player.GetComponent<CharacterController>();
+                    hud.SetVisible(true); state = State.Playing; fpc.enabled = false;
+                    fpc.SetLook(yawE, 70); yield return new WaitForSeconds(0.6f); Shot(cam, "88_fp_legs");
+                    fpc.SetLook(yawE, 0); yield return new WaitForSeconds(0.4f); Shot(cam, "88_fp_arms_idle");
+                    fpc.ForceCrawl = true; for (int i = 0; i < 20; i++) fpc.Tick(0.05f);
+                    var side = Vector3.Cross(Vector3.up, fwd);
+                    var dummy = Instantiate(config.bodyPrefab, level.start + fwd * 2.4f, Quaternion.LookRotation(side));
+                    foreach (var c in dummy.GetComponentsInChildren<Collider>()) Destroy(c);
+                    var dpb = dummy.GetComponent<ProceduralBody>(); if (dpb) { dpb.firstPerson = false; dpb.fpc = fpc; }
+                    fpc.SetLook(yawE, 12); yield return new WaitForSeconds(1.2f); Shot(cam, "88_crawl_side");
+                    Destroy(dummy);
+                    var droot = BuildDuct(out var ds, out var de, out var dyaw);
+                    cc6.enabled = false; player.transform.position = ds; cc6.enabled = true; for (int i = 0; i < 5; i++) fpc.Tick(0.05f);
+                    fpc.SetLook(dyaw, 0); yield return new WaitForSeconds(0.6f); Shot(cam, "88_duct_start");
+                    cc6.enabled = false; player.transform.position = ds + new Vector3(0, 0, 5.6f); cc6.enabled = true; for (int i = 0; i < 5; i++) fpc.Tick(0.05f);
+                    fpc.SetLook(90, 0); yield return new WaitForSeconds(0.6f); Shot(cam, "88_duct_bend");
+                    Debug.Log($"[ADDRESS] duct: start {ds} end {de} crawling {fpc.Crawling} cam y {cam.transform.position.y - ds.y:F2}");
+                    fpc.ForceCrawl = false; Destroy(droot);
+                    cc6.enabled = false; player.transform.position = level.start; cc6.enabled = true; for (int i = 0; i < 20; i++) fpc.Tick(0.05f);
+                    state = State.Menu; hud.SetVisible(false);
+                }
             }
             // ---- the new worlds: garage and hotel, four looks each from the start
-            foreach (var w in new[] { "EL", "CV", "RN", "FL", "LB", "LA" })
-                for (int v = 0; v < 2; v++)
+            foreach (var w in new[] { "RN", "MN", "R2", "AP", "HB", "SC", "HO", "RH", "SB" })
+                for (int v = 0; v < 1; v++)
                 {
                     StartCoroutine(Enter(new LevelAddress(w, Hashing.Fnv64("world " + w + v)), null));
                     yield return new WaitForSeconds(0.5f); yield return new WaitUntil(() => !travelling); yield return new WaitForSeconds(1.0f);
                     Debug.Log($"[ADDRESS] world {w}: {level.address} rooms {level.rooms.Count} exits {level.exits.Count(e => e.reachable)}/{level.exits.Count} {string.Join(",", level.exits.Select(e => e.form))} props {level.engine.placed.Count}");
-                    for (int i = 0; i < 4; i += (v == 0 ? 1 : 2)) { fpc.SetLook(level.startYaw + i * 90, 3); yield return new WaitForSeconds(0.35f); Shot(cam, $"86_{w}{v}_look{i}"); }
+                    for (int i = 0; i < 4; i += 2) { fpc.SetLook(level.startYaw + i * 90, 3); yield return new WaitForSeconds(0.35f); Shot(cam, $"86_{w}{v}_look{i}"); }
                 }
             if (System.Environment.GetCommandLineArgs().Contains("-roomsonly")) { Application.Quit(); yield break; }
             // ---- Frutiger Aero park + the archway into the Poolrooms
@@ -430,11 +460,12 @@ namespace Address.Game
             // touch objects during the physical stability check and change the result between machines)
             var pcc = player ? player.GetComponent<CharacterController>() : null;
             if (pcc) pcc.enabled = false;
-            if (!menuBackground) { hud.Loading("→ " + address + "\nищу это место..."); yield return null; yield return null; }
+            if (!menuBackground) { hud.Loading("в†’ " + address + "\nРёС‰Сѓ СЌС‚Рѕ РјРµСЃС‚Рѕ..."); yield return null; yield return null; }
             level = new LevelBuilder(config.kit).Build(address);
             hud.Loading(null);
             if (pcc) pcc.enabled = true;
             LevelBuilder.ApplyAtmosphere(level.aesthetic);
+            Grade(level.aesthetic);
             if (level.probe) level.probe.RenderProbe();
             var echoLog = Echo.Apply(level, config.kit.wallMat);
             level.root.AddComponent<Address.Rendering.LevelOptimizer>().Init(level.root, cam.transform);
@@ -445,6 +476,7 @@ namespace Address.Game
                 if (NetLauncher.Manager.IsServer) { NetSession.Instance.Address.Value = address.ToString(); NetSession.Instance.LevelHash.Value = hash; }
                 else Debug.Log($"[ADDRESS] net: level {address} hash {hash} host {NetSession.Instance.LevelHash.Value} -> {(hash == NetSession.Instance.LevelHash.Value.ToString() ? "SAME PLACE" : "MISMATCH (waiting for host hash)")}");
             }
+            if (!menuBackground && level.aesthetic != "FA") level.root.AddComponent<Address.World.BrownOut>().viewer = player.transform;
             if (!menuBackground) { var d = level.root.AddComponent<Director>(); d.Begin(level, config.audio?.roomTone, config.dustMat); d.player = player.transform; }
             foreach (var e in level.exits.Where(e => e.role == ExitRole.False && e.instance))
                 foreach (var r in e.instance.GetComponentsInChildren<Renderer>()) if (r.name == "void") r.sharedMaterial = config.kit.wallMat; // door to nowhere
@@ -475,6 +507,19 @@ namespace Address.Game
             if (!NetLauncher.Host(config.netSessionPrefab)) { Debug.LogWarning("[ADDRESS] host failed"); return; }
             WireSession();
             if (state == State.Menu) Continue(); else if (level != null) StartCoroutine(Enter(level.address, null));
+        }
+
+        /// <summary>Co-op over Steam: a friends-only lobby, the friend joins through the overlay invite (Steam relay, no IP).</summary>
+        void StartSteamHosting()
+        {
+            NetLauncher.Ensure(config.netAvatarPrefab, config.netSessionPrefab);
+            Address.Net.SteamService.HostLobby(() =>
+            {
+                if (!NetLauncher.Host(config.netSessionPrefab)) return false;
+                WireSession();
+                if (state == State.Menu) Continue(); else if (level != null) StartCoroutine(Enter(level.address, null));
+                return true;
+            });
         }
 
         void JoinSession(string ip)
@@ -607,6 +652,14 @@ namespace Address.Game
             if (current == "LA") la += 0.06f; if (current == "LB") lb += 0.06f;
             // the older odds already fill most of the range: scale them so the new worlds fit and plain yellow rooms stay common
             float sc = 0.78f; pr *= sc; fa *= sc; pg *= sc; ht *= sc; of *= sc; lf *= sc; pd *= sc; wh *= sc; lo *= sc;
+            // worlds described as data (built-in Resources/Worlds and mods) each take their own small share first
+            float xd = ((seed >> 20) % 1000) / 1000f, acc = 0;
+            foreach (var wd in Address.Mods.ModSystem.Worlds.OrderBy(w => w.id))
+            {
+                if (Address.Mods.ModSystem.World(wd.id) == null) continue;   // its mod is switched off
+                acc += Mathf.Clamp(wd.weight, 0f, 0.2f);
+                if (xd < acc) return wd.id;
+            }
             float x = (seed % 1000) / 1000f;
             float a = pr, b = a + fa, c = b + pg, d = c + ht, e = d + of, f = e + lf, g = f + pd, h = g + wh, i = h + lo;
             float j = i + el, k2 = j + cv, l2 = k2 + rn, m2 = l2 + fl, n2 = m2 + lb, o2 = n2 + la;
@@ -632,7 +685,7 @@ namespace Address.Game
             album.photos.Add(new PhotoRecord { file = file, address = level.address.ToString(), date = System.DateTime.Now.ToString("s"), score = score, subjects = subjects });
             album.Save();
             audioDir?.Play(config.audio?.shutterReal ? config.audio.shutterReal : config.audio?.shutter, 0.8f);
-            flash = 1f; hud.Toast(score > 0 ? $"+{score}" : "снимок", score >= 300 ? "редкий кадр · сохранён в архив" : "сохранён в архив");
+            flash = 1f; hud.Toast(score > 0 ? $"+{score}" : "СЃРЅРёРјРѕРє", score >= 300 ? "СЂРµРґРєРёР№ РєР°РґСЂ В· СЃРѕС…СЂР°РЅС‘РЅ РІ Р°СЂС…РёРІ" : "СЃРѕС…СЂР°РЅС‘РЅ РІ Р°СЂС…РёРІ");
             Debug.Log($"[ADDRESS] photo {score} [{string.Join(", ", subjects)}] -> {file}");
         }
 
@@ -645,6 +698,9 @@ namespace Address.Game
                 return;
             }
             var cur = level.address;
+            // a vent is a real shaft: crawl through it first (tests that jump through exits skip it)
+            if (exit.plan.form == ExitForm.VentHatch && exit.plan.role != ExitRole.False && !ductDone && state == State.Playing && !Application.isBatchMode)
+            { StartCoroutine(DuctRoutine(exit)); return; }
             switch (exit.plan.role)
             {
                 case ExitRole.Forward:
@@ -688,8 +744,11 @@ namespace Address.Game
         {
             TickEntitiesNet();
             TickSuits();
+            TickFear();
             if (deviceInput != null) { deviceInput.mouseSensitivity = Settings.Sensitivity; deviceInput.invertY = Settings.InvertY; }
             cam.fieldOfView = Settings.Fov;
+            if (!AudioListener.pause) AudioListener.volume = Settings.Sound ? 1f : 0f;   // test runs keep the listener paused and silent
+            Address.World.Flicker.Enabled = Settings.FlickerOn;
             if (touch) touch.gameObject.SetActive(state == State.Playing && computer == null);
             if (state == State.Menu)
             {
@@ -713,14 +772,14 @@ namespace Address.Game
             bool exitAim = aimed && !aimed.IsOpen;
             if (TickVerity()) { }
             else if (TickInteract(ray, exitAim)) { }
-            else if (grab.Held) hud.Aim(false, "ЛКМ", "положить     ПКМ — бросить     R — вращать");
-            else if (grab.Pushing) hud.Aim(false, "ЛКМ", "отпустить");
-            else if (aimed && !aimed.IsOpen) hud.Aim(true, "E", "открыть");
+            else if (grab.Held) hud.Aim(false, "Р›РљРњ", "РїРѕР»РѕР¶РёС‚СЊ     РџРљРњ вЂ” Р±СЂРѕСЃРёС‚СЊ     R вЂ” РІСЂР°С‰Р°С‚СЊ");
+            else if (grab.Pushing) hud.Aim(false, "Р›РљРњ", "РѕС‚РїСѓСЃС‚РёС‚СЊ");
+            else if (aimed && !aimed.IsOpen) hud.Aim(true, "E", "РѕС‚РєСЂС‹С‚СЊ");
             else if (grab.Aimed && grab.Aimed.profile)
             {
                 var mc = grab.Aimed.profile.massClass;
                 if (mc == Address.Placement.MassClass.Fixed || grab.Aimed.profile.support == Address.Placement.SupportType.Wall || grab.Aimed.profile.support == Address.Placement.SupportType.Ceiling) hud.Aim(false);
-                else hud.Aim(true, "ЛКМ", mc == Address.Placement.MassClass.Heavy ? "толкать" : "взять");
+                else hud.Aim(true, "Р›РљРњ", mc == Address.Placement.MassClass.Heavy ? "С‚РѕР»РєР°С‚СЊ" : "РІР·СЏС‚СЊ");
             }
             else hud.Aim(false);
             if (exitAim && EPressed())
@@ -761,6 +820,7 @@ namespace Address.Game
             fpArms = head.AddComponent<FpArms>(); fpArms.cam = cam; fpArms.grab = grab; fpArms.fpc = fpc;
             fpArms.Init(config.bodyPrefab);
             Physics.IgnoreLayerCollision(12, 11, true);
+            fearFx = player.AddComponent<FearFx>(); fearFx.head = head.transform; fearFx.Init();
             audioDir = player.AddComponent<AudioDirector>();
             if (config.audio != null) audioDir.Init(config.audio, fpc);
             if (config.bodyPrefab)
@@ -771,6 +831,48 @@ namespace Address.Game
                 foreach (var c in body.GetComponentsInChildren<Collider>(true)) Destroy(c);
                 var pb = body.GetComponent<ProceduralBody>(); if (pb) { pb.fpc = fpc; pb.grab = grab; pb.firstPerson = true; }
             }
+        }
+
+        // per-world colour grade on top of the base post profile
+        Volume gradeVol; ColorAdjustments gradeCol; WhiteBalance gradeWb;
+        void Grade(string a)
+        {
+            if (!gradeVol)
+            {
+                var go = new GameObject("WorldGrade"); go.transform.SetParent(transform, false);
+                gradeVol = go.AddComponent<Volume>(); gradeVol.isGlobal = true; gradeVol.priority = 5;
+                var p = ScriptableObject.CreateInstance<VolumeProfile>(); gradeVol.sharedProfile = p;
+                gradeCol = p.Add<ColorAdjustments>(true); gradeWb = p.Add<WhiteBalance>(true);
+            }
+            var wd = Address.Mods.ModSystem.World(a);
+            if (wd != null)
+            {
+                gradeCol.colorFilter.Override(Address.Mods.ModSystem.C(wd.gradeFilter, Color.white)); gradeCol.saturation.Override(wd.gradeSaturation);
+                gradeCol.contrast.Override(wd.gradeContrast); gradeCol.postExposure.Override(wd.gradeExposure); gradeWb.temperature.Override(wd.gradeTemperature);
+                ShaderPackFx.Apply(transform);
+                return;
+            }
+            (Color f, float sat, float con, float exp, float temp) g = a switch
+            {
+                "BR" => (new Color(1f, 0.95f, 0.8f), -10f, 14f, 0f, 14f),      // sickly yellow
+                "PR" => (new Color(0.92f, 1f, 1f), -6f, 8f, 0.1f, -10f),
+                "LO" => (new Color(0.9f, 0.92f, 1f), -35f, 28f, -0.2f, -6f),
+                "CV" => (new Color(1f, 0.92f, 0.85f), -30f, 26f, -0.15f, 4f),
+                "RN" => (new Color(1f, 0.86f, 0.86f), -12f, 24f, 0f, 0f),
+                "FL" => (new Color(0.88f, 1f, 0.94f), -18f, 14f, 0f, -8f),
+                "LA" => (new Color(0.95f, 0.98f, 1f), -22f, 16f, 0.1f, -16f),
+                "LB" => (new Color(1f, 0.9f, 0.78f), -12f, 14f, -0.05f, 12f),
+                "EL" => (new Color(1f, 0.9f, 0.88f), -20f, 22f, -0.1f, 0f),
+                "PD" => (new Color(1f, 0.9f, 0.78f), -10f, 18f, 0f, 10f),
+                "HT" => (new Color(1f, 0.9f, 0.8f), -8f, 14f, 0f, 10f),
+                "OF" => (new Color(0.94f, 0.98f, 1f), -20f, 12f, 0f, -8f),
+                "WH" => (new Color(0.95f, 0.98f, 1f), -18f, 14f, 0f, -6f),
+                "PG" => (new Color(0.92f, 0.98f, 1f), -18f, 16f, -0.05f, -8f),
+                _ => (Color.white, 0f, 0f, 0f, 0f),
+            };
+            gradeCol.colorFilter.Override(g.f); gradeCol.saturation.Override(g.sat); gradeCol.contrast.Override(g.con); gradeCol.postExposure.Override(g.exp);
+            gradeWb.temperature.Override(g.temp);
+            ShaderPackFx.Apply(transform);
         }
 
         void SetupLighting()
@@ -793,10 +895,32 @@ namespace Address.Game
         // ------------------------------------------------------------------ Verity and the index
 
         readonly List<Address.Entities.Verity> verities = new();
+        FearFx fearFx;
+
+        /// <summary>How afraid the explorer should be: the nearest thing that hunts them, closer = worse; looking at it, worse still.</summary>
+        void TickFear()
+        {
+            if (!fearFx) return;
+            float f = 0;
+            if (state == State.Playing && !travelling && level != null)
+            {
+                foreach (var e in entities)
+                {
+                    if (!e || e.passive) continue;
+                    float d = (e.transform.position - cam.transform.position).magnitude;
+                    bool hunting = e.mode == Address.Entities.Stalker.Mode.Stalk || e.mode == Address.Entities.Stalker.Mode.Frozen;
+                    float k = Mathf.Clamp01(1f - (d - 2.5f) / (hunting ? 16f : 7f)) * (hunting ? 1f : 0.35f);
+                    if (e.SeenNow) k *= 1.15f;
+                    f = Mathf.Max(f, k);
+                }
+                var a = level.aesthetic; if (a == "LO" || a == "CV" || a == "RN") f = Mathf.Max(f, 0.12f);   // never quite at ease there
+            }
+            fearFx.target = f;
+        }
         public bool forceVerity;   // tests
         float indexT;
 
-        /// <summary>Verity close and in view: "E поговорить". Returns true when it took the prompt this frame.</summary>
+        /// <summary>Verity close and in view: "E РїРѕРіРѕРІРѕСЂРёС‚СЊ". Returns true when it took the prompt this frame.</summary>
         bool TickVerity()
         {
             Address.Entities.Verity near = null; float bd = 3.6f;
@@ -807,7 +931,7 @@ namespace Address.Game
                 if (d.magnitude < bd && Vector3.Angle(cam.transform.forward, d) < 32f) { bd = d.magnitude; near = v; }
             }
             if (!near) return false;
-            hud.Aim(true, "E", near.Talking ? "дальше" : "поговорить с Verity");
+            hud.Aim(true, "E", near.Talking ? "РґР°Р»СЊС€Рµ" : "РїРѕРіРѕРІРѕСЂРёС‚СЊ СЃ Verity");
             if (EPressed()) near.Talk();
             return true;
         }
@@ -817,7 +941,7 @@ namespace Address.Game
         {
             indexT -= Time.deltaTime; if (indexT > 0) return; indexT = 0.3f;
             foreach (var e in entities)
-                if (e && (e.transform.position - cam.transform.position).sqrMagnitude < 24f * 24f && LooksAt(e)(cam.transform)) Address.Entities.Bestiary.SeeCreature(e.kind.ToString());
+                if (e && (e.transform.position - cam.transform.position).sqrMagnitude < 24f * 24f && LooksAt(e)(cam.transform)) Address.Entities.Bestiary.SeeCreature(e.IndexKey);
             int mask = (1 << LevelBuilder.ArchLayer) | (1 << LevelBuilder.PropsLayer);
             foreach (var v in verities)
             {
@@ -899,7 +1023,7 @@ namespace Address.Game
             fpc.enabled = state == State.Playing; grab.enabled = state == State.Playing;
             var from = level.address;
             yield return Enter(from.NextEcho(), from);
-            hud.Toast("ты проснулся", $"эхо {from.Generation + 1} этого места");
+            hud.Toast("С‚С‹ РїСЂРѕСЃРЅСѓР»СЃСЏ", $"СЌС…Рѕ {from.Generation + 1} СЌС‚РѕРіРѕ РјРµСЃС‚Р°");
         }
 
         void TickEntitiesNet()
@@ -917,8 +1041,10 @@ namespace Address.Game
 
         static string PlaceName(string aesthetic, int generation)
         {
-            string n = aesthetic switch { "BR" => "Жёлтые комнаты", "PR" => "Бассейны", "FA" => "Frutiger Aero", "PG" => "Подземная парковка", "HT" => "Бесконечный отель", "OF" => "Заброшенный офис", "LF" => "Уровень Веселья =)", "PD" => "Трубы", "WH" => "Склад", "LO" => "Без света", "EL" => "Электростанция", "CV" => "Пещеры", "RN" => "Беги!", "FL" => "Затопленные комнаты", "LB" => "Библиотека", "LA" => "Лаборатория Async", _ => aesthetic };
-            return generation > 0 ? $"{n} · эхо {generation}" : n;
+            var wd = Address.Mods.ModSystem.World(aesthetic);
+            if (wd != null) return generation > 0 ? $"{wd.title} В· СЌС…Рѕ {generation}" : wd.title;
+            string n = aesthetic switch { "BR" => "Р–С‘Р»С‚С‹Рµ РєРѕРјРЅР°С‚С‹", "PR" => "Р‘Р°СЃСЃРµР№РЅС‹", "FA" => "Frutiger Aero", "PG" => "РџРѕРґР·РµРјРЅР°СЏ РїР°СЂРєРѕРІРєР°", "HT" => "Р‘РµСЃРєРѕРЅРµС‡РЅС‹Р№ РѕС‚РµР»СЊ", "OF" => "Р—Р°Р±СЂРѕС€РµРЅРЅС‹Р№ РѕС„РёСЃ", "LF" => "РЈСЂРѕРІРµРЅСЊ Р’РµСЃРµР»СЊСЏ =)", "PD" => "РўСЂСѓР±С‹", "WH" => "РЎРєР»Р°Рґ", "LO" => "Р‘РµР· СЃРІРµС‚Р°", "EL" => "Р­Р»РµРєС‚СЂРѕСЃС‚Р°РЅС†РёСЏ", "CV" => "РџРµС‰РµСЂС‹", "RN" => "Р‘РµРіРё!", "FL" => "Р—Р°С‚РѕРїР»РµРЅРЅС‹Рµ РєРѕРјРЅР°С‚С‹", "LB" => "Р‘РёР±Р»РёРѕС‚РµРєР°", "LA" => "Р›Р°Р±РѕСЂР°С‚РѕСЂРёСЏ Async", _ => aesthetic };
+            return generation > 0 ? $"{n} В· СЌС…Рѕ {generation}" : n;
         }
 
         static Image NewImage(Transform p, string n, Vector2 size, Color c)

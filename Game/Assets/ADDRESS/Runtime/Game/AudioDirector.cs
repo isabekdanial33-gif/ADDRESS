@@ -27,7 +27,7 @@ namespace Address.Game
         public AudioKit kit;
         public FirstPersonController fpc;
         readonly List<AudioSource> humPool = new();
-        AudioSource tone, breath, oneShots, place;
+        AudioSource tone, breath, oneShots, place, music;
         ProcVoice toneVoice;
         List<Light> lights = new();
         float distAcc, timer, eventTimer = 25f, runT; int lastStep = -1;
@@ -48,6 +48,7 @@ namespace Address.Game
             place = Src("place", null, true, 0f, false);
             breath = Src("breath", kit.breath, true, 0f, false);
             oneShots = Src("oneshots", null, false, 1f, false);
+            music = Src("music", null, true, 0f, false);
             lastPos = player.transform.position;
         }
 
@@ -70,7 +71,14 @@ namespace Address.Game
         public void SetLevel(GameObject levelRoot)
         {
             lights = levelRoot ? levelRoot.GetComponentsInChildren<Light>(true).Where(l => l.type != LightType.Directional).ToList() : new List<Light>();
-            aesthetic = levelRoot && levelRoot.name.Contains(" PR-") ? "PR" : levelRoot && levelRoot.name.Contains(" FA-") ? "FA" : "BR";
+            aesthetic = levelRoot && levelRoot.name.StartsWith("Level ") && levelRoot.name.Length > 8 ? levelRoot.name.Substring(6, 2) : "BR";
+            // a quiet downloaded drone under everything: darker in the frightening places, none in the open park
+            bool darkPlace = aesthetic == "LO" || aesthetic == "CV" || aesthetic == "RN" || aesthetic == "EL" || aesthetic == "LB" || aesthetic == "PD";
+            var wd = Address.Mods.ModSystem.World(aesthetic); if (wd != null) darkPlace = wd.music == "dark";
+            var clip = aesthetic == "FA" ? null : Resources.Load<AudioClip>(darkPlace ? "Ambience/amb_dark" : "Ambience/amb_calm");
+            if (clip && music.clip != clip) { music.clip = clip; music.time = Random.Range(0, clip.length * 0.7f); music.Play(); }
+            else if (!clip) music.Stop();
+            musicVol = darkPlace ? 0.2f : 0.12f;
             if (toneVoice) toneVoice.kind = aesthetic == "FA" ? ProcVoice.Kind.Wind : ProcVoice.Kind.Air;
             // the Poolrooms: a real empty pool hall under everything, started at a random point
             if (aesthetic == "PR" && kit.poolHall) { place.clip = kit.poolHall; place.volume = 0.35f; place.time = Random.Range(0, kit.poolHall.length * 0.8f); place.Play(); }
@@ -82,9 +90,13 @@ namespace Address.Game
 
         public void PlayAt(AudioClip c, Vector3 p, float vol = 1f) { if (c) AudioSource.PlayClipAtPoint(c, p, vol); }
 
+        float musicVol;
         void Update()
         {
             if (!fpc) return;
+            bool amb = Settings.Ambience;
+            if (music) music.volume = Mathf.MoveTowards(music.volume, amb ? musicVol : 0f, Time.deltaTime * 0.2f);
+            if (tone) tone.mute = !amb;
             var p = fpc.transform.position;
             // hum follows the nearest lit fixtures (none in the open-air park)
             timer -= Time.deltaTime;
@@ -94,7 +106,7 @@ namespace Address.Game
                 var near = aesthetic == "FA" ? new List<Light>() : lights.Where(l => l && l.enabled && l.intensity > 0.3f).OrderBy(l => (l.transform.position - p).sqrMagnitude).Take(humPool.Count).ToList();
                 for (int i = 0; i < humPool.Count; i++)
                 {
-                    if (i < near.Count) { humPool[i].transform.position = near[i].transform.position; humPool[i].mute = false; humPool[i].volume = aesthetic == "PR" ? 0.12f : 0.22f; }
+                    if (i < near.Count) { humPool[i].transform.position = near[i].transform.position; humPool[i].mute = !Settings.Ambience; humPool[i].volume = aesthetic == "PR" ? 0.12f : 0.22f; }
                     else humPool[i].mute = true;
                 }
             }

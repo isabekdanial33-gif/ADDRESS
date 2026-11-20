@@ -69,6 +69,39 @@ namespace Address.Entities
             return System.Array.FindAll(allSfx, c => System.Array.Exists(prefixes, p => c.name.StartsWith(p)));
         }
 
+        // ------------------------------------------------------------------ creatures from mods
+        public string modId; Animation legacy; string clipIdle, clipWalk, clipRun;
+        public string IndexKey => modId ?? kind.ToString();
+
+        /// <summary>A mod creature: speeds and voice from its JSON, its own glTF animations (legacy Animation component).</summary>
+        public void ConfigureMod(Address.Mods.EntityDef e)
+        {
+            modId = e.id; kind = EntityKind.Echo; anim = null; body = null;
+            wanderSpeed = e.walkSpeed; stalkSpeed = e.chaseSpeed * (1f + 0.06f * generation); noticeRange = e.noticeRange; catchRadius = e.catchRadius; freezeWhenSeen = e.freezeWhenSeen;
+            vocals = e.clips != null && e.clips.Length > 0 ? e.clips : Sfx("growl_", "eerie_");
+            legacy = GetComponentInChildren<Animation>();
+            if (legacy)
+            {
+                string Find(string want, string fallback)
+                {
+                    string first = null;
+                    foreach (AnimationState s in legacy) { first ??= s.name; if (!string.IsNullOrEmpty(want) && s.name.ToLowerInvariant().Contains(want.ToLowerInvariant())) return s.name; }
+                    return fallback ?? first;
+                }
+                clipIdle = Find(e.idle, null); clipWalk = Find(e.walk, clipIdle); clipRun = Find(e.run, clipWalk);
+                foreach (AnimationState s in legacy) s.wrapMode = WrapMode.Loop;
+            }
+            sting = Resources.Load<AudioClip>("EntitySfx/deep_1");
+            var s1 = gameObject.AddComponent<AudioSource>(); s1.spatialBlend = 1; s1.rolloffMode = AudioRolloffMode.Linear; s1.minDistance = 1.5f; s1.maxDistance = 26f; s1.dopplerLevel = 0; voice = s1;
+        }
+
+        void LegacyAnim()
+        {
+            if (!legacy) return;
+            var want = Speed < 0.08f ? clipIdle : Speed < 1.8f ? clipWalk : clipRun;
+            if (want != null && !legacy.IsPlaying(want)) legacy.CrossFade(want, 0.25f);
+        }
+
         /// <summary>Per-kind behaviour, animation and voice.</summary>
         public void Configure(EntityKind k)
         {
@@ -138,10 +171,12 @@ namespace Address.Entities
 
         void Voices(float dt)
         {
+            LegacyAnim();
             if (anim)
             {
                 anim.SetFloat("Speed", Speed, 0.12f, dt);
-                anim.speed = mode == Mode.Frozen ? 0f : 1f;   // caught mid-step when looked at
+                // looked at: it stops walking but keeps breathing and twitching (idle); only a mannequin is a real statue
+                anim.speed = mode == Mode.Frozen && kind == EntityKind.Mannequin ? 0f : 1f;
             }
             if (steps)
             {
@@ -263,7 +298,11 @@ namespace Address.Entities
                     if (dd >= 0 && dd < nd) { nd = dd; next = n; }
                 }
                 if (next == cur) break;
-                cur = next; curD = nd; aim = nav.Center(cur.x, cur.y, floorY);
+                // never aim across a wall corner: the body would cut through it
+                var cand = nav.Center(next.x, next.y, floorY);
+                if (step > 0 && Physics.Linecast(transform.position + Vector3.up * 0.6f, cand + Vector3.up * 0.6f, 1 << LevelBuilder.ArchLayer, QueryTriggerInteraction.Ignore)) break;
+                if (step > 0 && Physics.Linecast(transform.position + Vector3.up * 1.4f, cand + Vector3.up * 1.4f, 1 << LevelBuilder.ArchLayer, QueryTriggerInteraction.Ignore)) break;
+                cur = next; curD = nd; aim = cand;
             }
             if (curD == 0) aim = new Vector3(goal.x, floorY, goal.z);
             var to = Flat(aim - transform.position);

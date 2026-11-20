@@ -20,6 +20,7 @@ namespace Address.Game
         public Action<string> onAddress;
         public Func<List<string>> archive;
         public Action onHost; public Action<string> onJoin; public Func<string> netStatus;
+        public Action onSteamHost, onSteamInvite;
         public Func<string> footer, here;
         public bool paused;
         readonly UiTicker ticker;
@@ -135,6 +136,8 @@ namespace Address.Game
             Button("Кооператив", CoopPage);
             Button("Архив", ArchivePage);
             Button("Индекс", IndexPage);
+            if (System.Linq.Enumerable.Any(Address.Mods.ModSystem.ValidMods)) Button("Модификации", ModsPage);
+            if (Address.Mods.ModSystem.Packs.Count > 0) Button("Шейдеры", ShadersPage);
             Button("Настройки", SettingsPage);
             if (paused) Button("Главное меню", () => onMainMenu?.Invoke());
             Button("Выход", () => onQuit?.Invoke());
@@ -155,7 +158,13 @@ namespace Address.Game
             Label("До двух исследователей. Один создаёт игру, второй подключается\nпо IP в локальной сети (Wi-Fi / кабель).", 20, UiKit.InkDim, 64);
             var status = Label(netStatus?.Invoke() ?? "", 20, UiKit.Accent, 34);
             ticker.Add(_ => { if (!status) return false; status.text = netStatus?.Invoke() ?? ""; return true; });
-            Button("Создать игру", () => { onHost?.Invoke(); CoopPage(); });
+            if (Address.Net.SteamService.Ready)
+            {
+                Label("Steam: " + Address.Net.SteamService.PersonaName + "   " + Address.Net.SteamService.Status, 20, UiKit.Accent, 30);
+                Button("Steam: создать лобби и позвать друга", () => { onSteamHost?.Invoke(); CoopPage(); });
+                Button("Steam: пригласить друга", () => onSteamInvite?.Invoke());
+            }
+            Button("Создать игру (локальная сеть)", () => { onHost?.Invoke(); CoopPage(); });
             var field = Input("IP друга, например 192.168.1.5");
             Button("Подключиться к IP", () => onJoin?.Invoke(string.IsNullOrWhiteSpace(field.text) ? "127.0.0.1" : field.text));
             Button("Назад", Main);
@@ -178,7 +187,7 @@ namespace Address.Game
         void IndexPage()
         {
             NewPage("индекс", Main);
-            var B = Address.Entities.Bestiary.Creatures; var W = Address.Entities.Bestiary.Worlds;
+            var B = Address.Entities.Bestiary.AllCreatures(); var W = Address.Entities.Bestiary.AllWorlds();
             Label("Всё, что вы видели своими глазами. Остальное ещё ждёт.", 20, UiKit.InkDim, 34);
             Button("Существа", () => IndexList("существа", B, 0), $"{Address.Entities.Bestiary.Count(B)} / {B.Length}");
             Button("Миры", () => IndexList("миры", W, 0), $"{Address.Entities.Bestiary.Count(W)} / {W.Length}");
@@ -200,6 +209,36 @@ namespace Address.Game
             Button("Назад", IndexPage);
         }
 
+        // mods: every valid one with what it adds, on/off (takes effect from the next place)
+        void ModsPage()
+        {
+            NewPage("модификации", Main);
+            Label("Папка Mods рядом с игрой. Включение и выключение действует со следующего места.", 18, UiKit.InkDim, 30);
+            foreach (var m in Address.Mods.ModSystem.ValidMods)
+            {
+                var mm = m;
+                Cycle($"{m.manifest.name}  ·  миров {m.worlds.Count}, существ {m.entities.Count}", () => mm.Enabled ? "вкл" : "выкл", () => mm.Enabled = !mm.Enabled);
+                Label((m.manifest.author != null ? "автор: " + m.manifest.author + ".  " : "") + (m.manifest.description ?? ""), 16, UiKit.InkDim, 26);
+            }
+            foreach (var b in System.Linq.Enumerable.Where(Address.Mods.ModSystem.Mods, x => !x.Valid)) Label("не загружен: " + System.IO.Path.GetFileName(b.dir) + " - " + b.error, 15, new Color(1, 0.5f, 0.4f, 0.8f), 22);
+            Button("Назад", Main);
+        }
+
+        // shader packs: pick one (or none), applied right away
+        void ShadersPage()
+        {
+            NewPage("шейдеры", Main);
+            Label("Папка Shaders рядом с игрой. Как шейдеры в Minecraft: меняют картинку целиком.", 18, UiKit.InkDim, 30);
+            Button("Без шейдеров" + (ShaderPackFx.Current == "" ? "   ✓" : ""), () => { ShaderPackFx.Current = ""; ShaderPackFx.Apply(null); ShadersPage(); });
+            foreach (var p in Address.Mods.ModSystem.Packs)
+            {
+                var pp = p;
+                Button(p.name + (ShaderPackFx.Current == p.name ? "   ✓" : ""), () => { ShaderPackFx.Current = pp.name; ShaderPackFx.Apply(null); ShadersPage(); });
+                Label((p.author != null ? p.author + ": " : "") + (p.description ?? ""), 15, UiKit.InkDim, 22);
+            }
+            Button("Назад", Main);
+        }
+
         void SettingsPage()
         {
             NewPage("настройки", Main);
@@ -212,6 +251,9 @@ namespace Address.Game
             Cycle("Счётчик FPS  [F3]", () => Address.Rendering.FrameGovernor.ShowFps ? "вкл" : "выкл", () => Address.Rendering.FrameGovernor.ShowFps = !Address.Rendering.FrameGovernor.ShowFps);
             Cycle("Чувствительность мыши", () => Settings.Sensitivity.ToString("0.00"), () => { Settings.Sensitivity = Settings.Sensitivity >= 0.2f ? 0.03f : Settings.Sensitivity + 0.02f; });
             Cycle("Поле зрения", () => Settings.Fov.ToString("0") + "°", () => { Settings.Fov = Settings.Fov >= 95 ? 60 : Settings.Fov + 5; });
+            Cycle("Звук", () => Settings.Sound ? "вкл" : "выкл", () => Settings.Sound = !Settings.Sound);
+            Cycle("Фоновый гул и музыка", () => Settings.Ambience ? "вкл" : "выкл", () => Settings.Ambience = !Settings.Ambience);
+            Cycle("Мигание ламп", () => Settings.FlickerOn ? "вкл" : "выкл", () => Settings.FlickerOn = !Settings.FlickerOn);
             Cycle("Инверсия по вертикали", () => Settings.InvertY ? "вкл" : "выкл", () => Settings.InvertY = !Settings.InvertY);
             Button("Назад", Main);
         }
@@ -276,5 +318,8 @@ namespace Address.Game
         public static float Sensitivity { get => PlayerPrefs.GetFloat("sens", 0.08f); set => PlayerPrefs.SetFloat("sens", value); }
         public static float Fov { get => PlayerPrefs.GetFloat("fov", 72f); set => PlayerPrefs.SetFloat("fov", value); }
         public static bool InvertY { get => PlayerPrefs.GetInt("invy", 0) == 1; set => PlayerPrefs.SetInt("invy", value ? 1 : 0); }
+        public static bool Sound { get => PlayerPrefs.GetInt("sound", 1) == 1; set => PlayerPrefs.SetInt("sound", value ? 1 : 0); }
+        public static bool Ambience { get => PlayerPrefs.GetInt("ambience", 1) == 1; set => PlayerPrefs.SetInt("ambience", value ? 1 : 0); }
+        public static bool FlickerOn { get => PlayerPrefs.GetInt("flicker", 1) == 1; set => PlayerPrefs.SetInt("flicker", value ? 1 : 0); }
     }
 }

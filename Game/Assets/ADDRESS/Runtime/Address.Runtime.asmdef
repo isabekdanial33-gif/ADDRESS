@@ -10,10 +10,20 @@
     "Unity.Netcode.Runtime",
     "Unity.Networking.Transport",
     "Unity.Collections",
-    "VoltstroStudios.UnityWebBrowser"
+    "VoltstroStudios.UnityWebBrowser",
+    "com.rlabrecque.steamworks.net",
+    "SteamNetworkingSockets Transport for Netcode for GameObjects",
+    "glTFast"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
-  "autoReferenced": true
+  "autoReferenced": true,
+  "versionDefines": [
+    {
+      "name": "com.rlabrecque.steamworks.net",
+      "expression": "",
+      "define": "STEAMWORKSNET"
+    }
+  ]
 }

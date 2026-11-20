@@ -1,0 +1,65 @@
+{
+  "id": "HO",
+  "title": "Заброшенная больница",
+  "level": "",
+  "about": "Кафель, облупленная краска и холодные лампы. Палаты пусты, но каталки кто-то двигает.",
+  "layout": "rooms",
+  "doorShare": 0.6,
+  "kinds": [
+    "corridor",
+    "corridor",
+    "storage",
+    "server",
+    "empty",
+    "dump"
+  ],
+  "wall": "Tiles107",
+  "wallTint": [
+    0.82,
+    0.88,
+    0.86
+  ],
+  "floor": "Tiles101",
+  "floorTint": [
+    0.85,
+    0.85,
+    0.8
+  ],
+  "ceiling": "OfficeCeiling001",
+  "lightColor": [
+    0.85,
+    1,
+    0.95
+  ],
+  "lightIntensity": 1.8,
+  "deadShare": 0.3,
+  "flickerShare": 0.15,
+  "ambient": [
+    0.06,
+    0.08,
+    0.07
+  ],
+  "fogColor": [
+    0.12,
+    0.16,
+    0.15
+  ],
+  "fogDensity": 0.035,
+  "gradeFilter": [
+    0.9,
+    1,
+    0.95
+  ],
+  "gradeSaturation": -25,
+  "gradeContrast": 20,
+  "gradeTemperature": -10,
+  "entities": [
+    "Hazmat",
+    "Needlelimbs",
+    "SkinStealer",
+    "Clark"
+  ],
+  "entityChance": 0.6,
+  "music": "dark",
+  "weight": 0.025
+}

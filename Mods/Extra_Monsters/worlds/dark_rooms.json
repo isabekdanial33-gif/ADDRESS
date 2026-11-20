@@ -1,0 +1,45 @@
+{
+  "id": "DK",
+  "title": "Тёмные склады (мод)",
+  "level": "мод Extra Monsters",
+  "about": "Уровень из мода: бетон, тусклый красный свет и бесы.",
+  "layout": "halls",
+  "kinds": [
+    "storage",
+    "pillars",
+    "dump",
+    "empty"
+  ],
+  "wall": "Concrete034",
+  "floor": "Concrete047A",
+  "ceiling": "Concrete031",
+  "lightColor": [
+    1,
+    0.35,
+    0.25
+  ],
+  "lightIntensity": 1.6,
+  "deadShare": 0.4,
+  "flickerShare": 0.2,
+  "ambient": [
+    0.03,
+    0.015,
+    0.015
+  ],
+  "fogColor": [
+    0.06,
+    0.02,
+    0.02
+  ],
+  "fogDensity": 0.05,
+  "gradeSaturation": -20,
+  "gradeContrast": 22,
+  "entities": [
+    "Minion",
+    "Minion",
+    "Howler"
+  ],
+  "entityChance": 0.8,
+  "music": "dark",
+  "weight": 0.03
+}

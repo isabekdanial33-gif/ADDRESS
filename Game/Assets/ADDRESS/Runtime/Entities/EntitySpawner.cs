@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Address.Core;
 using Address.Player;
 using Address.World;
@@ -59,6 +60,7 @@ namespace Address.Entities
         public static float ChanceFor(string aesthetic, int generation)
         {
             float c = aesthetic switch { "BR" => 0.45f, "PR" => 0.22f, "FA" => 0f, "PG" => 0.5f, "HT" => 0.5f, "OF" => 0.45f, "LF" => 0.65f, "PD" => 0.55f, "WH" => 0.45f, "LO" => 0.7f, "EL" => 0.55f, "CV" => 0.7f, "RN" => 1f, "FL" => 0.5f, "LB" => 0.75f, "LA" => 0.5f, _ => 0.3f };
+            var d = Address.Mods.ModSystem.World(aesthetic); if (d != null && d.entityChance >= 0) c = d.entityChance;
             return Mathf.Clamp01(c + generation * 0.15f);
         }
 
@@ -87,9 +89,47 @@ namespace Address.Entities
                     int i = n.x + n.y * nav.w; if (dist[i] >= 0) continue; dist[i] = d + 1; q.Enqueue(n);
                 }
             }
+            // Level Run: they are already behind you, at the start of the corridor
+            if (level.aesthetic == "RN")
+            {
+                var behind = new List<Vector2Int>();
+                for (int z = 0; z < nav.h; z++) for (int x = 0; x < nav.w; x++)
+                {
+                    var p0 = nav.Center(x, z, 0);
+                    if (nav.Roomy(x, z) && p0.z < level.start.z - 9f) behind.Add(new Vector2Int(x, z));
+                }
+                if (behind.Count > 0) { far = behind; count = 2; }
+            }
             if (far.Count == 0) return list;
             for (int k = 0; k < count; k++)
             {
+                // creatures from mods: the world's own list, or any mod creature that lives here
+                var wdef = Address.Mods.ModSystem.World(level.aesthetic);
+                string modPick = null;
+                if (wdef != null && wdef.entities != null && wdef.entities.Length > 0)
+                {
+                    var key = wdef.entities[rng.Range(0, wdef.entities.Length)];
+                    if (System.Enum.TryParse<EntityKind>(key, out var ek)) { var c0 = far[rng.Range(0, far.Count)]; var st0 = Build(bodyPrefab, level, nav.Center(c0.x, c0.y, level.start.y), Quaternion.Euler(0, rng.Range(0f, 360f), 0), k, ek); st0.Init(level, level.address.Generation, drone); st0.Configure(ek); st0.wakeDelay += k * 20f; list.Add(st0); continue; }
+                    modPick = key;
+                }
+                else
+                {
+                    var mods = Address.Mods.ModSystem.Entities.Where(e => e.worlds == null || e.worlds.Length == 0 || System.Array.IndexOf(e.worlds, level.aesthetic) >= 0).ToList();
+                    int total = mods.Sum(e => Mathf.Max(0, e.weight));
+                    if (total > 0 && rng.Range(0, total + 10) < total)
+                    {
+                        int r = rng.Range(0, total);
+                        foreach (var e in mods) { r -= Mathf.Max(0, e.weight); if (r < 0) { modPick = e.id; break; } }
+                    }
+                }
+                var med = modPick != null ? Address.Mods.ModSystem.Entity(modPick) : null;
+                if (med != null)
+                {
+                    var c1 = far[rng.Range(0, far.Count)];
+                    var ms = BuildMod(level, med, nav.Center(c1.x, c1.y, level.start.y), Quaternion.Euler(0, rng.Range(0f, 360f), 0), k);
+                    ms.Init(level, level.address.Generation, drone); ms.ConfigureMod(med); ms.wakeDelay += k * 20f;
+                    list.Add(ms); continue;
+                }
                 var kind = PickKind(level, rng);
                 var home = HomeCells(level, kind, far);
                 var c = home.Count > 0 ? home[rng.Range(0, home.Count)] : far[rng.Range(0, far.Count)];
@@ -102,6 +142,17 @@ namespace Address.Entities
                 list.Add(st);
             }
             return list;
+        }
+
+        /// <summary>A creature from a mod: a copy of its loaded glTF model (legacy animations) driven by a Stalker.</summary>
+        public static Stalker BuildMod(LevelBuilder.Result level, Address.Mods.EntityDef e, Vector3 pos, Quaternion rot, int index)
+        {
+            var root = new GameObject($"Entity_{index}_mod_{e.id}"); root.transform.SetParent(level.root.transform, false);
+            root.transform.SetPositionAndRotation(pos, rot);
+            var body = Object.Instantiate(e.template, root.transform); body.name = "Body"; body.SetActive(true);
+            body.transform.localPosition = Vector3.zero; body.transform.localRotation = Quaternion.identity;
+            foreach (var c in body.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
+            return root.AddComponent<Stalker>();
         }
 
         static GameObject Build0(GameObject prefab, Transform parent) { var g = Object.Instantiate(prefab, parent); return g; }

@@ -1,0 +1,21 @@
+{
+  "id": "PsxCreature",
+  "name": "Крикун",
+  "about": "Тощая тварь с разорванной пастью. Существо из мода.",
+  "model": "models/psx_creature.glb",
+  "height": 2.3,
+  "walkSpeed": 0.8,
+  "chaseSpeed": 3.1,
+  "noticeRange": 16,
+  "freezeWhenSeen": false,
+  "idle": "",
+  "walk": "",
+  "run": "",
+  "worlds": [
+    "BR",
+    "LO",
+    "R2",
+    "RH"
+  ],
+  "weight": 3
+}

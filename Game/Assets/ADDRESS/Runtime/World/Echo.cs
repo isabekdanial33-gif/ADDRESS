@@ -86,15 +86,44 @@ namespace Address.World
         }
     }
 
+    /// <summary>
+    /// Now and then the power dips: the lamps around the explorer stutter together for a moment, the hum drops.
+    /// </summary>
+    public class BrownOut : MonoBehaviour
+    {
+        public Transform viewer;
+        Light[] lights; float next, t; readonly List<(Light l, float i0)> active = new();
+        void Start() { lights = GetComponentsInChildren<Light>(true); next = Random.Range(12f, 30f); }
+        void Update()
+        {
+            if (active.Count > 0)
+            {
+                t += Time.deltaTime;
+                foreach (var (l, i0) in active)
+                    if (l) l.intensity = t > 1.4f ? i0 : i0 * (Mathf.PerlinNoise(t * 22f, l.transform.position.x) < 0.45f ? 0.05f : 0.9f);
+                if (t > 1.4f) active.Clear();
+                return;
+            }
+            next -= Time.deltaTime;
+            if (next > 0 || !viewer || !Flicker.Enabled) return;
+            next = Random.Range(20f, 55f); t = 0;
+            foreach (var l in lights)
+                if (l && l.enabled && l.intensity > 0.3f && l.type != LightType.Directional && !l.GetComponent<Flicker>() && (l.transform.position - viewer.position).sqrMagnitude < 14f * 14f)
+                    active.Add((l, l.intensity));
+        }
+    }
+
     /// <summary>Fluorescent tube failing: irregular dips, deterministic per light.</summary>
     public class Flicker : MonoBehaviour
     {
         public float seed;
         Light l; float baseI;
+        public static bool Enabled = true;   // settings: "Мигание ламп"
         void Start() { l = GetComponent<Light>(); baseI = l ? l.intensity : 0; }
         void Update()
         {
             if (!l) return;
+            if (!Enabled) { l.intensity = baseI; return; }
             float t = Time.time + seed;
             float n = Mathf.PerlinNoise(t * 7f, seed);
             l.intensity = n < 0.22f ? baseI * 0.08f : baseI * (0.85f + 0.15f * Mathf.PerlinNoise(t * 30f, seed + 3));

@@ -1,0 +1,51 @@
+{
+  "id": "SB",
+  "title": "Возвышенность",
+  "level": "Level 37",
+  "about": "Светлые бассейные залы и тёплая вода по щиколотку. Спокойно. Слишком спокойно.",
+  "layout": "halls",
+  "kinds": [
+    "empty",
+    "pillars",
+    "empty"
+  ],
+  "water": true,
+  "wall": "Tiles107",
+  "floor": "Tiles107",
+  "ceiling": "Tiles107",
+  "lightColor": [
+    0.92,
+    1,
+    1
+  ],
+  "lightIntensity": 2.6,
+  "lightRange": 9,
+  "deadShare": 0.02,
+  "flickerShare": 0.02,
+  "ambient": [
+    0.2,
+    0.24,
+    0.26
+  ],
+  "fogColor": [
+    0.6,
+    0.72,
+    0.76
+  ],
+  "fogDensity": 0.015,
+  "gradeFilter": [
+    0.92,
+    1,
+    1
+  ],
+  "gradeSaturation": -4,
+  "gradeContrast": 8,
+  "gradeTemperature": -10,
+  "entities": [
+    "Mannequin",
+    "Echo"
+  ],
+  "entityChance": 0.2,
+  "music": "calm",
+  "weight": 0.02
+}

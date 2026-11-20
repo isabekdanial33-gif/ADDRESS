@@ -31,13 +31,13 @@ namespace Address.Entities
         Vector3 roamGoal; float roamT, bobT, lineT, lineLen, blipT, glitchT, leaveT;
         readonly List<string> lines = new(); int line = -1;
         Vector3 target; int[] field; bool talkedOnce;
-        Transform faceClosed, faceOpen, susClosed, susOpen, bored, ball; Vector3 ball0 = Vector3.one; Quaternion ballRot0 = Quaternion.identity; bool mouthOpen; float mouthT;
+        Transform faceClosed, faceOpen, susClosed, susOpen, bored, ball; Vector3 ball0 = Vector3.one; Quaternion ballRot0 = Quaternion.identity; Vector3 faceScale = Vector3.one; bool mouthOpen; float mouthT;
         void Face(bool open)
         {
             mouthOpen = open;
             foreach (var t in new[] { faceClosed, faceOpen, susClosed, susOpen, bored }) if (t) t.localScale = Vector3.zero;
             var on = open && faceOpen ? faceOpen : faceClosed ? faceClosed : faceOpen;
-            if (on) on.localScale = Vector3.one;
+            if (on) on.localScale = faceScale;
         }
 
         public static Verity Spawn(LevelBuilder.Result level, Vector3 pos, bool fake)
@@ -54,7 +54,9 @@ namespace Address.Entities
         {
             level = lv; nav = lv.nav; floorY = lv.start.y;
             var b = Instantiate(model, transform); b.name = "Body"; body = b.transform;
-            body.localPosition = Vector3.zero; body.localRotation = Quaternion.identity;
+            // the Blockbench export comes in upside down: turn it over (about its own centre) so the eyes sit above the mouth
+            body.localRotation = Quaternion.Euler(0, 0, 180f); body.localPosition = Vector3.zero;
+            { var rs = b.GetComponentsInChildren<Renderer>(); if (rs.Length > 0) { var bb = rs[0].bounds; foreach (var r in rs) bb.Encapsulate(r.bounds); body.position += Vector3.up * (transform.position.y - bb.min.y); } }
             foreach (var c in b.GetComponentsInChildren<Collider>(true)) Destroy(c);
             anim = b.GetComponentInChildren<Animator>();
             if (anim) { anim.applyRootMotion = false; anim.cullingMode = AnimatorCullingMode.AlwaysAnimate; }
@@ -87,6 +89,8 @@ namespace Address.Entities
                 else if (n.StartsWith("root_")) ball = t;
             }
             if (ball) { ball0 = ball.localScale; ballRot0 = ball.localRotation; }
+            // the one face that is shown in the model's own rest pose gives the right scale (sign included) for all of them
+            foreach (var t in new[] { faceOpen, faceClosed, susClosed, susOpen, bored }) if (t && t.localScale.sqrMagnitude > 0.01f) { faceScale = t.localScale; break; }
             if (fake && susClosed) { faceClosed = susClosed; if (susOpen) faceOpen = susOpen; }
             Face(false);
             var lg = new GameObject("glow"); lg.transform.SetParent(transform, false); lg.transform.localPosition = new Vector3(0, 0.35f, 0);
@@ -239,7 +243,7 @@ namespace Address.Entities
                     {
                         roamT = Random.Range(6f, 12f);
                         var c = nav.CellOf(transform.position) + new Vector2Int(Random.Range(-40, 41), Random.Range(-40, 41));
-                        if (nav.InGrid(c.x, c.y)) roamGoal = nav.Center(c.x, c.y, floorY);
+                        if (nav.Free(c.x, c.y)) roamGoal = nav.Center(c.x, c.y, floorY);
                     }
                     goal = roamGoal; speed = 0.9f;
                     if (dMe < 16f && viewer) st = St.Approach;
@@ -248,7 +252,7 @@ namespace Address.Entities
                     {
                         // hang in the air a couple of metres in front of the explorer, a little to the side
                         var f = viewer.forward; f.y = 0; f.Normalize();
-                        goal = flatMe + f * 2.3f + Vector3.Cross(Vector3.up, f) * 0.35f;
+                        goal = InFront(me, f, 2.3f, 0.35f);
                         speed = dMe > 6 ? 3.2f : 1.6f; facePlayer = true;
                         if (dMe > 26f) st = St.Roam;
                         break;
@@ -257,7 +261,7 @@ namespace Address.Entities
                     facePlayer = true; speed = 0.8f;
                     {
                         var f = viewer ? viewer.forward : Vector3.forward; f.y = 0; f.Normalize();
-                        goal = flatMe + f * 2.0f;
+                        goal = InFront(me, f, 2.0f, 0f);
                     }
                     lineT += dt;
                     if (lineT >= lineLen)
@@ -293,7 +297,7 @@ namespace Address.Entities
                     }
                 case St.Leave:
                     leaveT += dt;
-                    goal = transform.position + (transform.position - me).normalized * 3f; speed = 1.5f;
+                    goal = roamGoal; speed = 1.5f;
                     if (fake)
                     {
                         // the fake one does not leave: it just goes out
@@ -304,7 +308,8 @@ namespace Address.Entities
                     break;
             }
 
-            // fly straight there: walls do not exist for Verity
+            // fly there along the corridors: around walls, never through them
+            if (st != St.Talk) goal = Steer(goal, dt);
             var to = Flat(goal - transform.position);
             float step = Mathf.Min(speed * dt, to.magnitude);
             if (to.sqrMagnitude > 1e-4f) transform.position += to.normalized * step;
@@ -336,6 +341,61 @@ namespace Address.Entities
         }
 
         static Vector3 Flat(Vector3 v) { v.y = 0; return v; }
+
+        List<Vector2Int> path; Vector3 pathGoal; float pathT;
+        /// <summary>Straight to the goal when nothing is in the way, otherwise to the furthest visible point of a grid path.</summary>
+        Vector3 Steer(Vector3 goal, float dt)
+        {
+            int mask = 1 << LevelBuilder.ArchLayer;
+            var from = transform.position; var g = new Vector3(goal.x, from.y, goal.z);
+            if (!Physics.Linecast(from, g, mask, QueryTriggerInteraction.Ignore)) return goal;
+            pathT -= dt;
+            if (pathT <= 0 || path == null || Flat(pathGoal - goal).sqrMagnitude > 1f)
+            {
+                pathT = 0.5f; pathGoal = goal;
+                path = nav.FindPath(Near(nav.CellOf(from)), Near(nav.CellOf(goal)), ignoreBlocked: true);
+            }
+            if (path == null || path.Count == 0) return transform.position;
+            int best = 0; var mc = nav.CellOf(from);
+            int start = 0; float bd = float.MaxValue;
+            for (int i = 0; i < path.Count; i++) { float d = (path[i] - mc).sqrMagnitude; if (d < bd) { bd = d; start = i; } }
+            best = Mathf.Min(start + 1, path.Count - 1);
+            for (int i = Mathf.Min(path.Count - 1, start + 40); i > start; i--)
+            {
+                var p = nav.Center(path[i].x, path[i].y, from.y);
+                if (!Physics.Linecast(from, p, mask, QueryTriggerInteraction.Ignore)) { best = i; break; }
+            }
+            return nav.Center(path[best].x, path[best].y, floorY);
+        }
+
+        Vector2Int Near(Vector2Int c)
+        {
+            if (nav.Walkable(c.x, c.y)) return c;
+            for (int r = 1; r < 10; r++)
+                for (int dz = -r; dz <= r; dz++) for (int dx = -r; dx <= r; dx++)
+                    if (nav.Walkable(c.x + dx, c.y + dz)) return new Vector2Int(c.x + dx, c.y + dz);
+            return c;
+        }
+
+        /// <summary>A point in front of the explorer on THEIR side of any wall: walking up to Verity never pushes it into the wall.</summary>
+        Vector3 InFront(Vector3 eye, Vector3 f, float dist, float side)
+        {
+            int mask = 1 << LevelBuilder.ArchLayer;
+            float Free(Vector3 d) => Physics.Raycast(eye, d, out var h, dist + 0.6f, mask, QueryTriggerInteraction.Ignore) ? h.distance - 0.55f : dist;
+            var right = Vector3.Cross(Vector3.up, f);
+            float ahead = Free(f);
+            if (ahead >= 0.9f)
+            {
+                var p = eye + f * Mathf.Min(dist, ahead);
+                if (side != 0 && Free(right * Mathf.Sign(side)) > Mathf.Abs(side)) p += right * side;
+                return new Vector3(p.x, floorY, p.z);
+            }
+            // a wall right ahead: float beside the explorer instead (the freer side)
+            float fr = Free(right), fl = Free(-right);
+            var dir = fr >= fl ? right : -right; float room = Mathf.Max(fr, fl);
+            var q = eye + dir * Mathf.Clamp(room, 0.6f, 1.4f) + f * Mathf.Max(0f, ahead);
+            return new Vector3(q.x, floorY, q.z);
+        }
 
         // ------------------------------------------------------------------ spawning
 

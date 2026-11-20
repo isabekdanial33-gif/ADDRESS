@@ -1,0 +1,20 @@
+{
+  "name": "VHS Found Footage",
+  "author": "ADDRESS",
+  "description": "Как плёнка Kane Pixels: кассета, зерно, сдвиг цветов, выцветшие краски.",
+  "bloom": 1.2,
+  "bloomThreshold": 0.7,
+  "saturation": -35,
+  "contrast": 12,
+  "temperature": -6,
+  "colorFilter": [
+    0.95,
+    1.0,
+    0.92
+  ],
+  "vignette": 0.45,
+  "grain": 0.85,
+  "chromatic": 0.7,
+  "lensDistortion": -0.22,
+  "fogMul": 1.3
+}

@@ -177,12 +177,36 @@ namespace Address.EditorTools
             var opts = new BuildPlayerOptions
             {
                 scenes = new[] { ScenePath },
-                locationPathName = "../Build/ADDRESS.exe",
+                locationPathName = OutPath(),   // -out <dir>: silent test builds go elsewhere so the player never starts a muted copy
                 target = BuildTarget.StandaloneWindows64,
                 options = BuildOptions.None
             };
             var rep = BuildPipeline.BuildPlayer(opts);
+            // ship the example mods and shader packs next to the exe (players add their own there)
+            try
+            {
+                var outDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(opts.locationPathName));
+                foreach (var d in new[] { "Mods", "Shaders" })
+                {
+                    var src = System.IO.Path.GetFullPath(System.IO.Path.Combine("..", d)); if (!System.IO.Directory.Exists(src)) continue;
+                    foreach (var f in System.IO.Directory.GetFiles(src, "*", System.IO.SearchOption.AllDirectories))
+                    {
+                        var to = System.IO.Path.Combine(outDir, d, f.Substring(src.Length + 1));
+                        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(to)); System.IO.File.Copy(f, to, true);
+                    }
+                }
+            }
+            catch (System.Exception e) { Debug.LogWarning("[ADDRESS] mods copy: " + e.Message); }
+            // Steam reads the app id from this file when the game is not started by the Steam client (480 = test app)
+            try { System.IO.File.WriteAllText(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(opts.locationPathName)), "steam_appid.txt"), Address.Net.SteamService.AppId.ToString()); } catch (System.Exception e) { Debug.LogWarning(e.Message); }
             Debug.Log($"[ADDRESS] build {rep.summary.result}: {rep.summary.totalSize / (1024 * 1024)} MB, {rep.summary.totalErrors} errors, {rep.summary.totalTime}");
         }
-    }
+    
+        static string OutPath()
+        {
+            var a = System.Environment.GetCommandLineArgs();
+            for (int i = 0; i < a.Length - 1; i++) if (a[i] == "-out") return System.IO.Path.Combine(a[i + 1], "ADDRESS.exe");
+            return "../Build/ADDRESS.exe";
+        }
+}
 }

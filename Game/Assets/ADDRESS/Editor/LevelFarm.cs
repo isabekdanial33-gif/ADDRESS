@@ -59,6 +59,7 @@ namespace Address.EditorTools
                 whFloorMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Concrete031.mat"),
                 whWallMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Concrete034.mat"),
                 pipeMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Metal032.mat"),
+                library = AssetDatabase.FindAssets("t:Material", new[] { "Assets/ADDRESS/Generated/Materials" }).Select(g => AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g))).Where(m => m).ToArray(),
                 elWallMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/MetalPlates006.mat"),
                 cvWallMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Rock030.mat"),
                 cvFloorMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/ADDRESS/Generated/Materials/Ground054.mat"),

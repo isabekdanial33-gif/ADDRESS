@@ -1,0 +1,55 @@
+{
+  "id": "SC",
+  "title": "Школьные коридоры",
+  "level": "Level 52",
+  "about": "Пустая школа после уроков: шкафчики, классы, линолеум. Звонок давно не звенел.",
+  "layout": "rooms",
+  "doorShare": 0.7,
+  "kinds": [
+    "meeting",
+    "meeting",
+    "office",
+    "corridor",
+    "corridor",
+    "storage"
+  ],
+  "lockers": true,
+  "wall": "PaintedPlaster017",
+  "wallTint": [
+    0.8,
+    0.9,
+    0.86
+  ],
+  "floor": "Tiles074",
+  "ceiling": "OfficeCeiling002",
+  "lightColor": [
+    0.96,
+    0.98,
+    1
+  ],
+  "lightIntensity": 2.0,
+  "deadShare": 0.1,
+  "flickerShare": 0.08,
+  "ambient": [
+    0.12,
+    0.13,
+    0.13
+  ],
+  "fogColor": [
+    0.3,
+    0.32,
+    0.32
+  ],
+  "fogDensity": 0.02,
+  "gradeSaturation": -12,
+  "gradeContrast": 12,
+  "gradeTemperature": -4,
+  "entities": [
+    "Mannequin",
+    "Partygoer",
+    "Clark"
+  ],
+  "entityChance": 0.45,
+  "music": "calm",
+  "weight": 0.025
+}

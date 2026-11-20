@@ -25,6 +25,8 @@ namespace Address.Placement
         public string mood = "neutral";
         public Transform root;
         public NavGrid nav;
+        /// <summary>Doors and exits standing in walls: nothing may hang on the wall over them (pictures, clocks, boards).</summary>
+        public readonly List<Bounds> wallKeepOut = new();
         public RoomSpec room;
         public int maxCandidates = 16;
         public Vector3? navStart;             // when set, placements that cut off walkable cells are refused
@@ -545,6 +547,8 @@ namespace Address.Placement
                 float t = rng.Range(half + 0.05f, w.Length - half - 0.05f);
                 float y = rng.Range(p.wallMin, Mathf.Min(p.wallMax, w.height - p.size.y - 0.05f));
                 var pos = w.a + w.Dir * t + w.normal * (p.size.z * 0.5f + 0.002f) + Vector3.up * y;
+                var fp = new Bounds(pos, new Vector3(Mathf.Abs(w.Dir.x) * p.size.x + Mathf.Abs(w.normal.x) * p.size.z + 0.02f, p.size.y, Mathf.Abs(w.Dir.z) * p.size.x + Mathf.Abs(w.normal.z) * p.size.z + 0.02f));
+                foreach (var k in wallKeepOut) if (k.Intersects(fp)) return null;
                 return new Pose(pos, Quaternion.LookRotation(w.normal, Vector3.up), 1f);
             };
         }

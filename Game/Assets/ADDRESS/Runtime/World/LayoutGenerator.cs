@@ -190,6 +190,30 @@ namespace Address.World
             return L;
         }
 
+        /// <summary>Level Run: one endless straight school corridor (3 m wide), built from 10 m segments merged end to end.
+        /// The explorer starts in the second segment; the only way out is at the far end.</summary>
+        public static Layout Corridor(int lengthM)
+        {
+            const int W = 6, SegL = 20;
+            int segs = Mathf.Max(3, lengthM / 10);
+            var L = new Layout { w = W + 2, h = segs * SegL + 2, height = 3.0f };
+            L.cellRoom = new int[L.w, L.h];
+            for (int x = 0; x < L.w; x++) for (int z = 0; z < L.h; z++) L.cellRoom[x, z] = -1;
+            for (int i = 0; i < segs; i++)
+            {
+                var r = new Room { id = i, cells = new RectInt(1, 1 + i * SegL, W, SegL), kind = "corridor" };
+                L.rooms.Add(r);
+                for (int x = r.cells.xMin; x < r.cells.xMax; x++) for (int z = r.cells.yMin; z < r.cells.yMax; z++) L.cellRoom[x, z] = i;
+            }
+            for (int i = 1; i < segs; i++)
+            {
+                var o = Shared(L.rooms[i - 1].cells, L.rooms[i].cells);
+                if (o != null) { o.a = i - 1; o.b = i; o.kind = OpeningKind.Merge; L.openings.Add(o); }
+            }
+            L.startRoom = 1;
+            return L;
+        }
+
         /// <summary>Frutiger Aero park: ONE open space (no rooms, no ceiling), walled only at its edge.</summary>
         public static Layout Park(int sizeM)
         {

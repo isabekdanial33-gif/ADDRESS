@@ -83,7 +83,7 @@ namespace Address.Player
             hold = Mathf.MoveTowards(hold, holding ? 1 : 0, dt * 4f);
             reachT -= dt; reach = Mathf.MoveTowards(reach, reachT > 0 ? 1 : 0, dt * (reachT > 0 ? 9f : 4f));
             grip = Mathf.MoveTowards(grip, grab && grab.Held ? 1 : pushing ? 0.15f : 0, dt * 3f);
-            bool show = hold > 0.02f || reach > 0.02f;
+            bool show = !(fpc && fpc.Seated) || hold > 0.02f || reach > 0.02f;   // the arms are always there, lowered at the bottom of the view
             if (show != shown && rigRenderers != null) { shown = show; foreach (var r in rigRenderers) r.enabled = show; }
             if (!show) return;
 
@@ -117,6 +117,19 @@ namespace Address.Player
                     depthHalf = Mathf.Clamp(Mathf.Abs(e.z), 0f, 0.3f);
                 }
             }
+            // FP cheat: when the grip points are out of reach, the shoulders lean towards them (hands always land on the object)
+            if (hold > 0.02f)
+            {
+                float reachLen = (upperLen + lowerLen) * 0.95f, excess = 0; var push = Vector3.zero;
+                foreach (var (ua, sd) in new[] { (lUA, -1f), (rUA, 1f) })
+                {
+                    var hp = cam.transform.TransformPoint(c + new Vector3(sd * (half + 0.02f), -0.03f, -0.035f - depthHalf * 0.45f));
+                    var to = hp - ua.position; float ex = to.magnitude - reachLen;
+                    if (ex > excess) excess = ex;
+                    push += to.normalized;
+                }
+                if (excess > 0) rig.transform.position += push.normalized * excess * Ease(hold);
+            }
             Solve(lUA, lLA, lH, lPalm, -1, c, half, sway, objW, 0);
             Solve(rUA, rLA, rH, rPalm, 1, c, half, sway, objW, reach);
             // fingers close around the object
@@ -134,7 +147,7 @@ namespace Address.Player
 
         void Solve(Transform ua, Transform la, Transform hand, Vector3 palmLocal, float side, Vector3 c, float half, Vector3 sway, Vector3 objW, float reachK)
         {
-            var idle = new Vector3(side * 0.24f, -0.75f, 0.2f);
+            var idle = new Vector3(side * 0.2f, -0.27f, 0.42f);   // low in the corners of the view, but in it
             // the target is the WRIST: put it behind and below the grip point so the palm and fingers land on the object
             var holdP = c + new Vector3(side * (half + 0.02f), -0.03f, -0.035f - depthHalf * 0.45f);   // grip the near half of big things
             var reachP = Vector3.ClampMagnitude(cam.transform.InverseTransformPoint(reachPoint), 0.6f);

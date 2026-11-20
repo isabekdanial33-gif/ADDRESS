@@ -95,9 +95,11 @@ namespace Address.Player
         {
             if (humanBones.TryGetValue(t, out var hb))
             {
-                bool arm = hb == HumanBodyBones.LeftLowerArm || hb == HumanBodyBones.RightLowerArm || hb == HumanBodyBones.LeftHand || hb == HumanBodyBones.RightHand || (hb >= HumanBodyBones.LeftThumbProximal && hb <= HumanBodyBones.RightLittleDistal);
+                bool arm = hb == HumanBodyBones.LeftUpperArm || hb == HumanBodyBones.RightUpperArm || hb == HumanBodyBones.LeftLowerArm || hb == HumanBodyBones.RightLowerArm || hb == HumanBodyBones.LeftHand || hb == HumanBodyBones.RightHand || (hb >= HumanBodyBones.LeftThumbProximal && hb <= HumanBodyBones.RightLittleDistal);
                 bool leg = hb == HumanBodyBones.LeftFoot || hb == HumanBodyBones.RightFoot || hb == HumanBodyBones.LeftToes || hb == HumanBodyBones.RightToes; bool _unusedLeg = hb == HumanBodyBones.LeftLowerLeg || hb == HumanBodyBones.RightLowerLeg || hb == HumanBodyBones.LeftFoot || hb == HumanBodyBones.RightFoot || hb == HumanBodyBones.LeftToes || hb == HumanBodyBones.RightToes;
-                return splitMode == SplitMode.Arms ? !arm : true;   // legs view: nothing is drawn (only the shadow) - cut cloth looked torn
+                bool lower = hb == HumanBodyBones.Hips || hb == HumanBodyBones.Spine || hb == HumanBodyBones.LeftUpperLeg || hb == HumanBodyBones.RightUpperLeg
+                    || hb == HumanBodyBones.LeftLowerLeg || hb == HumanBodyBones.RightLowerLeg || hb == HumanBodyBones.LeftFoot || hb == HumanBodyBones.RightFoot || hb == HumanBodyBones.LeftToes || hb == HumanBodyBones.RightToes;
+                return splitMode == SplitMode.Arms ? !arm : !lower;   // legs view: hips, legs and boots are drawn; chest, head and arms are not
             }
             if (humanBones.Count > 0)
             {
@@ -192,8 +194,11 @@ namespace Address.Player
             if (grounded && !wasGrounded) landKick = 1f;
             wasGrounded = grounded; landKick = Mathf.MoveTowards(landKick, 0, dt * 4f);
             sit = Mathf.MoveTowards(sit, fpc && fpc.Seated ? 1 : 0, dt * 4f);
-            float targetCrouch = fpc ? Mathf.InverseLerp(fpc.standHeight, fpc.crouchHeight, GetComponentInParent<CharacterController>()?.height ?? fpc.standHeight) : 0;
+            float h = fpc ? (fpc.GetComponent<CharacterController>()?.height ?? fpc.standHeight) : 1.75f;
+            float targetCrawl = fpc ? Mathf.InverseLerp(fpc.crouchHeight, fpc.crawlHeight, h) : 0;
+            float targetCrouch = fpc ? Mathf.InverseLerp(fpc.standHeight, fpc.crouchHeight, h) * (1 - targetCrawl) : 0;
             crouchAmt = Mathf.MoveTowards(crouchAmt, targetCrouch, dt * 4f);
+            crawlAmt = Mathf.MoveTowards(crawlAmt, targetCrawl, dt * 3f);
 
             // gait: stride frequency grows with speed, amplitude saturates (walk 1.5, run 3.4)
             float amt = Mathf.Clamp01(speed / 1.4f) * (1 - air);
@@ -232,6 +237,7 @@ namespace Address.Player
             Swing(lLA, lLA0, X, -(10f + 14f * run) * Mathf.Max(amt, 0.3f));
             Swing(rLA, rLA0, X, -(10f + 14f * run) * Mathf.Max(amt, 0.3f));
             if (lHand) lHand.localRotation = lHand0; if (rHand) rHand.localRotation = rHand0;
+            if (crawlAmt > 0.001f) CrawlPose(amt, s);
 
             // holding something: both hands go to the object (simple two-bone aim)
             bool holding = grab && grab.Held && !firstPerson;   // in first person the FpArms hold things
@@ -260,6 +266,27 @@ namespace Address.Player
             }
         }
         float lastHalf = 0.15f;
+        float crawlAmt;
+
+        /// <summary>On hands and knees: the body tips forward to horizontal, thighs and arms hang straight down to the
+        /// floor, shins lie flat behind; opposite arm and leg step together.</summary>
+        void CrawlPose(float amt, float s)
+        {
+            float k = crawlAmt; var right = transform.right;
+            void Tip(Transform b, float deg) { if (b && deg != 0) b.rotation = Quaternion.AngleAxis(deg, right) * b.rotation; }
+            if (hips)
+            {
+                Tip(hips, 78f * k);
+                hips.position += transform.up * k * (0.5f - (hips.position.y - transform.position.y)) + transform.forward * k * -0.15f;
+            }
+            float step = s * 16f * amt;
+            // thighs back to vertical (they hang from the tipped hips), knees bent flat
+            Tip(lUL, -78f * k - step * k); Tip(rUL, -78f * k + step * k);
+            Tip(lLL, 80f * k); Tip(rLL, 80f * k);
+            // arms straight down to the floor, swinging opposite to the legs
+            Tip(lUA, 78f * k + step * k); Tip(rUA, 78f * k - step * k);
+            Tip(lLA, 5f * k); Tip(rLA, 5f * k);
+        }
 
         /// <summary>Twist the forearm about its own axis so the palm faces the wanted direction (towards the held object).</summary>
         static void Palm(Transform lower, Transform hand, Vector3 palmLocal, Vector3 want, float w)

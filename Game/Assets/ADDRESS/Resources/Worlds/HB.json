@@ -1,0 +1,45 @@
+{
+  "id": "HB",
+  "title": "Хаб",
+  "level": "The Hub",
+  "about": "Длинный коридор с дверями во все стороны. Говорят, отсюда можно попасть куда угодно.",
+  "layout": "corridor",
+  "size": 90,
+  "doors": true,
+  "wall": "Plaster001",
+  "wallTint": [
+    0.82,
+    0.82,
+    0.8
+  ],
+  "floor": "Tiles036",
+  "ceiling": "OfficeCeiling005",
+  "lightColor": [
+    0.95,
+    0.97,
+    1
+  ],
+  "lightIntensity": 2.2,
+  "deadShare": 0.05,
+  "flickerShare": 0.05,
+  "ambient": [
+    0.12,
+    0.12,
+    0.13
+  ],
+  "fogColor": [
+    0.3,
+    0.3,
+    0.32
+  ],
+  "fogDensity": 0.02,
+  "gradeSaturation": -14,
+  "gradeContrast": 12,
+  "entities": [
+    "Echo",
+    "Faceling"
+  ],
+  "entityChance": 0.2,
+  "music": "calm",
+  "weight": 0.02
+}

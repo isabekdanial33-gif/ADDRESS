@@ -12,6 +12,11 @@ namespace Address.Player
         public Transform head;                // camera pivot
         public float walkSpeed = 1.5f, runSpeed = 3.4f, crouchSpeed = 0.9f;
         public float standHeight = 1.75f, crouchHeight = 1.05f, eyeOffset = 0.12f;
+        // crawling (Z toggles; vents force it): on hands and knees, 0.6 m high
+        public float crawlHeight = 0.6f, crawlSpeed = 0.75f;
+        public bool ForceCrawl;
+        bool crawlToggle;
+        public bool Crawling => height < (crouchHeight + crawlHeight) * 0.5f;
         public float gravity = 18f, accel = 10f, jumpHeight = 0.55f;
         float coyote; public bool Jumped { get; private set; }
         public float bobAmount = 0.022f, bobFreq = 1.85f;
@@ -70,26 +75,29 @@ namespace Address.Player
             }
             if (Seated) { Apply(dt); return; }
             // crouch (only stand up if there is head room)
-            bool wantCrouch = input.Crouch;
-            float target = wantCrouch ? crouchHeight : standHeight;
-            if (!wantCrouch && height < standHeight - 0.01f)
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            if (kb != null && kb.zKey.wasPressedThisFrame) crawlToggle = !crawlToggle;
+            bool wantCrawl = ForceCrawl || crawlToggle;
+            bool wantCrouch = input.Crouch && !wantCrawl;
+            float target = wantCrawl ? crawlHeight : wantCrouch ? crouchHeight : standHeight;
+            if (target > height + 0.01f)
             {
                 var top = transform.position + Vector3.up * (height - cc.radius);
-                if (Physics.SphereCast(top, cc.radius * 0.95f, Vector3.up, out _, standHeight - height + 0.05f, ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore))
-                    target = height;
+                if (Physics.SphereCast(top, cc.radius * 0.95f, Vector3.up, out _, target - height + 0.05f, ~(1 << gameObject.layer), QueryTriggerInteraction.Ignore))
+                    target = height;   // no head room: stay down
             }
             height = Mathf.MoveTowards(height, target, dt * 3.5f);
             cc.height = height; cc.center = new Vector3(0, height / 2, 0);
 
             var mv = input.Move;
-            float speed = (wantCrouch ? crouchSpeed : input.Run && mv.y > 0.1f ? runSpeed : walkSpeed) * speedMultiplier;
+            float speed = (Crawling ? crawlSpeed : wantCrouch || height < standHeight - 0.2f ? crouchSpeed : input.Run && mv.y > 0.1f ? runSpeed : walkSpeed) * speedMultiplier;
             var fwd = Quaternion.Euler(0, yaw, 0);
             var wish = fwd * new Vector3(mv.x, 0, mv.y) * speed;
             WishVelocity = wish;
             if (cc.isGrounded) vel = Vector3.Lerp(vel, wish, 1 - Mathf.Exp(-accel * dt));
             if (cc.isGrounded) coyote = 0.12f; else coyote -= dt;
             Jumped = false;
-            if (input.JumpPressed && coyote > 0 && !wantCrouch) { vy = Mathf.Sqrt(2f * gravity * jumpHeight); coyote = 0; Jumped = true; }
+            if (input.JumpPressed && coyote > 0 && !wantCrouch && !wantCrawl && height > standHeight - 0.1f) { vy = Mathf.Sqrt(2f * gravity * jumpHeight); coyote = 0; Jumped = true; }
             else if (cc.isGrounded && vy < 0) vy = -1f; else vy -= gravity * dt;
             // in the air: keep momentum, only slight steering
             if (!cc.isGrounded) vel = Vector3.Lerp(vel, wish, 1 - Mathf.Exp(-accel * 0.25f * dt));

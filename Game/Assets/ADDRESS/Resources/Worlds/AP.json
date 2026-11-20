@@ -1,0 +1,47 @@
+{
+  "id": "AP",
+  "title": "Бесконечные квартиры",
+  "level": "Level 13",
+  "about": "Коридоры многоэтажки и одинаковые двери квартир. За некоторыми кто-то есть.",
+  "layout": "hotel",
+  "doors": true,
+  "wall": "Wallpaper002A",
+  "floor": "Carpet012",
+  "floorTint": [
+    0.6,
+    0.45,
+    0.35
+  ],
+  "ceiling": "Plaster001",
+  "lightColor": [
+    1,
+    0.8,
+    0.55
+  ],
+  "lightIntensity": 1.8,
+  "lightRange": 6,
+  "deadShare": 0.25,
+  "flickerShare": 0.1,
+  "ambient": [
+    0.08,
+    0.06,
+    0.04
+  ],
+  "fogColor": [
+    0.2,
+    0.14,
+    0.09
+  ],
+  "fogDensity": 0.03,
+  "gradeSaturation": -10,
+  "gradeContrast": 14,
+  "gradeTemperature": 10,
+  "entities": [
+    "SkinStealer",
+    "Partygoer",
+    "Faceling"
+  ],
+  "entityChance": 0.5,
+  "music": "dark",
+  "weight": 0.025
+}

@@ -18,3 +18,7 @@ Docs/reports/
 Docs/videos/
 Art_src/
 __pycache__/
+BuildTest/
+Release/
+ADDRESS-win64.zip
+BuildTest/

@@ -1,0 +1,18 @@
+{
+  "name": "ADDRESS Realism",
+  "author": "ADDRESS",
+  "description": "Мягкое свечение ламп, глубина резкости, кинематографичный контраст и дальние тени.",
+  "bloom": 0.9,
+  "bloomThreshold": 0.85,
+  "contrast": 18,
+  "saturation": -6,
+  "exposure": 0.05,
+  "temperature": 4,
+  "vignette": 0.3,
+  "grain": 0.1,
+  "motionBlur": 0.25,
+  "dofFocus": 4.0,
+  "dofAperture": 11,
+  "shadowDistance": 40,
+  "lightMul": 1.1
+}

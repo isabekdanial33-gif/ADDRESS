@@ -1,0 +1,48 @@
+{
+  "id": "RH",
+  "title": "Руинный зал",
+  "level": "Level 33",
+  "about": "Огромные бетонные залы, колонны и обломки. Эхо шагов идёт со всех сторон.",
+  "layout": "halls",
+  "kinds": [
+    "pillars",
+    "pillars",
+    "dump",
+    "empty"
+  ],
+  "wall": "Concrete034",
+  "floor": "Concrete031",
+  "ceiling": "Concrete047A",
+  "lightColor": [
+    1,
+    0.92,
+    0.8
+  ],
+  "lightIntensity": 2.4,
+  "lightRange": 9,
+  "deadShare": 0.35,
+  "flickerShare": 0.1,
+  "pipes": true,
+  "ambient": [
+    0.06,
+    0.06,
+    0.06
+  ],
+  "fogColor": [
+    0.18,
+    0.17,
+    0.16
+  ],
+  "fogDensity": 0.035,
+  "gradeSaturation": -20,
+  "gradeContrast": 20,
+  "entities": [
+    "Rake",
+    "Hound",
+    "Howler",
+    "Lifeform"
+  ],
+  "entityChance": 0.6,
+  "music": "dark",
+  "weight": 0.02
+}

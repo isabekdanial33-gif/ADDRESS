@@ -1,0 +1,2 @@
+models/psx_creature.glb: "PSX Horror Creature" by RunBun Studios, CC BY 4.0 - https://sketchfab.com/3d-models/psx-horror-creature-f2cb965d13df49f2a9c78c3358386076
+models/minion.glb: "Demonic Minion" by bertanorgun, CC BY 4.0 - https://sketchfab.com/3d-models/demonic-minion-38a0cefa0b14467ea38668edbd0ea3ba

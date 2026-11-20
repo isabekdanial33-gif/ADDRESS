@@ -41,7 +41,22 @@ namespace Address.Game
             {
                 if (!keys[i].wasPressedThisFrame || grab.Held) continue;
                 int idx = i - pockets.cables;
-                if (i < pockets.cables) { hud.Toast("кабель", "подключите им устройство: E на мониторе / клавиатуре / мыши"); continue; }
+                if (i < pockets.cables)
+                {
+                    // the coil comes out into the hands like anything else (G puts it back)
+                    var list = config.kit.db.Group("cable");
+                    if (list != null && list.Count > 0 && level != null)
+                    {
+                        var p = list[0];
+                        var go = Instantiate(p.prefab, cam.transform.position + cam.transform.forward * 0.6f, Quaternion.identity, level.root.transform); go.name = p.id;
+                        var po = go.GetComponent<PlacedObject>() ?? go.AddComponent<PlacedObject>();
+                        po.profile = p; po.uid = ++spawnedUid; level.engine.placed.Add(po);
+                        var rb = go.GetComponent<Rigidbody>() ?? go.AddComponent<Rigidbody>(); rb.mass = Mathf.Max(0.1f, p.mass); rb.interpolation = RigidbodyInterpolation.Interpolate;
+                        Address.Interact.InteractBuilder.Decorate(po);
+                        pockets.cables--; grab.TakeOut(po);
+                    }
+                    continue;
+                }
                 if (idx >= 0 && idx < pockets.items.Count) { var p = pockets.items[idx]; pockets.items.RemoveAt(idx); grab.TakeOut(p); }
             }
             hud.SetPockets(pockets.Names().ToList());

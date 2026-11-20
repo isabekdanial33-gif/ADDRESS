@@ -46,7 +46,9 @@
     "com.unity.transport": "2.7.2",
     "dev.voltstro.unitywebbrowser": "2.2.8",
     "dev.voltstro.unitywebbrowser.engine.cef": "2.2.8",
-    "dev.voltstro.unitywebbrowser.engine.cef.win.x64": "2.2.8"
+    "dev.voltstro.unitywebbrowser.engine.cef.win.x64": "2.2.8",
+    "com.rlabrecque.steamworks.net": "https://github.com/rlabrecque/Steamworks.NET.git?path=/com.rlabrecque.steamworks.net#2025.165.0",
+    "com.community.netcode.transport.steamnetworkingsockets": "https://github.com/Unity-Technologies/multiplayer-community-contributions.git?path=/Transports/com.community.netcode.transport.steamnetworkingsockets"
   },
   "scopedRegistries": [
     {

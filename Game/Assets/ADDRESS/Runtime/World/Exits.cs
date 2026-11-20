@@ -86,6 +86,17 @@ namespace Address.World
             return plans;
         }
 
+        /// <summary>Level Run: a single door in the wall at the very end of the corridor.</summary>
+        public static List<ExitPlan> PlanEnd(LayoutGenerator.Layout L)
+        {
+            var room = L.rooms[L.rooms.Count - 1];
+            var ends = room.spec.walls.Where(w => w.normal.z < -0.9f).OrderByDescending(w => w.Length).ToList();
+            if (ends.Count == 0) return null;
+            var wall = ends[0];
+            float wd = Width(ExitForm.HandlelessDoor), t = wall.Length * 0.5f;
+            return new List<ExitPlan> { new ExitPlan { index = 0, role = ExitRole.Forward, roomId = room.id, form = ExitForm.HandlelessDoor, wall = wall, along = t, width = wd, position = wall.a + wall.Dir * t, normal = wall.normal } };
+        }
+
         static ExitForm PickForm(Rng rng) { float r = rng.Value; return r < 0.5f ? ExitForm.HandlelessDoor : r < 0.75f ? ExitForm.Elevator : ExitForm.VentHatch; }
         static ExitRole PickRole(Rng rng) { float r = rng.Value; return r < 0.55f ? ExitRole.Forward : r < 0.8f ? ExitRole.Loop : ExitRole.False; }
 
