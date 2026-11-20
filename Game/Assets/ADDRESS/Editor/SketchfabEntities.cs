@@ -38,6 +38,12 @@ namespace Address.EditorTools
             ("yellowape.fbx",    "Grinner", false, 1.45f, 0f, "Walk",            "Walk",             "Walk"),
             ("shyguy.fbx",       "Shy",     false, 2.45f, 0f, "idle_floor",      "walk2",            "attackrun"),
             ("magmahound.fbx",   "Ember",   false, 1.05f, 0f, "Idle",            "Walk",             "Walk"),
+            // v0.17
+            ("goblin.fbx",       "Upir",      false, 1.55f, 0f, "WalkBaked",     "WalkBaked",     "WalkBaked"),
+            ("wendigo.fbx",      "Wendigo",   false, 2.6f,  0f, "metarig|Idle",  "metarig|Walk",  "metarig|Walk"),
+            ("hellhound.fbx",    "Hellhound", false, 0.95f, 0f, "idle",          "Run_2",         "Run_2"),
+            ("decayed.fbx",      "Decayed",   false, 2.05f, 0f, "idle",          "walk",          "run"),
+            ("medusa.fbx",       "Medusa",    false, 2.3f,  0f, "idle",          "walk",          "run"),
         };
 
         public static void Build()

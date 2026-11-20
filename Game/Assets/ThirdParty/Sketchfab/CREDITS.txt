@@ -26,3 +26,11 @@ v0.16 (all from Sketchfab, CC BY 4.0 as listed on the model page):
 - shyguy.fbx       "SCP-096 Reanimated" by Sealife Fan 3 (@SealifeFan3) - https://sketchfab.com/3d-models/scp-096-reanimated-9e0b35c9485d4b51864a232e9653cc3a
 - magmahound.fbx   "Infernal Magma Hound - Free Lava Creature Asset" by Yury Misiyuk (@Tim0) - https://sketchfab.com/3d-models/infernal-magma-hound-free-lava-creature-asset-bd8290074df34eb99f174edb176fcc46
 Textures: ambientCG (CC0) Bricks075A, Marble006, WoodFloor051, Tiles040, Wallpaper001C.
+
+v0.17 (Sketchfab, CC BY 4.0):
+- goblin.fbx    "Ape-like Goblin (Gameready)" by Ivaskiv Grigory (@Livagof) - https://sketchfab.com/3d-models/ape-like-goblin-gameready-573e13159e7a4b2cad3fe34a1c754dcc
+- wendigo.fbx   "FREE Low-poly PSX/PS1 Wendigo/Demon model" by Ultaraga Ultra Ultronus (@ultaragaultraultronus) - https://sketchfab.com/3d-models/free-low-poly-psxps1-wendigodemon-model-7c98d2c0a7984df2af2b5096c23e3044
+- hellhound.fbx "Infernal Dog" by Mr.Prizz (@Rodolfoisreal1423) - https://sketchfab.com/3d-models/infernal-dog-ac1e409e177246d69045b1b7dbd8acb2
+- decayed.fbx   "Terror Engine - Decayed" by Jazba (@jazbattgl) - https://sketchfab.com/3d-models/terror-engine-decayed-4792f83017064239b0d6a902d5266e9b
+- medusa.fbx    "Terror Engine - Medusa" by Jazba (@jazbattgl) - https://sketchfab.com/3d-models/terror-engine-medusa-ca8cb5485de84c4ea4642240ea8307fc
+Textures: ambientCG (CC0) Planks021, Tiles046.

@@ -206,3 +206,12 @@ Reference: Backrooms (A24, 2026, Kane Parsons) — failing furniture showroom (C
 - `-gametest` (silent): ritual (music + 2 servants -> survive -> other world), NOCLIP/GODMODE/MOTHERLODE, third strike ->
   YOU CHEATED, a Spider catches you -> next Echo. All pass. Fixed: cheat effects did nothing without a keyboard (touch);
   SKIPLEVEL + third strike could start two trips at once; ritual could "end" instantly when the music source never plays.
+
+## v0.17 (2026-11-21)
+- Creatures (Sketchfab CC BY): Upir (Ape-like Goblin, Livagof), Wendigo (PSX Wendigo, ultaragaultraultronus; freezes when
+  seen, 4 m/s unseen), Hellhound (Infernal Dog, Rodolfoisreal1423; fastest), Decayed and Medusa (Terror Engine, jazbattgl).
+  Textures that the FBX lost: copy the base colour to <stem>_base.png (goblin, medusa). Rejected: Creature Mimic (barrel +
+  spikes), Ditch Dog (shards), Found Footage (rigid parts), Skawg (no walk), Lurker (swims), Grandpa / Animal Company (other games' characters).
+- Worlds: MG Morgue, SW Subway (140 m corridor), AT Attic (2.3 m ceiling), CS Cold Storage, CH Chapel, AR Dark Arcade.
+  New ambientCG: Planks021, Tiles046.
+- Silent checks all pass: shots tour (30 kinds), -gametest, -smoketest.

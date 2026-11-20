@@ -1,0 +1,63 @@
+{
+  "id": "AR",
+  "title": "Тёмная аркада",
+  "level": "Arcade",
+  "about": "Ковёр с космическим узором, розовый и голубой неон. Автоматы давно выключены, но где-то играет мелодия.",
+  "layout": "halls",
+  "doorShare": 0.3,
+  "kinds": [
+    "pillars",
+    "lounge",
+    "empty",
+    "dump"
+  ],
+  "wall": "PaintedPlaster017",
+  "wallTint": [
+    0.25,
+    0.22,
+    0.35
+  ],
+  "floor": "Carpet012",
+  "floorTint": [
+    0.35,
+    0.3,
+    0.6
+  ],
+  "ceiling": "OfficeCeiling005",
+  "ceilTint": [
+    0.3,
+    0.3,
+    0.38
+  ],
+  "lightColor": [
+    1,
+    0.45,
+    0.9
+  ],
+  "lightIntensity": 2.2,
+  "lightRange": 8,
+  "deadShare": 0.25,
+  "flickerShare": 0.2,
+  "ambient": [
+    0.05,
+    0.03,
+    0.08
+  ],
+  "fogColor": [
+    0.12,
+    0.06,
+    0.18
+  ],
+  "fogDensity": 0.035,
+  "gradeSaturation": 20,
+  "gradeContrast": 18,
+  "gradeTemperature": -6,
+  "entities": [
+    "Partygoer",
+    "Grinner",
+    "Medusa"
+  ],
+  "entityChance": 0.55,
+  "music": "dark",
+  "weight": 0.014
+}

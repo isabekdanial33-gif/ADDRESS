@@ -1,0 +1,57 @@
+{
+  "id": "CS",
+  "title": "Холодильные камеры",
+  "level": "Cold Storage",
+  "about": "Металлические стены в инее и гул компрессоров. Дыхание превращается в пар. Здесь хранили что-то очень большое.",
+  "layout": "halls",
+  "doorShare": 0.25,
+  "kinds": [
+    "storage",
+    "pillars",
+    "empty"
+  ],
+  "wall": "MetalPlates006",
+  "wallTint": [
+    0.78,
+    0.88,
+    0.95
+  ],
+  "floor": "Concrete031",
+  "floorTint": [
+    0.82,
+    0.88,
+    0.92
+  ],
+  "ceiling": "MetalPlates006",
+  "lightColor": [
+    0.75,
+    0.9,
+    1
+  ],
+  "lightIntensity": 2.2,
+  "lightRange": 9,
+  "deadShare": 0.15,
+  "flickerShare": 0.06,
+  "ambient": [
+    0.06,
+    0.08,
+    0.1
+  ],
+  "fogColor": [
+    0.5,
+    0.58,
+    0.64
+  ],
+  "fogDensity": 0.035,
+  "gradeSaturation": -24,
+  "gradeContrast": 10,
+  "gradeTemperature": -24,
+  "entities": [
+    "Wendigo",
+    "Wendigo",
+    "Decayed"
+  ],
+  "entityChance": 0.55,
+  "music": "dark",
+  "weight": 0.014
+}

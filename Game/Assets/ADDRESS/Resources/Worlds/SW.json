@@ -1,0 +1,48 @@
+{
+  "id": "SW",
+  "title": "Подземка",
+  "level": "Subway",
+  "about": "Бесконечный служебный туннель метро: кафель, кабели, лужи. Поезд так и не пришёл.",
+  "layout": "corridor",
+  "size": 140,
+  "wall": "Tiles107",
+  "wallTint": [
+    0.82,
+    0.86,
+    0.76
+  ],
+  "floor": "Concrete034",
+  "ceiling": "Concrete047A",
+  "pipes": true,
+  "lightColor": [
+    1,
+    0.9,
+    0.7
+  ],
+  "lightIntensity": 2.0,
+  "lightRange": 8,
+  "deadShare": 0.3,
+  "flickerShare": 0.15,
+  "ambient": [
+    0.04,
+    0.04,
+    0.035
+  ],
+  "fogColor": [
+    0.14,
+    0.14,
+    0.12
+  ],
+  "fogDensity": 0.04,
+  "gradeSaturation": -16,
+  "gradeContrast": 18,
+  "gradeTemperature": 4,
+  "entities": [
+    "Hellhound",
+    "Upir",
+    "Hound"
+  ],
+  "entityChance": 0.7,
+  "music": "dark",
+  "weight": 0.014
+}

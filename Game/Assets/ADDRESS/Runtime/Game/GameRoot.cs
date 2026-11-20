@@ -349,7 +349,7 @@ namespace Address.Game
                 }
             }
             // ---- the new worlds: garage and hotel, four looks each from the start
-            foreach (var w in new[] { "GR", "PK", "DM", "TE", "TH", "BS", "BK" })
+            foreach (var w in new[] { "MG", "SW", "AT", "CS", "CH", "AR" })
                 for (int v = 0; v < 1; v++)
                 {
                     StartCoroutine(Enter(new LevelAddress(w, Hashing.Fnv64("world " + w + v)), null));

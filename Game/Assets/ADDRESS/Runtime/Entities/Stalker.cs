@@ -135,6 +135,11 @@ namespace Address.Entities
                 case EntityKind.Thinman: wanderSpeed = 0.55f; stalkSpeed = 2.4f; freezeWhenSeen = true; noticeRange = 26f; catchRadius = 1.0f; vocals = Sfx("deep_", "eerie_"); break;
                 case EntityKind.Grinner: wanderSpeed = 1.0f; stalkSpeed = 3.1f; freezeWhenSeen = false; noticeRange = 15f; catchRadius = 0.95f; vocals = Sfx("spirit_", "beast_"); break;
                 case EntityKind.Shy: wanderSpeed = 0f; stalkSpeed = 3.7f; freezeWhenSeen = false; noticeRange = 999f; catchRadius = 1.0f; shy = true; vocals = Sfx("spirit_", "eerie_"); stepSet = "step_hard_"; break;
+                case EntityKind.Upir: wanderSpeed = 1.0f; stalkSpeed = 3.3f; freezeWhenSeen = false; noticeRange = 15f; catchRadius = 0.95f; vocals = Sfx("beast_", "growl_"); break;
+                case EntityKind.Wendigo: wanderSpeed = 0.5f; stalkSpeed = 4.0f; freezeWhenSeen = true; noticeRange = 22f; catchRadius = 1.0f; vocals = Sfx("eerie_", "deep_", "spirit_"); stepSet = "step_hard_"; break;
+                case EntityKind.Hellhound: wanderSpeed = 1.2f; stalkSpeed = 3.9f; freezeWhenSeen = false; noticeRange = 20f; catchRadius = 1.0f; vocals = Sfx("growl_"); stepSet = "step_hard_"; break;
+                case EntityKind.Decayed: wanderSpeed = 0.45f; stalkSpeed = 1.45f; freezeWhenSeen = false; noticeRange = 30f; catchRadius = 0.9f; vocals = Sfx("beast_", "growl_"); break;
+                case EntityKind.Medusa: wanderSpeed = 0.7f; stalkSpeed = 2.7f; freezeWhenSeen = false; noticeRange = 16f; catchRadius = 1.1f; vocals = Sfx("demon_", "eerie_"); stepSet = "none"; break;
                 case EntityKind.Ember: wanderSpeed = 1.0f; stalkSpeed = 3.5f; freezeWhenSeen = false; noticeRange = 16f; catchRadius = 1.0f; vocals = Sfx("growl_", "demon_"); stepSet = "step_hard_"; break;
             }
             if (k == EntityKind.Clark && anim && anim.isHuman)

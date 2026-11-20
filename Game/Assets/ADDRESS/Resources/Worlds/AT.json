@@ -1,0 +1,61 @@
+{
+  "id": "AT",
+  "title": "Чердак",
+  "level": "Attic",
+  "about": "Доски, балки и низкий потолок. Пыль висит в свете редких лампочек. Сверху кто-то ходит, хотя выше ничего нет.",
+  "layout": "rooms",
+  "roomMin": 2.6,
+  "roomMax": 7,
+  "doorShare": 0.7,
+  "height": 2.3,
+  "kinds": [
+    "dump",
+    "storage",
+    "empty",
+    "wrong"
+  ],
+  "wall": "Planks021",
+  "floor": "WoodFloor051",
+  "floorTint": [
+    0.8,
+    0.72,
+    0.62
+  ],
+  "ceiling": "Planks021",
+  "ceilTint": [
+    0.7,
+    0.62,
+    0.52
+  ],
+  "lightColor": [
+    1,
+    0.8,
+    0.55
+  ],
+  "lightIntensity": 1.6,
+  "lightRange": 6,
+  "deadShare": 0.25,
+  "flickerShare": 0.12,
+  "ambient": [
+    0.05,
+    0.04,
+    0.03
+  ],
+  "fogColor": [
+    0.2,
+    0.16,
+    0.11
+  ],
+  "fogDensity": 0.045,
+  "gradeSaturation": -10,
+  "gradeContrast": 16,
+  "gradeTemperature": 12,
+  "entities": [
+    "Wendigo",
+    "Upir",
+    "Grinner"
+  ],
+  "entityChance": 0.55,
+  "music": "dark",
+  "weight": 0.016
+}
